@@ -2,7 +2,9 @@
 Pequeno aka _pqr5_ is a pipelined in-order RISC-V CPU Core compliant with RV32I
 
 ### Overview
-- RV32I ISA v2.2 + custom instructions (Assembler and Instruction Manual: https://github.com/iammituraj/pqr5asm)
+- RV32I ISA v2.2 + custom instructions
+  
+  _Assembler and Instruction Manual_: https://github.com/iammituraj/pqr5asm)
 - Single-core, Single-issue, In-order execution
 - Classic 5-stage RISC-V pipeline
 
