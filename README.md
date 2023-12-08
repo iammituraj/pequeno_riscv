@@ -17,7 +17,7 @@ Pequeno aka _pqr5_ is a pipelined in-order RISC-V CPU Core compliant with RV32I
                                       \___________________________\/
                                        \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
   
-        chipmunklogic.com                                                        [[[[[[[ O P E N - S O U R C E _
+        chipmunklogic.com                                                    [[[[[[[ O P E N - S O U R C E _
                                                                                                 
 # Developer
 Mitu Raj, [Chipmunk Logic](https://chipmunklogic.com), chip@chipmunklogic.com
