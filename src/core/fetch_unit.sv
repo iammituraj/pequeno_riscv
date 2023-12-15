@@ -34,7 +34,7 @@
 //----%% Last modified on : Feb-2023
 //----%% Notes            : -
 //----%%                  
-//----%% Copyright        : Open-source license, see developer.txt.
+//----%% Copyright        : This code is licensed under the MIT License. See LICENSE.md for the full license text.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
