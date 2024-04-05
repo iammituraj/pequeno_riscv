@@ -29,7 +29,7 @@
 //----%% Last modified on : Aug-17-2022
 //----%% Notes            : Attribute ASYNC_REG used to PAR the flops together in Xilinx FPGAs.
 //----%%                  
-//----%% Copyright        : This code is licensed under the MIT License. See LICENSE.md for the full license text.
+//----%% Copyright        : Open-source license, see LICENSE.md
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

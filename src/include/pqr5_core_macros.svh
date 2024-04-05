@@ -26,10 +26,10 @@
 //----%% Description      : This Header file contains all macros (constants/configurable) used by PQR5 Core source files.
 //----%%
 //----%% Tested on        : -
-//----%% Last modified on : Feb-2023
+//----%% Last modified on : Jan-2024
 //----%% Notes            : -
 //----%%                  
-//----%% Copyright        : This code is licensed under the MIT License. See LICENSE.md for the full license text.
+//----%% Copyright        : Open-source license, see developer.txt.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -53,17 +53,30 @@
 
 // Instructions
 `define INSTR_NOP     32'h0000_0013        // NOP pseudo-instruction
-`define INSTR_END     32'hEEE0_0013        // END simulation instruction; known only by sim framework, not Assembler
+`define INSTR_END     32'hEEE0_0013        // END simulation instruction (mvi x0, 0xEEE); known only by sim framework, not Assembler
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset (32-bit aligned word address)
+`define TEST_PORTS                        // Define this macro to generate test ports from core: x31 bits, boot flag
+`define CORE_SYNTH                        // Define this macro to override sim macros, and configure the core for SYNTHESIS
 `define DBG                               // Define this macro to generate all debug modules/interfaces for simulation; UNDEFINE FOR SYNTHESIS
 `define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages; UNDEFINE FOR SYNTHESIS
+`define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END simulation instruction; UNDEFINE FOR SYNTHESIS
 `define REGFILE_DUMP  1                   // If DBG is enabled: '1'- Dump Register File @end of simulation, '0'- Do not dump; '0' FOR SYNTHESIS
 //---------------------------------------------------------------------------------------------------------------------------------------------------
+
+// SYNTHESIS override ............ //
+`ifdef CORE_SYNTH
+`undef DBG
+`undef DBG_PRINT
+`undef SIMEXIT_INSTR_END
+`undef REGFILE_DUMP
+`define REGFILE_DUMP 0
+`endif
+// SYNTHESIS override .......--... //
 
 `endif
 //###################################################################################################################################################

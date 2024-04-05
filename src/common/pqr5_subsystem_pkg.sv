@@ -29,7 +29,7 @@
 //----%% Last modified on : Feb-2023
 //----%% Notes            : -
 //----%%                  
-//----%% Copyright        : This code is licensed under the MIT License. See LICENSE.md for the full license text.
+//----%% Copyright        : Open-source license, see developer.txt.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -40,7 +40,6 @@ package pqr5_subsystem_pkg ;
 
 // Packages imported
 import pqr5_core_pkg :: hex2txtf ;
-import pqr5_core_pkg :: hex2txt  ;
 import pqr5_core_pkg :: DSIZE    ;
 
 //===================================================================================================================================================
