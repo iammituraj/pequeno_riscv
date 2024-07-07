@@ -20,6 +20,9 @@ Pequeno aka _pqr5_ is a 5-staged pipelined in-order RISC-V CPU Core compliant wi
                                        \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
   
         chipmunklogic.com                                                    [[[[[[[ O P E N - S O U R C E _
-                                                                                                
+# Disclaimer
+This CPU core is intended for educational purposes only. 
+Users are encouraged to review the accompanying license document (LICENSE) for detailed terms and conditions.
+
 # Developer
 Mitu Raj, [Chipmunk Logic](https://chipmunklogic.com), chip@chipmunklogic.com
