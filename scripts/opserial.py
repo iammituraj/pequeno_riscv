@@ -13,7 +13,7 @@
 #                    Running from command line: 
 #                    python opserial.py <PORT> <BAUDRATE> <PARITY> <TIMEOUT in sec>
 #                    e.g: python opserial.py COM3 115200 N 1
-#                    All arguments have default values: COM3, 9600, N, 1
+#                    All arguments have default values: COM3, 115200, N, 1
 #
 # Last modified on : June-2024
 # Compatiblility   : Python 3.9 tested
