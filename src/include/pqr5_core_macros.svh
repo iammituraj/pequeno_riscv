@@ -59,9 +59,9 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-`define PC_INIT       32'h0000_0000       // PC init address after CPU reset (32-bit aligned word address)
+`define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
 `define TEST_PORTS                        // Define this macro to generate test ports from core: x31 bits, boot flag
-`define CORE_SYNTH                        // Define this macro to override sim macros, and configure the core for SYNTHESIS
+//`define CORE_SYNTH                        // Define this macro to override sim macros, and configure the core for SYNTHESIS
 `define DBG                               // Define this macro to generate all debug modules/interfaces for simulation; UNDEFINE FOR SYNTHESIS
 `define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages; UNDEFINE FOR SYNTHESIS
 `define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END simulation instruction; UNDEFINE FOR SYNTHESIS

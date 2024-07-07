@@ -29,7 +29,7 @@
 //----%% Last modified on : Mar-2023
 //----%% Notes            : -
 //----%%                  
-//----%% Copyright        : Open-source license, see developer.txt.
+//----%% Copyright        : Open-source license, see LICENSE.md.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

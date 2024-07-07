@@ -1,0 +1,38 @@
++======================================
+| Pequeno RISC-V CPU v1.0 Simulation   
++======================================
+| Register File Dump
++--------------------------------------
+| R0  : 32'h0000_0000
+| R1  : 32'hFFFF_FAAA
+| R2  : 32'hFFFF_FEEE
+| R3  : 32'hFFFF_FEEE
+| R4  : 32'hXXXX_XXXX
+| R5  : 32'h0000_0048
+| R6  : 32'h0000_0000
+| R7  : 32'hXXXX_XXXX
+| R8  : 32'hXXXX_XXXX
+| R9  : 32'hXXXX_XXXX
+| R10 : 32'h0000_0000
+| R11 : 32'hXXXX_XXXX
+| R12 : 32'hXXXX_XXXX
+| R13 : 32'hXXXX_XXXX
+| R14 : 32'h0000_0000
+| R15 : 32'hXXXX_XXXX
+| R16 : 32'hXXXX_XXXX
+| R17 : 32'hXXXX_XXXX
+| R18 : 32'hXXXX_XXXX
+| R19 : 32'hXXXX_XXXX
+| R20 : 32'hXXXX_XXXX
+| R21 : 32'hXXXX_XXXX
+| R22 : 32'hXXXX_XXXX
+| R23 : 32'hXXXX_XXXX
+| R24 : 32'hXXXX_XXXX
+| R25 : 32'hXXXX_XXXX
+| R26 : 32'hXXXX_XXXX
+| R27 : 32'hXXXX_XXXX
+| R28 : 32'h0000_0048
+| R29 : 32'hXXXX_XXXX
+| R30 : 32'hXXXX_XXXX
+| R31 : 32'hXXXX_XXXX
++======================================

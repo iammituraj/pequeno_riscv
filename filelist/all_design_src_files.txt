@@ -1,0 +1,51 @@
+############################## COMMON ###############################
+./src/common/areset_sync.sv
+./src/common/cdc_sync.sv
+./src/common/pqr5_core_pkg.sv
+./src/common/pqr5_subsystem_pkg.sv
+
+############################### UART IP #############################
+./src/common/uart_ip/baud_gen.sv
+./src/common/uart_ip/uart_rx.sv
+./src/common/uart_ip/uart_tx.sv
+./src/common/uart_ip/uart_top.sv
+
+
+############################## MEMORY ###############################
+./src/memory/iram.sv
+./src/memory/imem_top.sv
+
+./src/memory/dram.sv
+./src/memory/dram_4x8.sv
+./src/memory/dmem_top.sv
+
+
+############################## CORE #################################
+./src/core/fetch_unit.sv
+
+./src/core/opfwd_control.sv
+./src/core/regfile.sv
+./src/core/decode_unit.sv
+
+./src/core/exu_branch_unit.sv
+./src/core/alu.sv
+./src/core/loadstore_unit.sv
+./src/core/execution_unit.sv
+
+./src/core/memory_access_unit.sv
+
+./src/core/writeback_unit.sv
+
+
+############################## CORE TOP #############################
+./src/core/pqr5_core_top.sv
+
+
+############################## SUBSYSTEM COMPONENTS #################
+./src/subsystem/reset_ctl.sv
+./src/subsystem/loader/loader.sv
+./src/subsystem/dbgUART/uarttx_addrmap.sv
+
+
+############################## SUBSYSTEM TOP ########################
+./src/subsystem/pqr5_subsystem_top.sv

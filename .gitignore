@@ -1,0 +1,11 @@
+vivado/
+sim/
+synth/
+*.log
+dump*/
+ref/
+
+/src/memory/imem*
+src/memory/iram*
+assembler/sample*.*
+assembler/asm_pgm_info.txt

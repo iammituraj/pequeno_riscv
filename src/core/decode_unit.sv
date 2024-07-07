@@ -29,11 +29,11 @@
 //----%%                    # Sends decoded instruction fields, type, opcode, immediates to EXU.
 //----%%                    # Single cycle latency pipeline.
 //----%%
-//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
+//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Feb-2023
 //----%% Notes            : -
 //----%%                  
-//----%% Copyright        : Open-source license, see developer.txt.
+//----%% Copyright        : Open-source license, see LICENSE.md.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
