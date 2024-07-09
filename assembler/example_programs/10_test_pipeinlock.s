@@ -15,4 +15,6 @@ SKIP:
 mvi x2, 0xEEE
 RESET_INDEX:
 mvi x3, 0xEEE
-mvi x0, 0xEEE
+lw t2, 0(a0)
+sw t2, 4(a0)
+mvi x0, 0xEEE  # End instruction

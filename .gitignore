@@ -9,3 +9,4 @@ ref/
 src/memory/iram*
 assembler/sample*.*
 assembler/asm_pgm_info.txt
+assembler/asm_pgm_dump_ref
