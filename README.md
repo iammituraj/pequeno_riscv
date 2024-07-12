@@ -1,5 +1,5 @@
 # pequeno_riscv
-Pequeno (_pqr5_, meaning "_tiny_" in Spanish) is a 5-staged pipelined in-order RISC-V CPU Core compliant with RV32I
+Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-order RISC-V CPU Core compliant with RV32I
 
 ### Overview
 - RV32I ISA v2.2 + custom instructions
