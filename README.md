@@ -5,6 +5,8 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
 - RV32I ISA v2.2 + custom instructions
   
   _Assembler and Instruction Manual_: https://github.com/iammituraj/pqr5asm)
+  
+  _FPGA demo of Pequeno running Hello world program_: https://youtu.be/GECyL9U5ZxI
 - Single-core, Single-issue, In-order execution
 - Classic 5-stage RISC-V pipeline
 
