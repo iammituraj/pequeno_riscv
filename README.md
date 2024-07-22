@@ -22,6 +22,10 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
                                        \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
   
         chipmunklogic.com                                                    [[[[[[[ O P E N - S O U R C E _
+
+### Important notes
+Please through _database_info.txt_ for information about the repo organization and how to setup the pqr5 build environment
+
 # Disclaimer
 This CPU core is intended for educational purposes only. 
 Users are encouraged to review the accompanying license document (LICENSE) for detailed terms and conditions.
