@@ -1,9 +1,9 @@
 #############################################################################################################
-# ╔═╦╗╔╗─────────╔╗─╔╗────╔╗
-# ║╔╣╚╬╬═╦══╦╦╦═╦╣╠╗║║╔═╦═╬╬═╗
-# ║╚╣║║║╬║║║║║║║║║═╣║╚╣╬║╬║║═╣ /////////////// O P E N S O U R C E
-# ╚═╩╩╩╣╔╩╩╩╩═╩╩═╩╩╝╚═╩═╬╗╠╩═╝
-# ─────╚╝───────────────╚═╝
+##   _______   _                      __     __             _    
+##  / ___/ /  (_)__  __ _  __ _____  / /__  / /  ___  ___ _(_)___ TM
+## / /__/ _ \/ / _ \/  ' \/ // / _ \/  '_/ / /__/ _ \/ _ `/ / __/          ////  O P E N - S O U R C E ////
+## \___/_//_/_/ .__/_/_/_/\_,_/_//_/_/\_\ /____/\___/\_, /_/\__/ 
+##           /_/                                    /___/              
 #############################################################################################################
 # Script           : Regression run
 # Developer        : Mitu Raj, chip@chipmunklogic.com
@@ -33,6 +33,7 @@ en_run11=1
 en_run12=1
 en_run13=1
 en_run14=1
+en_run15=1
 
 # VALIDATION
 if [ "$en_run01" -eq 0 ] && [ "$en_run02" -eq 0 ] && \
@@ -41,7 +42,7 @@ if [ "$en_run01" -eq 0 ] && [ "$en_run02" -eq 0 ] && \
    [ "$en_run07" -eq 0 ] && [ "$en_run08" -eq 0 ] && \
    [ "$en_run09" -eq 0 ] && [ "$en_run10" -eq 0 ] && \
    [ "$en_run11" -eq 0 ] && [ "$en_run12" -eq 0 ] && \
-   [ "$en_run13" -eq 0 ] && [ "$en_run14" -eq 0 ]; then
+   [ "$en_run13" -eq 0 ] && [ "$en_run14" -eq 0 ] && [ "$en_run15" -eq 0 ]; then
    echo ""
    echo "| PQR5: No tests enabled! REGRESSION RUN ABORTED..."
    echo ""
@@ -70,8 +71,8 @@ if [ "$en_run01" -eq 1 ]; then
    echo "## RUN 01: 01_test_regfile" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 01: 01_test_regfile -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 01: 01_test_regfile -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 01: [PASS] 01_test_regfile" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 01: [FAIL] 01_test_regfile" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/01_test_regfile
    cp -f ./sim/*.log ./regress_run_dump/01_test_regfile
    echo ""
@@ -93,8 +94,8 @@ if [ "$en_run02" -eq 1 ]; then
    echo "## RUN 02: 02_test_alu" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 02: 02_test_alu -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 02: 02_test_alu -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 02: [PASS] 02_test_alu" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 02: [FAIL] 02_test_alu" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/02_test_alu
    cp -f ./sim/*.log ./regress_run_dump/02_test_alu
    echo ""
@@ -116,8 +117,8 @@ if [ "$en_run03" -eq 1 ]; then
    echo "## RUN 03: 03_test_alu_shift" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 03: 03_test_alu_shift -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 03: 03_test_alu_shift -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 03: [PASS] 03_test_alu_shift" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 03: [FAIL] 03_test_alu_shift" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/03_test_alu_shift
    cp -f ./sim/*.log ./regress_run_dump/03_test_alu_shift
    echo ""
@@ -139,8 +140,8 @@ if [ "$en_run04" -eq 1 ]; then
    echo "## RUN 04: 04_test_pseudo" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 04: 04_test_pseudo -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 04: 04_test_pseudo -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 04: [PASS] 04_test_pseudo" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 04: [FAIL] 04_test_pseudo" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/04_test_pseudo
    cp -f ./sim/*.log ./regress_run_dump/04_test_pseudo
    echo ""
@@ -162,8 +163,8 @@ if [ "$en_run05" -eq 1 ]; then
    echo "## RUN 05: 05_test_jump" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 05: 05_test_jump -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 05: 05_test_jump -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 05: [PASS] 05_test_jump" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 05: [FAIL] 05_test_jump" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/05_test_jump
    cp -f ./sim/*.log ./regress_run_dump/05_test_jump
    echo ""
@@ -185,8 +186,8 @@ if [ "$en_run06" -eq 1 ]; then
    echo "## RUN 06: 06_test_branch" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 06: 06_test_branch -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 06: 06_test_branch -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 06: [PASS] 06_test_branch" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 06: [FAIL] 06_test_branch" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/06_test_branch
    cp -f ./sim/*.log ./regress_run_dump/06_test_branch
    echo ""
@@ -208,8 +209,8 @@ if [ "$en_run07" -eq 1 ]; then
    echo "## RUN 07: 07_test_loadstore" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 07: 07_test_loadstore -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 07: 07_test_loadstore -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 07: [PASS] 07_test_loadstore" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 07: [FAIL] 07_test_loadstore" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/07_test_loadstore
    cp -f ./sim/*.log ./regress_run_dump/07_test_loadstore
    echo ""
@@ -231,8 +232,8 @@ if [ "$en_run08" -eq 1 ]; then
    echo "## RUN 08: 08_test_ldstall" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 08: 08_test_ldstall -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 08: 08_test_ldstall -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 08: [PASS] 08_test_ldstall" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 08: [FAIL] 08_test_ldstall" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/08_test_ldstall
    cp -f ./sim/*.log ./regress_run_dump/08_test_ldstall
    echo ""
@@ -254,8 +255,8 @@ if [ "$en_run09" -eq 1 ]; then
    echo "## RUN 09: 09_test_rawhzd" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 09: 09_test_rawhzd -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 09: 09_test_rawhzd -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 09: [PASS] 09_test_rawhzd" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 09: [FAIL] 09_test_rawhzd" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/09_test_rawhzd
    cp -f ./sim/*.log ./regress_run_dump/09_test_rawhzd
    echo ""
@@ -277,8 +278,8 @@ if [ "$en_run10" -eq 1 ]; then
    echo "## RUN 10: 10_test_pipeinlock" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 10: 10_test_pipeinlock -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 10: 10_test_pipeinlock -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 10: [PASS] 10_test_pipeinlock" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 10: [FAIL] 10_test_pipeinlock" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/10_test_pipeinlock
    cp -f ./sim/*.log ./regress_run_dump/10_test_pipeinlock
    echo ""
@@ -300,8 +301,8 @@ if [ "$en_run11" -eq 1 ]; then
    echo "## RUN 11: 11_adder" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 11: 11_adder -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 11: 11_adder -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 11: [PASS] 11_adder" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 11: [FAIL] 11_adder" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/11_adder
    cp -f ./sim/*.log ./regress_run_dump/11_adder
    echo ""
@@ -323,8 +324,8 @@ if [ "$en_run12" -eq 1 ]; then
    echo "## RUN 12: 12_fibonacci" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 12: 12_fibonacci -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 12: 12_fibonacci -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 12: [PASS] 12_fibonacci" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 12: [FAIL] 12_fibonacci" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/12_fibonacci
    cp -f ./sim/*.log ./regress_run_dump/12_fibonacci
    echo ""
@@ -346,8 +347,8 @@ if [ "$en_run13" -eq 1 ]; then
    echo "## RUN 13: 13_multiplier" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 13: 13_multiplier -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 13: 13_multiplier -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 13: [PASS] 13_multiplier" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 13: [FAIL] 13_multiplier" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/13_multiplier
    cp -f ./sim/*.log ./regress_run_dump/13_multiplier
    echo ""
@@ -369,12 +370,35 @@ if [ "$en_run14" -eq 1 ]; then
    echo "## RUN 14: 14_adder_func" >> ./regress_run_dump/checker.log
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
-   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 14: 14_adder_func -- PASS" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 14: 14_adder_func -- FAIL" >> ./regress_run_dump/regress_result.txt
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 14: [PASS] 14_adder_func" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 14: [FAIL] 14_adder_func" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/14_adder_func
    cp -f ./sim/*.log ./regress_run_dump/14_adder_func
    echo ""
    echo "| PQR5: RUN 14 completed..."
+   echo ""
+fi
+
+# RUN 15
+if [ "$en_run15" -eq 1 ]; then
+   echo ""
+   echo "| PQR5: RUN 15 initiated..."
+   echo ""
+   mkdir -v ./regress_run_dump
+   mkdir -v ./regress_run_dump/15_datacopy
+   make -C ./ full_clean
+   make -C ./ build ASM="15_datacopy.s"
+   make -C ./ compile
+   make -C ./ sim
+   echo "## RUN 15: 15_datacopy" >> ./regress_run_dump/checker.log
+   make -C ./ diff >> ./regress_run_dump/checker.log
+   echo "" >> ./regress_run_dump/checker.log
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 15: [PASS] 15_datacopy" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 1: [FAIL] 15_datacopy" >> ./regress_run_dump/regress_result.txt
+   cp -rf ./dump/* ./regress_run_dump/15_datacopy
+   cp -f ./sim/*.log ./regress_run_dump/15_datacopy
+   echo ""
+   echo "| PQR5: RUN 15 completed..."
    echo ""
 fi
 

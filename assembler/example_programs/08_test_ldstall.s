@@ -1,8 +1,9 @@
-.ORIGIN 0x0           
-
 # PQR5 CPU Test Program - 08_test_ldstall.s
 # Tests pipeline interlock generating stall on Load instructions causing RAW hazard
 # Pipeline interlock stall is reqd for data forwarding on Load RAW hazards...
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 j S1

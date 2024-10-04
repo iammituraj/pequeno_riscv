@@ -1,3 +1,21 @@
+//     %%%%%%%%%%%%      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//  %%%%%%%%%%%%%%%%%%                      
+// %%%%%%%%%%%%%%%%%%%% %%                
+//    %% %%%%%%%%%%%%%%%%%%                
+//        % %%%%%%%%%%%%%%%                 
+//           %%%%%%%%%%%%%%                 ////    O P E N - S O U R C E     ////////////////////////////////////////////////////////////
+//           %%%%%%%%%%%%%      %%          _________________________________////
+//           %%%%%%%%%%%       %%%%                ________    _                             __      __                _     
+//          %%%%%%%%%%        %%%%%%              / ____/ /_  (_)___  ____ ___  __  ______  / /__   / /   ____  ____ _(_)____ TM 
+//         %%%%%%%    %%%%%%%%%%%%*%%%           / /   / __ \/ / __ \/ __ `__ \/ / / / __ \/ //_/  / /   / __ \/ __ `/ / ___/
+//        %%%%% %%%%%%%%%%%%%%%%%%%%%%%         / /___/ / / / / /_/ / / / / / / /_/ / / / / ,<    / /___/ /_/ / /_/ / / /__  
+//       %%%%*%%%%%%%%%%%%%  %%%%%%%%%          \____/_/ /_/_/ .___/_/ /_/ /_/\__,_/_/ /_/_/|_|  /_____/\____/\__, /_/\___/
+//       %%%%%%%%%%%%%%%%%%%    %%%%%%%%%                   /_/                                              /____/  
+//       %%%%%%%%%%%%%%%%                                                             ___________________________________________________               
+//       %%%%%%%%%%%%%%                    //////////////////////////////////////////////       c h i p m u n k l o g i c . c o m    //// 
+//         %%%%%%%%%                       
+//           %%%%%%%%%%%%%%%%               
+//    
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----%% 
 //----%% File Name        : dmem_top.sv
@@ -39,7 +57,7 @@
 `include "../include/pqr5_subsystem_macros.svh"
 
 // Module definition
-module dmem_top#(
+module dmem_top_model#(
    // Configurable Parameters
    parameter  RAM_DEPTH   = 1024 ,      // Depth of RAM; 2^N; range=[4-..]
    parameter  IS_ZERO_LAT = 1    ,      // '1'- Zero latency model with 100% Hit, '0'- Non-zero latency model
@@ -56,13 +74,21 @@ module dmem_top#(
 )
 (
    // Clock and Reset Interface  
-   input  logic               clk     ,    // Clock
-   input  logic               aresetn ,    // Asynchronous Reset; active-low 
+   input  logic  clk     ,    // Clock
+   input  logic  aresetn ,    // Asynchronous Reset; active-low 
 
    // Debug UART Interface
    `ifdef DBGUART
-   output logic               o_uart_tx ,  // UART Tx
+   output logic  o_uart_tx ,  // UART Tx
    `endif
+
+   // Programming Interface: used to write the binary to Instruction RAM
+   input  logic                  i_pgm_en         ,  // Programming mode Enable
+   input  logic [RAM_ADDR_W-1:0] i_pgm_dram_addr  ,  // Address
+   input  logic [DATA_W-1:0]     i_pgm_dram_wdata ,  // Write Data
+   input  logic                  i_pgm_dram_en    ,  // RAM Enable
+   input  logic                  i_pgm_dram_wen   ,  // Write Enable
+   output logic [DATA_W-1:0]     o_pgm_dram_rdata ,  // Read Data
       
    // Memory Interface
    input  logic               i_wen   ,    // Write enable
@@ -86,6 +112,8 @@ localparam [1:0] WORD   = 2'b10 ;
 
 generate
 ////////////////////////////////////////////////////////////== Zero Latency Model ==///////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////== Zero Latency Model ==///////////////////////////////////////////////////////////////// 
+////////////////////////////////////////////////////////////== Zero Latency Model ==///////////////////////////////////////////////////////////////// 
 if (IS_ZERO_LAT == 1) begin : DMEM_ZEROLAT_MODEL
 
 //===================================================================================================================================================
@@ -104,10 +132,14 @@ localparam BADR_UART = 32'h0001_0000 ;
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-logic [ADDR_W-1:0] ram_addr  ;  // Address to RAM
-logic [DATA_W-1:0] ram_rdata ;  // Data read from RAM
-logic              ram_hit   ;  // Hit
-logic              ram_en    ;  // Enable
+logic [RAM_ADDR_W-1:0] ram_addr      ;  // Address to RAM from Memory IF
+logic [RAM_ADDR_W-1:0] ram_addr_pp   ;  // Address @RAM after D-RAM Mux
+logic [DATA_W-1:0]     ram_rdata     ;  // Data read from RAM
+logic [DATA_W-1:0]     ram_wdata_pp  ;  // Write Data @RAM after D-RAM Mux
+logic                  ram_hit       ;  // Hit RAM
+logic                  ram_wen_pp    ;  // Write Enable @RAM after D-RAM Mux
+logic                  ram_en        ;  // Enable RAM from Memory IF
+logic [3:0]            ram_en_pp     ;  // Enable @RAM after D-RAM Mux
 `ifdef DBGUART
 logic [11:0]       uart_addr ;  // Address to UART
 logic [DATA_W-1:0] uart_rdata;  // Data read from UART registers
@@ -142,11 +174,11 @@ dram_4x8 #(
    .DEPTH  (RAM_DEPTH)
 ) 
 inst_dram_4x8 (
-   .clk    (clk) ,   
-   .i_en   (byte_en & {4{ram_en}}) ,
-   .i_wen  (i_wen & i_req) , 
-   .i_addr (ram_addr)      ,
-   .i_data (i_data)        ,
+   .clk    (clk)           ,   
+   .i_en   (ram_en_pp)     ,
+   .i_wen  (ram_wen_pp)    , 
+   .i_addr (ram_addr_pp)   ,
+   .i_data (ram_wdata_pp)  ,
    .o_data (ram_rdata)  
 );
 
@@ -265,6 +297,14 @@ assign ram_addr  = i_addr[RAM_BADDR_W-1 : 2] ; // Word addressing on RAM
 `ifdef DBGUART
 assign uart_addr = i_addr[11:0] ;  // Byte addressing on UART
 `endif
+
+// D-RAM Mux selects between Master/Programming Interface control
+assign ram_addr_pp      = (i_pgm_en)? i_pgm_dram_addr    : ram_addr ;
+assign ram_en_pp        = (i_pgm_en)? {4{i_pgm_dram_en}} : (byte_en & {4{ram_en}}) ;
+assign ram_wen_pp       = (i_pgm_en)? i_pgm_dram_wen     : (i_wen & i_req) ; 
+assign ram_wdata_pp     = (i_pgm_en)? i_pgm_dram_wdata   : i_data ;
+assign o_pgm_dram_rdata = rdata ;
+
 assign ready     = (i_ready | ~ack_rg) & ready_rg ; 
 assign o_ready   = ready  ;
 assign o_data    = rdata  ;
@@ -272,6 +312,8 @@ assign o_ack     = ack_rg ;
 
 end//GENERATE: DMEM_ZEROLAT_MODEL
 
+////////////////////////////////////////////////////////== Non-zero Latency Model ==/////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////== Non-zero Latency Model ==/////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////== Non-zero Latency Model ==/////////////////////////////////////////////////////////////////
 else begin : DMEM_NONZEROLAT_MODEL
 
@@ -288,10 +330,14 @@ typedef enum logic {
 //===================================================================================================================================================
 state                  state_rg                ;  // State register
 logic                  ready, ready_rg, ack_rg ;  // Ready, ack signals
-logic [3:0]            en, en_rg               ;  // Byte-enable
-logic                  wen_rg                  ;  // Write-enable
-logic [RAM_ADDR_W-1:0] addr, addr_rg           ;  // Address
-logic [DATA_W-1:0]     data_rg, rdata          ;  // W/R data
+logic [3:0]            en, en_rg               ;  // Byte-enable from Memory Interface
+logic [3:0]            ram_en_pp               ;  // Byte-enable @RAM after D-RAM Mux
+logic                  wen_rg                  ;  // Write Enable from Memory Interface
+logic                  ram_wen_pp              ;  // Write Enable @RAM after D-RAM Mux
+logic [RAM_ADDR_W-1:0] addr, addr_rg           ;  // Address to RAM from Memory Interface
+logic [RAM_ADDR_W-1:0] ram_addr_pp             ;  // Address @RAM after D-RAM Mux
+logic [DATA_W-1:0]     data_rg, rdata          ;  // W/R data to/from RAM from/to Memory Interface
+logic [DATA_W-1:0]     ram_wdata_pp            ;  // Write data to
 logic                  hit                     ;  // Hit signal
 logic [3:0]            lat, lat_rg             ;  // Latency register
 logic [3:0]            lat_cnt_rg              ;  // Latency counter
@@ -304,12 +350,12 @@ dram_4x8 #(
    .DEPTH  (RAM_DEPTH)
 ) 
 inst_dram_4x8 (
-   .clk    (clk)     ,   
-   .i_en   (en_rg)   ,
-   .i_wen  (wen_rg)  , 
-   .i_addr (addr_rg) ,
-   .i_data (data_rg) ,
-   .o_data (o_data)  
+   .clk    (clk)          ,   
+   .i_en   (ram_en_pp)    ,
+   .i_wen  (ram_wen_pp)   , 
+   .i_addr (ram_addr_pp)  ,
+   .i_data (ram_wdata_pp) ,
+   .o_data (rdata)  
 );
 
 //===================================================================================================================================================
@@ -394,6 +440,15 @@ assign ready   = (i_ready | ~ack_rg) & ready_rg ;
 assign o_ready = ready  ;
 assign o_ack   = ack_rg ;
 
+// D-RAM Mux selects between Master/Programming Interface control
+assign ram_addr_pp      = (i_pgm_en)? i_pgm_dram_addr    : addr_rg ;
+assign ram_en_pp        = (i_pgm_en)? {4{i_pgm_dram_en}} : en_rg   ;
+assign ram_wen_pp       = (i_pgm_en)? i_pgm_dram_wen     : wen_rg  ;
+assign ram_wdata_pp     = (i_pgm_en)? i_pgm_dram_wdata   : data_rg ;
+assign o_pgm_dram_rdata = rdata ;
+
+assign o_data           = rdata ;
+
 //===================================================================================================================================================
 // Memory latency generation logic
 //===================================================================================================================================================
@@ -426,6 +481,7 @@ assign hit = (lfsr_rout_rg < RTH) ;
 assign lat = (IS_RLAT)? rlat : FIXED_LAT ; 
 
 end//GENERATE: DMEM_NONZEROLAT_MODEL
+
 endgenerate
 
 endmodule

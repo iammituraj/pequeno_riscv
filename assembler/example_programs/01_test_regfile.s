@@ -1,7 +1,8 @@
-.ORIGIN 0x0           
-
 # PQR5 CPU Test Program - 01_test_regfile.s
 # Register test: write to x0-x31 and read back
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 # Write to registers

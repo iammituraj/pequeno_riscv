@@ -1,8 +1,9 @@
-.ORIGIN 0x0           
-
 # PQR5 CPU Test Program - 05_test_jump.s
 # To test J/JALR instructions
 # Expected output in Register File: x3 = 0x00000111, x7 = 0x00000111, x10 = 0x00000010, x31 = 0x00000111, others = XXX
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 j B0

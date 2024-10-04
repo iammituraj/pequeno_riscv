@@ -1,10 +1,10 @@
-#############################################################################################################
-# ╔═╦╗╔╗─────────╔╗─╔╗────╔╗
-# ║╔╣╚╬╬═╦══╦╦╦═╦╣╠╗║║╔═╦═╬╬═╗
-# ║╚╣║║║╬║║║║║║║║║═╣║╚╣╬║╬║║═╣ /////////////// O P E N S O U R C E
-# ╚═╩╩╩╣╔╩╩╩╩═╩╩═╩╩╝╚═╩═╬╗╠╩═╝
-# ─────╚╝───────────────╚═╝
-#############################################################################################################
+#################################################################################################################################
+##   _______   _                      __     __             _    
+##  / ___/ /  (_)__  __ _  __ _____  / /__  / /  ___  ___ _(_)___ TM
+## / /__/ _ \/ / _ \/  ' \/ // / _ \/  '_/ / /__/ _ \/ _ `/ / __/                            ////  O P E N - S O U R C E ////
+## \___/_//_/_/ .__/_/_/_/\_,_/_//_/_/\_\ /____/\___/\_, /_/\__/  
+##           /_/                                    /___/              
+#################################################################################################################################
 # Script           : pqr5asm RISC-V Assembler
 # Developer        : Mitu Raj, chip@chipmunklogic.com
 # Vendor           : Chipmunk Logic, https://chipmunklogic.com
@@ -16,26 +16,23 @@
 #                       -- 37 base instructions (ref. pqr5asm Instruction Manual for full list)
 #                       -- Custom/Pseudo instructions  (ref. pqr5asm Instruction Manual for full list)
 #                    -- Doesn't support FENCE and CSR instructions.
-#                    -- Supports ABI acronyms (ref. pqr5asm Instruction Manual for more details)
 #                    -- Input = assembly code file, Output = binary/hex code files (.txt/.bin)
-#                       // .bin file format (byte sequence in BIG ENDIAN):
-#                          <0xF0F0F0F0>  // pre-amble
-#                          <Program size in bytes (= no. of instructions * 4 bytes)>
-#                          <PC base address[3][2][1][0]>
-#                          <instruction[0] byte[3][2][1][0]>
-#                          <instruction[1] byte[3][2][1][0]>
-#                          <...>
-#                          <0xE0E0E0E0>  // post-amble
-#                       // bin and hex code files are also dumped as ASCII .txt files
-#                    -- One instruction per line, semicolon optional.
-#                    -- Base address of program (PC of first instruction) can be defined in the first line of program.
-#                       for eg: .ORIGIN 0x4000 
-#                       If not provided, overridden to 0x00000000
-#                       Binary file will be generated to target this address on the instr. memory to store instructions
+#                    -- Supports ABI acronyms (ref. pqr5asm Instruction Manual for more details)
+#                    -- Only one instruction per line.
+#                    -- Supports .section .text for text (instructions) segment and .section .data for data/bss segment
+#                       -- .section .text is mandatory.
+#                       -- Base address of the section to be mentioned with linker directive .org <addr in hexa>
+#                       -- .string, .ascii, .byte, .hword, .word types are supported for defining data symbols in memory
+#                       -- BSS segment can be defined by explicitly defining variables with default value = 0
+#                          or by defining .zero regions in the memory
+#                    -- Base address of program (PC of first instruction) should be 4-byte aligned
+#                       for eg: .org 0x00000004
+#                       Binary file will be generated with this base address on the instr. memory to store instructions
+#                       For relocatable binary code, the binary can be mapped to different base address from this
 #                    -- Supports <space>, <comma>, and <linebreak> as delimiters for eg:
 #                                                                              LUI x5 255 <linebreak>
 #                                                                              LUI x5, 255 <linebreak>
-#                    -- Use '#' for inline/newline comments for eg: LUI x5 255  # This is a sample comment
+#                    -- Use '#' for inline/newline comments, for eg: LUI x5 255  # This is a sample comment
 #                    -- Supports 32-bit signed/unsigned integer, 0x hex literals for immediate.
 #                       For eg: 255, 0xFF, -255
 #                    -- Immediates support parenthesis format: addi x1, x0, 2 <=> addi x1, 2(x0)
@@ -48,25 +45,46 @@
 #                    -- S-type instr format: <OPCODE> <rs2> <rs1> <imm>  // imm = 12-bit signed offset
 #                    -- R-type instr format: <OPCODE> <rdt> <rs1> <rs2>
 #                    -- Valid registers for operands rdt/rs1/rs2: x0 to x31 (or ABI acronyms)
-#                    -- Supports labels for jump/branch instructions
-#                       -- Label is recommended to be of max. 8 ASCII characters
+#                    -- Supports labels for jump/branch/load/store instructions for addressing
+#                       -- Label is recommended to be of max. 16 ASCII characters
 #                       -- Label should be stand-alone in new line for eg: fibonacc:
 #                                                                          ADD x1, x1, x2
 #                       -- Label is case-sensitive
-#                       -- Pre-processor will assign pc-relative address to label
+#                    -- %hi() and %lo() can be used to extract MS 20-bit & LS 12-bit from a 32-bit symbol. 
+#                       This can be used to generate memory access offset for load/store operations. Or load 32-bit constant
+#                       to a register.
+#                       For eg:
+#                       # myvar is a 32-bit symbol in memory, which has to be loaded to a register a4
+#                       LUI a5, %hi(myvar)
+#                       LW  a4, %lo(myvar)(a5)
+#
+#                       # myvar2 is a 32-bit symbol in memory, which has to be stored with a 32-bit word from register a4
+#                       LUI a5, %hi(myvar2)
+#                       SW  a4, %lo(myvar2)(a5)
+#                       
+#                       # Loading 32-bit constant to register
+#                       LUI x1, %hi(0xdeadbeef)       # Load the upper 20 bits into x1
+#                       ADDI x1, x1, %lo(0xdeadbeef)  # Add the lower 12 bits to x1
 #                    -- Immediate value supports ascii characters for instructions like MVI, LI
 #                       For eg: LI r0, 'A'  # Loads 0x41 to r0 register
-#                       Supports '\n', '\r', and all 7-bit ascii characters from 0x20 to 0x7E.
+#                       Supports '\n', '\r', '\t' escape sequences and all 7-bit ascii characters from 0x20 to 0x7E.
 #                    -- Invoking the script from terminal:
-#                       python pqr5asm.py '<source file path>'
-#                       // Binary/Hex code files are generated in same path
-#                       // If no arguments provided, source file = sample.s in current directory
+#                       python pqr5asm.py -file=<source file path> -pcrel
+#                       -file  = Assembly source file <filepath/filename>.s
+#                       -pcrel = Applying this flag uses PC relative addressing for instructions like LA, JA
+#                                This flag hence directs assembler and linker to generate relocatable binary code.
+#                                If this flag is not used, absolute address is loaded by the instructions.
+#                                The generate binary code may not be relocatable.
+#                       Binary/Hex code files are generated in same path
+#                       If no arguments provided, source file = "./sample.s"
 #
-# Last modified on : June-2024
+# Last modified on : Aug-2024
 # Compatiblility   : Python 3.9 tested
 #
-# Copyright        : Open-source license, see developer.txt.
-#############################################################################################################
+# User Manual      : https://github.com/iammituraj/pqr5asm/blob/main/pqr5asm_imanual.pdf
+#
+# Copyright        : Open-source license.
+#################################################################################################################################
 
 # Import Libraries
 import numpy as np
@@ -74,6 +92,7 @@ import sys
 import re
 
 # --------------------------- Global Vars ----------------------------------- #
+DEBUG = True
 # List of registers supported
 reglist = ['x0', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6',
            'x7', 'x8', 'x9', 'x10', 'x11', 'x12',
@@ -96,37 +115,96 @@ reglist = ['x0', 'x1', 'x2', 'x3', 'x4', 'x5', 'x6',
 
 
 # ----------------------- User-defined functions ---------------------------- #
+# Function to print debug message
+def printdbg(s):
+    if DEBUG:
+        print(s)
+
+
 # Function to print welcome message
 def print_welcome():
-    print('+===================================+')
-    print('|      Chipmunk Logic (TM) 2024     |')
-    print('+===================================+')
-    print('|~~~~~~~~ RISC-V Assembler ~~~~~~~~~|')
-    print('|/////// O P E N S O U R C E ///////|')
-    print('+===================================+')
+    print('')    
+    print("/////////////////////////////////////////////////////")
+    #print("=====================================================")
+    print("                       ______                   ")
+    print("     ____  ____ ______/ ____/___ __________ ___  TM")
+    print("    / __ \/ __ `/ ___/___ \/ __ `/ ___/ __ `__ \\")
+    print("   / /_/ / /_/ / /  ____/ / /_/ (__  ) / / / / /")
+    print("  / .___/\__, /_/  /_____/\__,_/____/_/ /_/ /_/ ")
+    print(" /_/       /_/                                  ") 
+    print("")
+    print("                  - RV32I Assembler for RISC-V CPUs")                    
+    print("=====================================================") 
+    print('')
+    print(' OPEN-SOURCE licensed')
+    print('')
+    print(" Chipmunk Logic (TM) 2024")    
+    print(" Visit us: chipmunklogic.com")
+    print('')
+    print("=====================================================")
+    print("/////////////////////////////////////////////////////")
+    print('')
+
+
+# Function to print PASS
+def print_pass(): 
+    print('') 
+    print("==========================================")    
+    print("'########:::::'###:::::'######:::'######::")
+    print("'##.... ##:::'## ##:::'##... ##:'##... ##:")
+    print("'##:::: ##::'##:. ##:: ##:::..:: ##:::..::")
+    print("'########::'##:::. ##:. ######::. ######::")
+    print("'##.....::: #########::..... ##::..... ##:")
+    print("'##:::::::: ##.... ##:'##::: ##:'##::: ##:")
+    print("'##:::::::: ##:::: ##:. ######::. ######::")
+    print("..:::::::::..:::::..:::......::::......:::")
+    print("==========================================") 
+    print('')                                                   
+                                                                                                        
+
+# Function to print FAIL
+def print_fail(): 
+    print('')
+    print("=====================================") 
+    print("'########::::'###::::'####:'##:::::::")
+    print("'##.....::::'## ##:::. ##:: ##:::::::")
+    print("'##::::::::'##:. ##::: ##:: ##:::::::")
+    print("'######:::'##:::. ##:: ##:: ##:::::::")
+    print("'##...:::: #########:: ##:: ##:::::::")
+    print("'##::::::: ##.... ##:: ##:: ##:::::::")
+    print("'##::::::: ##:::: ##:'####: ########:")
+    print("..::::::::..:::::..::....::........::")  
+    print("=====================================")                                                                            
+    print('')   
 
 
 # Function to dump .bin file
-def write2bin(pgmsize, baddr, dbytearray, binfile):
-    # Insert pre-amble 0xF0F0F0F0
-    dbytearray.insert(0, int("11110000", 2))
-    dbytearray.insert(1, int("11110000", 2))
-    dbytearray.insert(2, int("11110000", 2))
-    dbytearray.insert(3, int("11110000", 2))
+def write2bin(datsize, baddr, dbytearray, binfile, memtype):
+    # Insert pre-amble 0xC0C0C0C0 (IMEM) / 0xD0D0D0D0 (DMEM)
+    if memtype == 1:  # DMEM
+        dbytearray.insert(0, int("11010000", 2))  #MSB
+        dbytearray.insert(1, int("11010000", 2))
+        dbytearray.insert(2, int("11010000", 2))
+        dbytearray.insert(3, int("11010000", 2))
+    else:  # IMEM
+        dbytearray.insert(0, int("11000000", 2))  #MSB
+        dbytearray.insert(1, int("11000000", 2))
+        dbytearray.insert(2, int("11000000", 2))
+        dbytearray.insert(3, int("11000000", 2))
     # Insert program size
-    pgmsize_bytearray = pgmsize.to_bytes(4, 'big')
-    dbytearray.insert(4, pgmsize_bytearray[0])
-    dbytearray.insert(5, pgmsize_bytearray[1])
-    dbytearray.insert(6, pgmsize_bytearray[2])
-    dbytearray.insert(7, pgmsize_bytearray[3])
+    datsize_bytearray = datsize.to_bytes(4, 'big')
+    dbytearray.insert(4, datsize_bytearray[0])  #MSB
+    dbytearray.insert(5, datsize_bytearray[1])
+    dbytearray.insert(6, datsize_bytearray[2])
+    dbytearray.insert(7, datsize_bytearray[3])
     # Insert PC base address
     baddr_bytearray = baddr.to_bytes(4, 'big')
-    dbytearray.insert(8, baddr_bytearray[0])
+    dbytearray.insert(8, baddr_bytearray[0])  #MSB
     dbytearray.insert(9, baddr_bytearray[1])
     dbytearray.insert(10, baddr_bytearray[2])
     dbytearray.insert(11, baddr_bytearray[3])
     # Insert post-amble 0xE0E0E0E0
-    dbytearray.append(int("11100000", 2))
+    dbytearray.append(int("11100000", 2))  #MSB
     dbytearray.append(int("11100000", 2))
     dbytearray.append(int("11100000", 2))
     dbytearray.append(int("11100000", 2))
@@ -151,17 +229,186 @@ def print_code_hex(mycode_text_bin):
 
 
 # Function to print label table
-def print_label_table(labelcnt, label_list, label_addr_list):
+def print_label_table(secname, labelcnt, label_list, label_addr_list):
+    if labelcnt[0] == 0:
+        return 1
     print('')
-    print('+-----------------------------')
-    print('| Label    | Address Mapping')
-    print('+-----------------------------')
+    print('+------------------+----------+-----------------')
+    print('| Label            | Section  | Address Mapping')
+    print('+------------------+----------+-----------------')
     for i in range(labelcnt[0]):
-        print('| %+-8s' % label_list[i], ": 0x{:08x}".format(label_addr_list[i]))
-    print('+-----------------------------')
+        print('| %+-16s' % label_list[i], '| %+-8s' %secname, "| 0x{:08x}".format(label_addr_list[i]))
+    print('+------------------+----------+-----------------')
 
 
-# Function to parse string arguments and convert to hex
+# Function to validate label names
+def is_validname_label(label):
+    # Check if label starts with a number
+    if label and label[0].isdigit():
+        return False
+
+    # Check if label contains only allowed characters (alphabets, digits, underscores)
+    if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', label):
+        return False
+    return True
+
+
+# Function to validate assembly source file
+def validate_assembly(file_handler):
+    file_handler.seek(0)  # Ensure file pointer is at the start
+
+    text_section_found = False
+    data_section_found = False
+    org_found = False
+    org_address = None
+    data_section_position = None
+    text_section_position = None
+
+    lines = file_handler.readlines()
+    i = 0
+    # Iterate thru each line
+    while i < len(lines):
+        line = lines[i].strip()
+
+        # Parse .text
+        if line.startswith(".section .text"):
+            if text_section_found:
+                print("| ERROR: Multiple occurrences of .section .text found.")
+                print_fail()
+                exit(1)
+            text_section_found = True
+            text_section_position = i
+
+            # Move to the next line(s) to find the .org directive
+            i += 1
+            while i < len(lines):
+                next_line = lines[i].strip()
+
+                # Remove comments from the line
+                next_line = next_line.split('#')[0].strip()
+
+                # Skip empty lines and comment-only lines
+                if not next_line:
+                    i += 1
+                    continue
+
+                # Check if the next valid line is an .org directive
+                if next_line.startswith(".org"):
+                    org_parts = next_line.split()
+                    if len(org_parts) != 2 or not (org_parts[1].startswith("0x") or org_parts[1].startswith("0X")):
+                        print("| ERROR: Invalid format for .org directive in .section .text, only Hex supported!")
+                        print_fail()
+                        exit(1)
+
+                    addr_str = org_parts[1]
+
+                    try:
+                        # Support only hexadecimal (0x or 0X) values
+                        org_address = int(addr_str, 16)
+
+                        # Round address to the next multiple of 4 if unaligned word addr
+                        org_address = ((org_address + 3) // 4) * 4 if org_address % 4 != 0 else org_address
+
+                        # Print the address in the desired format
+                        print(f"| INFO : Parsed .text .org address: 0x{org_address:08x}")
+
+                    except ValueError:
+                        print("| ERROR: Invalid .org address format in .section .text")
+                        print_fail()
+                        exit(1)
+
+                    org_found = True
+                    break
+                else:
+                    print("| ERROR: .org directive missing after .section .text")
+                    print_fail()
+                    exit(1)
+
+            if not org_found:
+                print("| ERROR: .org directive missing after .section .text")
+                print_fail()
+                exit(1)
+
+        # Parse .data
+        elif line.startswith(".section .data"):
+            if data_section_found:
+                print("| ERROR: Multiple occurrences of .section .data found!")
+                print_fail()
+                exit(1)
+            data_section_found = True
+            data_section_position = i
+
+            # Move to the next line(s) to find the .org directive
+            i += 1
+            while i < len(lines):
+                next_line = lines[i].strip()
+
+                # Remove comments from the line
+                next_line = next_line.split('#')[0].strip()
+
+                # Skip empty lines and comment-only lines
+                if not next_line:
+                    i += 1
+                    continue
+
+                # Check if the next valid line is an .org directive
+                if next_line.startswith(".org"):
+                    org_parts = next_line.split()
+                    if len(org_parts) != 2 or not (org_parts[1].startswith("0x") or org_parts[1].startswith("0X")):
+                        print("| ERROR: Invalid format for .org directive in .section .data, , only Hex supported!")
+                        print_fail()
+                        exit(1)
+
+                    addr_str = org_parts[1]
+
+                    try:
+                        # Support only hexadecimal (0x or 0X) values
+                        org_address = int(addr_str, 16)
+
+                        # Round address to the next multiple of 4 if unaligned word addr
+                        if org_address % 4 != 0:
+                            print("| WARNG: .data .org address should be 4-byte aligned.. remapping the base address...")
+                        org_address = ((org_address + 3) // 4) * 4 if org_address % 4 != 0 else org_address
+                        data_baseaddr[0] = org_address
+
+                        # Print the address in the desired format
+                        print(f"| INFO : Parsed .data .org address: 0x{org_address:08x}")
+
+                    except ValueError:
+                        print("| ERROR: Invalid .org address format in .section .data")
+                        print_fail()
+                        exit(1)
+
+                    org_found = True
+                    break
+                else:
+                    print("| ERROR: .org directive missing after .section .data")
+                    print_fail()
+                    exit(1)
+
+            if not org_found:
+                print("| ERROR: .org directive missing after .section .data")
+                print_fail()
+                exit(1)
+
+        i += 1
+
+    # Check if .data section is defined before .text section
+    if data_section_found and text_section_found and data_section_position > text_section_position:
+        print("| ERROR: .section .data must be defined before .section .text")
+        print_fail()
+        exit(1)
+    # Check if .text section exists at all!
+    if not text_section_found:
+        print("| ERROR: Missing .section .text")
+        print_fail()
+        exit(1)
+
+    print("\n| INFO : Assembly code file validation successful!!\n")
+    return org_address
+
+
+# Function to parse ascii char arguments and convert to hex
 def char2hex(char):
     if char == ' ':
         return '0x20'
@@ -357,24 +604,35 @@ def char2hex(char):
         return '0x0A'
     elif char == '\\r':
         return '0x0D'
+    elif char == '\\t':
+        return '0x09'
+    elif char == '':
+        return '0x00'
     else:
         return '#ERR'
 
 
-# Function to parse string arguments and convert to hex
-def parseascii(arg):
+# Function to parse char/string argument and convert to hex
+def parseascii(arg, psts):
     if arg:
         s = arg[0]
         parts = s.split("'")
         if ((len(parts) == 3 and len(parts[1]) == 1) or
-            ((len(parts) == 3 and len(parts[1]) == 2) and (parts[1] == '\\n' or parts[1] == '\\r'))):
+            (len(parts) == 3 and len(parts[1]) == 0) or
+            ((len(parts) == 3 and len(parts[1]) == 2) and (parts[1] == '\\n' or parts[1] == '\\r' or parts[1] == '\\t'))):
             arghex = char2hex(parts[1])
-            parseascii_succ[0] = True
+            psts[0] = True
             if arghex != "#ERR":
                 modified_expr = parts[0] + arghex + parts[2]
                 arg[0] = modified_expr
             else:
                 arg[0] = arg
+        elif ((len(parts) == 3 and len(parts[1]) == 2) and (parts[1] == '\\\\')):  # For backslash character: \\
+            psts[0] = True
+            arg[0] = "0x5C"
+        elif ((len(parts) == 4 and len(parts[1]) == 1) and (parts[1] == '\\')):  # For single quote character: \'
+            psts[0] = True
+            arg[0] = "0x27"
 
 
 # Function to generate hex instructions from binary instructions
@@ -384,11 +642,16 @@ def gen_instr_hex(instr_bin, instr_hex):
 
 
 # Function to return address of label
-def addr_of_label(idd):
+def addr_of_label(labelname, labelid):
     for i in range(labelcnt[0]):
-        if idd == label_list[i]:
+        if labelname == label_list[i]:
+            labelid[0] = i
             return label_addr_list[i]
-    return idd
+    for i in range(dlabelcnt[0]):
+        if labelname == dlabel_list[i]:
+            labelid[0] = i
+            return dlabel_addr_list[i]
+    return 0
 
 
 # Function to check if a register operand is valid or not
@@ -400,11 +663,25 @@ def is_invalid_reg(reg):
 
 
 # Function to check if a label is valid or not
-def is_valid_label(lbl):
+def is_valid_label(lbl, isjbinstr=False):
     if lbl in label_list:
-        return 1
+        is_text_label[0] = True
     else:
-        return 0
+        is_text_label[0] = False
+    if lbl in dlabel_list:
+        is_data_label[0] = True
+    else:
+        is_data_label[0] = False
+    if not isjbinstr:  # Not Jump/Branch instruction's label
+        if (lbl in label_list) or (lbl in dlabel_list):
+            return 1
+        else:
+            return 0
+    else:
+        if (lbl in label_list):
+            return 1
+        else:
+            return 0
 
 
 # Function to convert register (x0-x31) to its binary code
@@ -475,37 +752,416 @@ def reg2bin(reg):
         return '11111'
 
 
-# Function validate .ORIGIN and return base address
-def validate_origin(firstline):
-    origin = firstline.split()
-    try:
-        # First word
-        if origin[0] == '.ORIGIN' or origin[0] == '.origin':
-            addr_pre = origin[1]
-            if addr_pre[0:2] == '0x' or addr_pre[0:2] == '0X':
-                addr = (int(addr_pre, base=16) >> 2) * 4
-            else:
-                addr = (int(addr_pre) >> 2) * 4
-            print('| INFO: Base address of program set to', "0x{:08x}".format(addr))
-            return addr
+# Function to define .data labels address mapping
+def define_dlabel(code_text, dlabel_list, dlabel_addr_list, dlabelcnt):
+    valid_directives = {".p2align", ".zero", ".string", ".ascii", ".byte", ".hword", ".word"}
+    current_label = None
+    is_start_of_label = False
+    # Iterate thru each line
+    for i, line in enumerate(code_text):
+        # Remove inline comments and strip whitespace
+        stripped_line = line.split('#', 1)[0].strip()
+
+        # Skip lines that are comments or blank
+        if not stripped_line:
+            continue
+
+        # Check if the line contains .section .text directive
+        if stripped_line.startswith('.section'):
+            if '.text' in stripped_line:
+                return
+
+        # Check if the line ends with a colon (potential label)
+        if stripped_line.endswith(':'):
+            label = stripped_line.rstrip(':').strip()
+
+            # Ensure the label does not contain whitespace
+            if ' ' in label:
+                print(f"| ERROR: Line {i + 1}: The label '{label}' is invalid due to spaces!")
+                print_fail()
+                exit(1)
+
+            # Check if the label already exists in the list
+            if label in dlabel_list:
+                print(f"| ERROR: Line {i + 1}: The label '{label}' has multiple definitions!")
+                print_fail()
+                exit(1)
+            elif not is_validname_label(label):
+                print(f"| ERROR: Line {i + 1}: The label '{label}' has naming violations!")
+                print_fail()
+                exit(1)
+
+            # Valid label, hence update the current label
+            current_label = label
+            dlabel_list.append(label)
+            dlabel_addr_list.append(dptr[0])
+            dlabelcnt[0] = dlabelcnt[0] + 1
+            is_start_of_label = True
+            #print("\nalignment override disabled")#dbg
+            #print(current_label)#dbg
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            continue  # Move to the next line for processing directives
+
+        # If there is no current label, skip processing
+        if current_label is None:
+            continue
+
+        # Ensure proper format between directive and argument
+        if ' ' in stripped_line:
+            directive, _, argument = stripped_line.partition(' ')
+            if directive not in valid_directives:
+                print(f"| ERROR: Line {i + 1}: The directive '{directive}' is invalid!")
+                print_fail()
+                exit(1)
+
+            if not argument:
+                print(f"| ERROR: Line {i + 1}: No argument provided for the directive '{directive}'!")
+                print_fail()
+                exit(1)
         else:
-            print('| WARNG: .ORIGIN not set in first line. Base address of program overridden to 0x00000000')
-            return 0
-    except:
-        print('| WARNG: .ORIGIN not set in first line. Base address of program overridden to 0x00000000')
+            # No space between directive and argument
+            print(f"| ERROR: Line {i + 1}: No argument provided for the directive '{stripped_line}'!")
+            print_fail()
+            exit(1)
+
+        # Validate the argument based on the directive
+        # .p2align <n> ==> 2^n align
+        if directive == ".p2align" and is_start_of_label:
+            if not is_valid_align_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .p2align directive!")
+                print_fail()
+                exit(1)
+            align_bound_override = 2**int(argument, 0)
+            #print("alignment override active = ", align_bound_override, "bytes")#dbg
+            dptr[0] = addr_of_label(current_label, labelid)
+            #print(f"DPTR[0] original = 0x{dptr[0]:08x}")#dbg
+            zsize = (align_bound_override - (dptr[0] % align_bound_override)) % align_bound_override
+            #print("alignment zero-padding =", zsize, "bytes")#dbg
+            dptr[0] = zsize + dptr[0]
+            #print(f"DPTR[0] modified = 0x{dptr[0]:08x}")#dbg
+            # Update data label addresses
+            dlabel_addr_list[labelid[0]] = dptr[0]
+            # Update dmem binary data
+            upd_dmem_data("zero", zsize, 0, "0x00")
+
+        # .zero <no. of zero-padding bytes>
+        elif directive == ".zero":
+            if not is_valid_zero_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .zero directive!")
+                print_fail()
+                exit(1)
+            # {Zero padding, data} size calculation
+            is_start_of_label = False
+            align_bound = 1
+            zsize = int(argument, 0)
+            dsize = 0
+            tsize = zsize + dsize
+            #print("ZERO, zero-padding =", zsize, "bytes, dsize =", dsize, "bytes")#dbg
+            # Update data pointer
+            dptr[0] = dptr[0] + tsize
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            # Update dmem binary data
+            upd_dmem_data("zero", zsize, dsize, "0x00")
+
+        # .string "<auto null terminated string>"
+        elif directive == ".string":
+            if not is_valid_string_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .string directive!")
+                print_fail()
+                exit(1)
+            # {Zero padding, data} size calculation
+            is_start_of_label = False
+            align_bound = 1
+            zsize = (align_bound - (dptr[0] % align_bound)) % align_bound
+            dsize = calculate_string_size(argument)
+            tsize = zsize + dsize
+            #print("STRING, zero-padding =", zsize, "bytes, dsize =", dsize, "bytes")#dbg
+            # Update data pointer
+            dptr[0] = dptr[0] + tsize
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            write_str2dmem(argument)
+
+        # .ascii '<char>'
+        elif directive == ".ascii":
+            if not is_valid_ascii_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .ascii directive!")
+                print_fail()
+                exit(1)
+            # {Zero padding, data} size calculation
+            is_start_of_label = False
+            align_bound = 1
+            zsize = (align_bound - (dptr[0] % align_bound)) % align_bound
+            dsize = 1
+            tsize = zsize + dsize
+            #print("ASCII CHAR, zero-padding =", zsize, "bytes, dsize =", dsize, "bytes")#dbg
+            # Update data pointer
+            dptr[0] = dptr[0] + tsize
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            arghexval = [argument]
+            parseascii(arghexval, [0])
+            # Update dmem binary data
+            upd_dmem_data("byte", 0, 1, arghexval[0])
+
+        # .byte <byte>
+        elif directive == ".byte":
+            if not is_valid_byte_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .byte directive!")
+                print_fail()
+                exit(1)
+            # {Zero padding, data} size calculation
+            is_start_of_label = False
+            align_bound = 1
+            zsize = (align_bound - (dptr[0] % align_bound)) % align_bound
+            dsize = 1
+            tsize = zsize + dsize
+            #print("BYTE, zero-padding =", zsize, "bytes, dsize =", dsize, "bytes")#dbg
+            # Update data pointer
+            dptr[0] = dptr[0] + tsize
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            # Update dmem binary data
+            upd_dmem_data("byte", zsize, dsize, argument)
+
+        # .hword <naturally aligned half word of two bytes>
+        elif directive == ".hword":
+            if not is_valid_hword_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .hword directive!")
+                print_fail()
+                exit(1)
+            # {Zero padding, data} size calculation
+            if is_start_of_label:
+                align_bound_override = 2
+                #print("Re-alignment active = ", align_bound_override, "bytes")#dbg
+                dptr[0] = addr_of_label(current_label, labelid)
+                #print(f"DPTR[0] original = 0x{dptr[0]:08x}")#dbg
+                dptr[0] = (align_bound_override - (dptr[0] % align_bound_override)) % align_bound_override + dptr[0]
+                #print(f"DPTR[0] modified = 0x{dptr[0]:08x}")#dbg
+                dlabel_addr_list[labelid[0]] = dptr[0]
+            is_start_of_label = False
+            align_bound = 2
+            zsize = (align_bound - (dptr[0] % align_bound)) % align_bound
+            dsize = 2
+            tsize = zsize + dsize
+            #print("HWORD, zero-padding =", zsize, "bytes, dsize =", dsize, "bytes")#dbg
+            # Update data pointer
+            dptr[0] = dptr[0] + tsize
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            # Update dmem binary data
+            upd_dmem_data("hword", zsize, dsize, argument)
+
+        # .word <naturally aligned word of 4 bytes>
+        elif directive == ".word":
+            if not is_valid_word_argument(argument):
+                print(f"| ERROR: Line {i + 1}: Invalid argument for .word directive!")
+                print_fail()
+                exit(1)
+            # {Zero padding, data} size calculation
+            if is_start_of_label:
+                align_bound_override = 4
+                #print("Re-alignment active = ", align_bound_override, "bytes")#dbg
+                dptr[0] = addr_of_label(current_label, labelid)
+                #print(f"DPTR[0] original = 0x{dptr[0]:08x}")#dbg
+                dptr[0] = (align_bound_override - (dptr[0] % align_bound_override)) % align_bound_override + dptr[0]
+                #print(f"DPTR[0] modified = 0x{dptr[0]:08x}")#dbg
+                dlabel_addr_list[labelid[0]] = dptr[0]
+            is_start_of_label = False
+            align_bound = 4
+            zsize = (align_bound - (dptr[0] % align_bound)) % align_bound
+            dsize = 4
+            tsize = zsize + dsize
+            #print("WORD, zero-padding =", zsize, "bytes, dsize =", dsize, "bytes")#dbg
+            # Update data pointer
+            dptr[0] = dptr[0] + tsize
+            #print(f"DPTR[0] --> 0x{dptr[0]:08x}")#dbg
+            # Update dmem binary data
+            upd_dmem_data("word", zsize, dsize, argument)
+
+# Function to verify the align argument is valid
+def is_valid_align_argument(argument):
+    try:
+        # Check if the argument allows alignment up to 4k bytes
+        if argument.isdigit() and int(argument) >= 0 and int(argument) <= 12 :
+            return 1
+        # Check if the argument is a valid hexadecimal number with '0x' or '0X' prefix
+        if argument.lower().startswith('0x'):
+            int(argument, 16)  # Try to convert it to an integer using base 16
+            return 1
+    except ValueError:
+        # Catch the exception if the conversion fails
         return 0
 
+    # If neither condition is met, return 0
+    return 0
 
-# Function to define label address mapping
-def define_label(baseaddr, line, instrcnt, exp_instrcnt, labelcnt, label_list, label_addr_list):
+
+# Function to verify if the zero argument is valid
+def is_valid_zero_argument(argument):
+    try:
+        # Check if the argument is a positive integer (greater than 0)
+        if argument.isdigit() and int(argument) > 0:
+            return 1
+        # Check if the argument is a valid hexadecimal number with '0x' or '0X' prefix
+        if argument.lower().startswith('0x'):
+            int(argument, 16)  # Try to convert it to an integer using base 16
+            return 1
+    except ValueError:
+        # Catch the exception if the conversion fails
+        return 0
+
+    # If neither condition is met, return 0
+    return 0
+
+
+# Function to verify if the string argument is valid
+def is_valid_string_argument(argument):
+    # Ensure the argument is at least two characters long (to cover the missing quotes scenario)
+    if len(argument) < 2:
+        return False
+
+    # Ensure the argument is enclosed in double quotes
+    if not (argument.startswith('"') and argument.endswith('"')):
+        return False
+
+    # Remove leading and trailing double quotes
+    argument = argument[1:-1]
+
+    # Validate the content of the argument
+    i = 0
+    length = len(argument)
+    while i < length:
+        char = argument[i]
+        if char == '\\':
+            # Check if there's a next character to form a valid escape sequence
+            if i + 1 < length:
+                next_char = argument[i + 1]
+                # Valid escape sequences: \\ (backslash), \" (double quote), \t (tab), \r (carriage return), \n (newline)
+                if next_char in ['\\', '"', 't', 'r', 'n']:
+                    # Skip the next character as it's part of the escape sequence
+                    i += 2
+                else:
+                    # Invalid escape sequence
+                    return False
+            else:
+                # Trailing backslash is invalid
+                return False
+        else:
+            # Any non-escape character is allowed
+            i += 1
+
+    return True
+
+
+# Function to calculate string size
+def calculate_string_size(argument):
+    # Remove leading and trailing quotes
+    argument = argument.strip().strip('"')
+
+    size = 0
+    i = 0
+    while i < len(argument):
+        if argument[i] == '\\':
+            # Add 1 to size for escape sequences and skip the next character
+            size += 1
+            i += 2
+        else:
+            size += 1
+            i += 1
+
+    # Add 1 for the null terminator
+    return size + 1
+
+
+# Function to verify if ascii argument is valid
+def is_valid_ascii_argument(argument):
+    # Ensure the argument is at least two characters long (to cover the missing quotes scenario)
+    if len(argument) < 2:
+        return False
+
+    # Check if the argument starts and ends with single quotes
+    if not (argument.startswith("'") and argument.endswith("'")):
+        return False
+
+    # Remove only the outermost pair of single quotes if present
+    if argument.startswith("'") and argument.endswith("'"):
+        argument = argument[1:-1]
+
+    # If the argument is empty after stripping quotes, it's valid
+    if not argument:
+        return True
+
+    # Validate the content of the argument
+    i = 0
+    length = len(argument)
+    while i < length:
+        char = argument[i]
+
+        if char == '\\':
+            # Check if there's a next character to form a valid escape sequence
+            if i + 1 < length:
+                next_char = argument[i + 1]
+                # Valid escape sequences: \\ (backslash), \t (tab), \r (carriage return), \n (newline)
+                if next_char in ['\\', "'", 't', 'r', 'n']:
+                    # Skip the next character as it's part of the escape sequence
+                    i += 2
+                else:
+                    # Invalid escape sequence
+                    return False
+            else:
+                # Trailing backslash is invalid
+                return False
+        else:
+            # Any non-escape character is allowed
+            i += 1
+
+    # Verify size: should be 1 character or 2 characters if an escape sequence is present
+    return (length == 1) or (length == 2 and argument.startswith('\\'))
+
+
+# Function to verify if byte argument is valid
+def is_valid_byte_argument(argument):
+    # Check if the argument is empty
+    if not argument:
+        return False
+    # Check if the argument is a valid hexadecimal or integer
+    hex_pattern = r'^0[xX][0-9a-fA-F]{1,2}$'
+    int_pattern = r'^[+-]?\d+$'
+    # Matches hex/int pattern?
+    return re.fullmatch(hex_pattern, argument) is not None or re.fullmatch(int_pattern, argument) is not None
+
+
+# Function to verify if hword argument is valid
+def is_valid_hword_argument(argument):
+    # Check if the argument is empty
+    if not argument:
+        return False
+    # Check if the argument is a valid hexadecimal or integer
+    hex_pattern = r'^0[xX][0-9a-fA-F]{1,4}$'
+    int_pattern = r'^[+-]?\d+$'
+    # Matches hex/int pattern?
+    return re.fullmatch(hex_pattern, argument) is not None or re.fullmatch(int_pattern, argument) is not None
+
+
+# Function to verify if word argument is valid
+def is_valid_word_argument(argument):
+    # Check if the argument is empty
+    if not argument:
+        return False
+    # Check if the argument is a valid hexadecimal or integer
+    hex_pattern = r'^0[xX][0-9a-fA-F]{1,8}$'
+    int_pattern = r'^[+-]?\d+$'
+    # Matches hex/int pattern?
+    return re.fullmatch(hex_pattern, argument) is not None or re.fullmatch(int_pattern, argument) is not None
+
+
+# Function to define .text labels address mapping
+def define_label(baseaddr, line, instrcnt, exp_instrcnt, label_list, label_addr_list):
     words = line.split()
-    # Check if blank line or comment or origin
+    # Check if blank line or comment
     try:
         if words[0][0] == '#':
             # Ignore comment and move on
             return 0
-        elif words[0] == '.ORIGIN' or words[0] == '.origin':
-            # Ignore origin
+        elif line.startswith("."):
+            # Ignore .text .data section elements
             return 0
     except:
         # Ignore blank line and move on
@@ -514,19 +1170,45 @@ def define_label(baseaddr, line, instrcnt, exp_instrcnt, labelcnt, label_list, l
     # Valid label?
     if len(words) == 1 and line[-1] == ':':  # Decode labels like 'mylabel:'
         label = line.split(':')[0]
-        labelcnt[0] = labelcnt[0] + 1
-        label_list.append(label)
+        if label in label_list:
+            print(f"| ERROR: The label '{label}' has multiple definitions!")
+            print_fail()
+            exit(1)
+        elif label in dlabel_list:
+            print(f"| ERROR: The label '{label}' has multiple definitions!")
+            print_fail()
+            exit(1)
+        elif not is_validname_label(label):
+            print(f"| ERROR: The label '{label}' has naming violations!")
+            print_fail()
+            exit(1)
+        else:
+            label_list.append(label)
         label_addr_list.append(baseaddr + int(exp_instrcnt[0]) * 4)
     elif len(words) > 1 and words[0][-1] == ':' and words[1][0] == '#':  # Decodes labels with comments
         label = line.split(':')[0]
-        labelcnt[0] = labelcnt[0] + 1
-        label_list.append(label)
+        if label in label_list:
+            print(f"| ERROR: The label '{label}' has multiple definitions!")
+            print_fail()
+            exit(1)
+        elif label in dlabel_list:
+            print(f"| ERROR: The label '{label}' has multiple definitions!")
+            print_fail()
+            exit(1)
+        elif not is_validname_label(label):
+            print(f"| ERROR: The label '{label}' has naming violations!")
+            print_fail()
+            exit(1)
+        else:
+            label_list.append(label)
         label_addr_list.append(baseaddr + int(exp_instrcnt[0]) * 4)
     else:
         # It is an instruction
         instrcnt[0] = instrcnt[0] + 1
         if words[0] == 'LI' or words[0] == 'li' or words[0] == 'LA' or words[0] == 'la':
             offset = 2  # Because LI = expands to two instructions
+        elif words[0] == 'JA' or words[0] == 'ja':
+            offset = 3  # Because JA = expands to three instructions
         else:
             offset = 1
         exp_instrcnt[0] = exp_instrcnt[0] + offset
@@ -542,7 +1224,7 @@ def int2bin(num):
 
 
 # Function to convert an immediate/offset to 32 binary and return status
-def imm2bin(immval, linenum, errsts, jbflag, laflag):
+def imm2bin(immval, linenum, errsts, jbflag, laflag, jaflag):
     try:
         # Integer literal
         if int(immval) < 0:
@@ -560,18 +1242,40 @@ def imm2bin(immval, linenum, errsts, jbflag, laflag):
                     immval_bin = '{:032b}'.format(int(immval, base=16))  # Signed 32-bit binary
                 return immval_bin
             # Label --> translation --> pc relative addr for j/b-type instructions
-            elif jbflag == 1 and is_valid_label(immval.rstrip(':')):
-                addr_of_label_int = addr_of_label(immval)
-                pc_reltv_addr_int = addr_of_label_int - pc[0]  # pc relative addr
+            elif jbflag == 1 and is_valid_label(immval.rstrip(':'), True):
+                addr_of_label_int = addr_of_label(immval, labelid)
+                pc_reltv_addr_int = addr_of_label_int - pc[0]  # PC relative addr
                 if pc_reltv_addr_int < 0:
-                    pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # pc relative addr 2's complement
-                immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # pc relative addr signed 32-bit
+                    pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # PC relative addr 2's complement
+                immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # PC relative addr signed 32-bit
                 return immval_bin
-            # Label --> translation --> absolute address for la instruction
+            # Label --> translation --> la instruction
             elif laflag == 1 and is_valid_label(immval.rstrip(':')):
-                addr_of_label_int = addr_of_label(immval)
+                if (pcrel_flag is True) and is_text_label[0]:  # PC relative address for la instruction
+                    addr_of_label_int = addr_of_label(immval, labelid)
+                    pc_reltv_addr_int = addr_of_label_int - pc[0]  # PC relative addr
+                    if pc_reltv_addr_int < 0:
+                        pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # PC relative addr 2's complement
+                    immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # PC relative addr signed 32-bit
+                    return immval_bin
+                else:    # Absolute address for la instruction if referring to data symbol or pcrel_flag not set
+                    addr_of_label_int = addr_of_label(immval, labelid)
+                    abs_addr_int = addr_of_label_int
+                    immval_bin = '{:032b}'.format(abs_addr_int, base=16)  # Absolute addr signed 32-bit
+                    return immval_bin            
+            # Label --> translation --> absolute address for ja instruction
+            elif jaflag == 1 and (pcrel_flag is False) and is_valid_label(immval.rstrip(':'), True):
+                addr_of_label_int = addr_of_label(immval, labelid)
                 abs_addr_int = addr_of_label_int
-                immval_bin = '{:032b}'.format(abs_addr_int, base=16)  # pc relative addr signed 32-bit
+                immval_bin = '{:032b}'.format(abs_addr_int, base=16)  # Absolute addr signed 32-bit
+                return immval_bin
+            # Label --> translation --> PC relative address for ja instruction
+            elif jaflag == 1 and (pcrel_flag is True) and is_valid_label(immval.rstrip(':'), True):
+                addr_of_label_int = addr_of_label(immval, labelid)
+                pc_reltv_addr_int = addr_of_label_int - pc[0]  # PC relative addr
+                if pc_reltv_addr_int < 0:
+                    pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # PC relative addr 2's complement
+                immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # PC relative addr signed 32-bit
                 return immval_bin
             else:
                 print("| ERROR: Invalid immediate/offset value or label at line no: ", linenum)
@@ -583,22 +1287,95 @@ def imm2bin(immval, linenum, errsts, jbflag, laflag):
             return 0
 
 
+# Function to parse %hi() and %lo()
+def parse_hi_lo(line):
+    def calculate_hi(value):
+        hi_value = (value + 0x800) >> 12  # Correct rounding for upper bits
+        return f'0x{hi_value:05x}'  # Return as 20-bit hexadecimal
+
+    def calculate_lo(value):
+        lo_value = value & 0xfff  # Extract lower 12 bits
+        return f'0x{lo_value:03x}'  # Return as 12-bit hexadecimal
+
+    # Check if the line contains a comment and split the code and comment
+    if '#' in line:
+        code_part, comment_part = line.split('#', 1)
+    else:
+        code_part, comment_part = line, ''
+
+    # Strip the code part of leading/trailing spaces
+    code_part = code_part.strip()
+    modified_line = ""
+
+    i = 0
+    while i < len(code_part):
+        if code_part[i:i + 3] == "%hi":
+            # Find the parentheses
+            start = code_part.find('(', i)
+            end = code_part.find(')', i)
+            if start != -1 and end != -1 and code_part[i + 3:start].strip() == '':
+                arg = code_part[start + 1:end].strip()
+                try:
+                    if is_valid_label(arg):
+                        value = addr_of_label(arg, labelid)  # Use label address if valid
+                    else:
+                        value = int(arg, 0)  # Convert argument to integer
+
+                    modified_line += calculate_hi(value)
+                    i = end + 1  # Move past the processed %hi()
+                except ValueError:
+                    return line  # Return original line on failure
+            else:
+                return line  # Return original line if format is invalid
+
+        elif code_part[i:i + 3] == "%lo":
+            start = code_part.find('(', i)
+            end = code_part.find(')', i)
+            if start != -1 and end != -1 and code_part[i + 3:start].strip() == '':
+                arg = code_part[start + 1:end].strip()
+                try:
+                    if is_valid_label(arg):
+                        value = addr_of_label(arg, labelid)  # Use label address if valid
+                    else:
+                        value = int(arg, 0)  # Convert argument to integer
+
+                    modified_line += calculate_lo(value)
+                    i = end + 1  # Move past the processed %lo()
+                except ValueError:
+                    return line  # Return original line on failure
+            else:
+                return line  # Return original line if format is invalid
+
+        else:
+            modified_line += code_part[i]
+            i += 1
+
+    # Reattach the comment part if it exists
+    return modified_line + (' #' + comment_part if comment_part else '')
+
+
 # Function to parse assembly code line to binary
 def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
+    # Reset global flags
+    is_text_label[0] = False
+    is_data_label[0] = False
+
     instr_error_flag = 0
+    # Parse %hi() %lo() if any, and replace by equivalent 20-bit and 12-bit hexa immediate
+    #line = parse_hi_lo(line)
     # Split the instruction to word-by-word
     element = line.split()
 
-    # Check if blank line or comment or origin
+    # Check if blank line or comment
     try:
         if element[0][0] == '#':
             # Ignore comment and move on
             return 0
-        elif element[0] == '.ORIGIN' or element[0] == '.origin':
-            # Ignore origin
-            return 0
         elif is_valid_label(element[0].rstrip(':')):
             # Ignore valid labels
+            return 0
+        elif line.startswith("."):
+            # Ignore .text .data section elements
             return 0
     except:
         # Ignore blank line and move on
@@ -609,6 +1386,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         opcode = element[0]
     except:
         print("| FATAL: Instruction at line no: ", linenum, " is missing opcode!\n")
+        instr_error_flag = 1
+        error_flag[0] = 1
         error_cnt[0] = error_cnt[0] + 1
         return 2
 
@@ -634,6 +1413,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     ps_li_type_flag = 0
     ps_la_type_flag = 0
     ps_jr_type_flag = 0
+    ps_ja_type_flag = 0
 
     # Fields - default values
     rs1 = 'x0'
@@ -721,8 +1501,22 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         opcode_binarr.append('0010011')  # ADDI
     elif opcode == 'LA' or opcode == 'la':
         ps_la_type_flag = 1
-        opcode_binarr.append('0110111')  # LUI
-        opcode_binarr.append('0010011')  # ADDI
+        if pcrel_flag:
+            opcode_binarr.append('0010111')  # AUIPC
+            opcode_binarr.append('0010011')  # ADDI
+        else:
+            opcode_binarr.append('0110111')  # LUI
+            opcode_binarr.append('0010011')  # ADDI
+    elif opcode == 'JA' or opcode == 'ja':
+        ps_ja_type_flag = 1
+        if pcrel_flag:
+            opcode_binarr.append('0010111')  # AUIPC
+            opcode_binarr.append('0010011')  # ADDI
+            opcode_binarr.append('1100111')  # JALR
+        else:
+            opcode_binarr.append('0110111')  # LUI
+            opcode_binarr.append('0010011')  # ADDI
+            opcode_binarr.append('1100111')  # JALR
     elif opcode == 'JR' or opcode == 'jr':
         ps_jr_type_flag = 1
         opcode_bin = '1100111'  # Pseudo instruction derived from JALR
@@ -747,6 +1541,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -766,6 +1562,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -785,6 +1583,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -804,6 +1604,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -822,6 +1624,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -842,6 +1646,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -862,6 +1668,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -888,6 +1696,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -908,6 +1718,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -928,6 +1740,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -948,6 +1762,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -968,6 +1784,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -988,6 +1806,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -1008,14 +1828,16 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
-    # Validate pseudo instruction: LI/LA
-    if ps_li_type_flag or ps_la_type_flag:
+    # Validate pseudo instruction: LI/LA/JA
+    if ps_li_type_flag or ps_la_type_flag or ps_ja_type_flag:
         try:
             rs1 = element[1]  # For ADDI
-            rdt = element[1]  # For LUI, ADDI
+            rdt = element[1]  # For LUI/AUIPC, ADDI
             imm = element[2]
             if is_invalid_reg(rdt):
                 print("| ERROR: Invalid/unsupported register at line no: ", linenum)
@@ -1027,6 +1849,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -1047,6 +1871,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
                 error_flag[0] = 1
         except:
             print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
 
@@ -1058,7 +1884,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     # Decode immediate/offset
     errsts = [0]
     if r_type_flag == 0:  # Ignore only if r-type instruction
-        imm_bin = imm2bin(imm, linenum, errsts, (j_type_flag or b_type_flag), ps_la_type_flag)
+        imm_bin = imm2bin(imm, linenum, errsts, (j_type_flag or b_type_flag), ps_la_type_flag, ps_ja_type_flag)
 
     # Check if immediate values flagged error on parsing
     if errsts[0] == 1:
@@ -1251,7 +2077,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         funct3 = '001'
         instr_bin.append(imm_bin_12_1[0] + imm_bin_12_1[2:8] + rs2_bin + rs1_bin + funct3 + imm_bin_12_1[8:12] +
                          imm_bin_12_1[1] + opcode_bin)
-    elif instr_error_flag == 0 and (ps_li_type_flag or ps_la_type_flag):  # = LUI + ADDI
+    elif instr_error_flag == 0 and ps_li_type_flag:  # = LUI + ADDI
         # LUI
         if imm_bin[20] == '0':
             imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
@@ -1264,6 +2090,44 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
         funct3 = '000'
         instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_binarr[1])  # Write ADDI instruction
+    elif instr_error_flag == 0 and ps_la_type_flag:  # = LUI/AUIPC + ADDI
+        if (pcrel_flag is True) and is_text_label[0]:
+            opcode0 = opcode_binarr[0]  # No need to modify opcode, AUIPC
+        else:
+            opcode0 = '0110111'  # Modify opcode to LUI if referring to data symbol or pcrel_flag not set or immediate address
+        # LUI or AUIPC
+        if imm_bin[20] == '0':
+            imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
+        else:
+            intval = int(imm_bin[0:20], base=2) + 1
+            imm_bin_lui_or_auipc = int2bin(intval)
+            imm_bin_31_12 = imm_bin_lui_or_auipc[12:32]  # imm[31:12] + 1
+        instr_bin.append(imm_bin_31_12 + rdt_bin + opcode0)  # Write LUI/AUIPC instruction
+        # ADDI
+        imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
+        funct3 = '000'
+        instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_binarr[1])  # Write ADDI instruction                 
+    elif instr_error_flag == 0 and ps_ja_type_flag:  # = LUI/AUIPC + ADDI + JALR
+        if (pcrel_flag is True) and is_text_label[0]:
+            opcode0 = opcode_binarr[0]  # No need to modify opcode, AUIPC
+        else:
+            opcode0 = '0110111'  # Modify opcode to LUI if referring to data symbol or pcrel_flag not set or immediate address
+        # LUI or AUIPC
+        if imm_bin[20] == '0':
+            imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
+        else:
+            intval = int(imm_bin[0:20], base=2) + 1
+            imm_bin_lui_or_auipc = int2bin(intval)
+            imm_bin_31_12 = imm_bin_lui_or_auipc[12:32]  # imm[31:12] + 1
+        instr_bin.append(imm_bin_31_12 + rdt_bin + opcode0)  # Write AUIPC instruction
+        # ADDI
+        imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
+        funct3 = '000'
+        instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_binarr[1])  # Write ADDI instruction        
+        # JALR x0, rs1, 0
+        imm_bin_11_0 = '000000000000'  # imm[11:0] = 0
+        funct3 = '000'
+        instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + '00000' + opcode_binarr[2])
     elif instr_error_flag == 0 and (ps_jr_type_flag):  # = JALR
         imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
         funct3 = '000'
@@ -1273,7 +2137,9 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
 
     # Update pc
     if ps_li_type_flag or ps_la_type_flag:
-        pc[0] = pc[0] + 8  # Because LI = expands to two instructions
+        pc[0] = pc[0] + 8  # Because LI, LA = expand to two instructions
+    elif ps_ja_type_flag:
+        pc[0] = pc[0] + 12 # Because JA expands to three instructions
     else:
         pc[0] = pc[0] + 4
 
@@ -1287,33 +2153,168 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         return 1
 
 
+# Function to write a string to dmem binary data
+def write_str2dmem (argstr):
+    i = 0
+    argstr = argstr.strip('"')
+    length = len(argstr)
+    while i < length:
+        char = argstr[i]
+        if char == '\\':
+            # Check if there's a next character to form a valid escape sequence
+            if i + 1 < length:
+                next_char = argstr[i+1]
+                # Valid escape sequences: \\ (backslash), \" (double quote), \t (tab), \r (carriage return), \n (newline)
+                if next_char in ['\\', '"', 't', 'r', 'n']:
+                    if next_char == '\\':
+                        char = '\\'
+                    elif next_char == '"':
+                        char = '"'
+                    elif next_char == 't':
+                        char = '\\t'
+                    elif next_char == 'r':
+                        char = '\\r'
+                    elif next_char == 'n':
+                        char = '\\n'
+                    charhex = char2hex(char)
+                    # Update dmem binary data
+                    upd_dmem_data("byte", 0, 1, charhex)
+                    # Skip the next character as it's part of the escape sequence
+                    i += 2
+                else:
+                    # Trailing backslash is invalid
+                    print('| FATAL: Error in parsing string and writing to dmem binary data!')
+                    print_fail()
+                    exit(2)
+                    continue
+            else:
+                # Trailing backslash is invalid
+                print('| FATAL: Error in parsing string and writing to dmem binary data!')
+                print_fail()
+                exit(2)
+        else:
+            # Any non-escape character is allowed
+            charhex = char2hex(char)
+            # Update dmem binary data
+            upd_dmem_data("byte", 0, 1, charhex)
+            i += 1
+    upd_dmem_data("byte", 0, 1, "0x00")  # Write null character at the end of the string
+
+
+# Function to update dmem binary data
+def upd_dmem_data(dtype, zsize, dsize, dvalue):
+    # Step 1: Add zsize bytes of zero-padding
+    for _ in range(zsize):
+        dmem_binary_data.append(0x00)
+        dmem_bytecnt[0] = dmem_bytecnt[0] + 1
+
+    # Step 2: Convert dvalue to integer
+    dvalue = int(dvalue, 0)  # Automatically detects hex or decimal based on the string format
+
+    # Step 3: Determine number of bytes based on dtype
+    if dtype == 'zero':
+        #print(dmem_binary_data)#dbg
+        return 0  # Nothing more to do, zero padding finished already...
+    elif dtype == 'byte':
+        num_bytes = 1
+    elif dtype == 'hword':
+        num_bytes = 2
+    elif dtype == 'word':
+        num_bytes = 4
+
+    # Convert the integer to bytes of length num_bytes in little-endian format   
+    is_signed = dvalue < 0 
+    dvalue_bytes = dvalue.to_bytes(num_bytes, 'little', signed=is_signed)
+
+    # Step 4: Append each byte of dvalue_bytes to dmem_binary_data using append
+    for byte in dvalue_bytes:
+        dmem_binary_data.append(byte)
+        dmem_bytecnt[0] = dmem_bytecnt[0] + 1
+    #print(dmem_binary_data)#dbg
+
+
+# Function to transform lil-endian bytearray of 32-bit chunks to big-endian
+def trans2bigend(byte_arr):
+    # Calculate padding needed to make the data binary 4-byte aligned
+    padding_length = (4 - len(byte_arr) % 4) % 4
+
+    # Append zero padding if necessary
+    if padding_length > 0:
+        byte_arr.extend([0] * padding_length)
+        dmem_bytecnt[0] = dmem_bytecnt[0] + padding_length
+
+    # Process each 4-byte chunk
+    for i in range(0, len(byte_arr), 4):
+        # Extract the 4-byte chunk
+        little_endian_chunk = byte_arr[i:i + 4]
+        # Reverse the byte order to convert to big-endian
+        big_endian_chunk = little_endian_chunk[::-1]
+        # Update the bytearray with the big-endian chunk
+        byte_arr[i:i + 4] = big_endian_chunk
+    #print(byte_arr) #dbg
+
+
 # ----------------------- Main Code --------------------------- #
 # Welcome message
 print_welcome()
 
-# Source and Destination file paths
-# Decode from command line arguments
-try:
-    f_src_path = sys.argv[1]
-    f_des_path_bintext = sys.argv[1].rstrip('.s') + '_bin.txt'
-    f_des_path_hextext = sys.argv[1].rstrip('.s') + '_hex.txt'
-    f_des_path_bin = sys.argv[1].rstrip('.s') + '.bin'
-except:
-    # Default parameters
-    print('| INFO : No arguments/unsupported arguments, proceeding with default files...')
-    f_src_path = './sample.s'
-    f_des_path_bintext = './sample_bin.txt'
-    f_des_path_hextext = './sample_hex.txt'
-    f_des_path_bin = './sample.bin'
+# Source and Destination file paths, other defaults
+f_src_path = './sample.s'
+f_des_path_imem_bintext = './sample_imem_bin.txt'
+f_des_path_imem_hextext = './sample_imem_hex.txt'
+f_des_path_imem_bin = './sample_imem.bin'
+f_des_path_dmem_bintext = './sample_dmem_bin.txt'
+f_des_path_dmem_hextext = './sample_dmem_hex.txt'
+f_des_path_dmem_bin = './sample_dmem.bin'
+pcrel_flag = False
 
-# Open assembly file in read mode and store as 2D string array (list [line][char])
+# Process command-line arguments
+file_argument = None
+for arg in sys.argv[1:]:
+    if arg.startswith('-file='):
+        file_argument = arg        
+    elif arg == '-pcrel':
+        print ("| INFO : The assembler will map instructions (LA/JA) to use PC relative addressing for relocatable code...")
+        pcrel_flag = True
+
+if not pcrel_flag:
+    print("| INFO : The assembler will map instructions (LA/JA) to use absolute addressing assuming non-relocatable code...")
+
+# Process file argument
+if file_argument and file_argument.startswith('-file='):
+    filename = file_argument.split('-file=')[1]
+    if filename.endswith('.s'):
+        f_src_path = filename
+        f_des_path_imem_bintext = filename.rstrip('.s') + '_imem_bin.txt'
+        f_des_path_imem_hextext = filename.rstrip('.s') + '_imem_hex.txt'
+        f_des_path_imem_bin = filename.rstrip('.s') + '_imem.bin'
+        f_des_path_dmem_bintext = filename.rstrip('.s') + '_dmem_bin.txt'
+        f_des_path_dmem_hextext = filename.rstrip('.s') + '_dmem_hex.txt'
+        f_des_path_dmem_bin = filename.rstrip('.s') + '_dmem.bin'
+    else:
+        print("| WARNG: The source file does not have a '.s' extension. Using default file paths...")
+else:
+    print("| WARNG: No valid 'file' argument provided. Using default file paths...")
+
+# Open the assembly source file in read mode and store as 2D string array (list [line][char])
 try:
-    f_src = open(f_src_path, "r")
+    f_src = open(f_src_path, "r")    
     code_text_unformatted = f_src.read().splitlines()
     print("\n| INFO : Assembly code source file opened successfully...\n")
 except:
     print("| FATAL: Assembly code source file cannot be opened! Please check the path/permissions...")
+    print_fail()
     exit(1)
+
+# ------------------------- Validator --------------------------- #
+# Validate .text and .data section and find base address of the program
+baseaddr = 0  # Base address for .text section
+data_baseaddr = [0]  # Base address for .data section
+dptr = [0]
+pc = [0]
+baseaddr = validate_assembly(f_src)
+dptr[0] = data_baseaddr[0]  # Data pointer points to base addr of .data
+pc[0] = baseaddr  # PC points to base addr of .text
 
 # ---------------------- Pre-processor ------------------------- #
 print('=============')
@@ -1322,24 +2323,63 @@ print('=============')
 # Pre-process code line-by-line: INITIAL FORMATTING
 code_text = []  # list of strings
 for l in code_text_unformatted:
-    l_fmt_ws = " ".join(l.split())                # Trim all extra whitespaces
+    l_fmt_ws = " ".join(l.split())         # Trim all extra whitespaces
     l_fmt_cm = " #".join(l_fmt_ws.split('#', 2))  # Separate comments from instructions
-    l_fmt_init = l_fmt_cm.lstrip()                # Remove all leading spaces
-    code_text.append(l_fmt_init)
+    l_fmt_cl = l_fmt_cm.lstrip().rstrip()         # Remove all leading and leading and trailing spaces
+    l_fmt_pp = l_fmt_cl.replace(" (", "(").replace("( ", "(").replace(" )", ")").replace(") ", ")")  # Remove spaces around parentheses
+    code_text.append(l_fmt_pp)
 
-# Pre-process code line-by-line: STEP1: Re-format immediate expressions
+# Pre-process code line-by-line: STEP1: Remove .org linker directives and replace by null
+code_text = [line if not line.startswith(".org") else '' for line in code_text]
+
+# Identify all labels and assign addresses
+labelid = [0]
+label_list = []
+label_addr_list = []
+instrcnt = [0]
+exp_instrcnt = [0]
+labelcnt = [0]
+is_text_label = [False]
+is_data_label = [False]
+
+dlabel_list = []
+dlabel_addr_list = []
+dlabelcnt = [0]
+dmem_binary_data = bytearray()
+dmem_bytecnt = [0]
+
+# .data labels decoder
+dlabel_state = define_dlabel(code_text, dlabel_list, dlabel_addr_list, dlabelcnt)
+
+# .text labels decoder, also appends .data labels to the label_list
+istext = False
+for line in code_text:
+    if line.startswith(".section .text"):
+        istext = True
+    if istext:
+        label_state = define_label(baseaddr, line, instrcnt, exp_instrcnt, label_list, label_addr_list)
+labelcnt[0] = len(label_list)
+
+# Print label tables
+print_label_table(".data", dlabelcnt, dlabel_list, dlabel_addr_list)
+print_label_table(".text", labelcnt, label_list, label_addr_list)
+
+# Pre-process code line-by-line: STEP2: Re-format immediate expressions
 code_text_pre1 = []
 for l in code_text:
+    # Parse %hi() %lo() if any, and replace by equivalent 20-bit and 12-bit hexa immediate
+    l = parse_hi_lo(l)
+
     words = l.split(',')
-    # Check if blank line or comment or origin
+    # Check if blank line or comment
     try:
         if words[0][0] == '#':
             code_text_pre1.append(l)
             # Ignore comment and move on
             continue
-        elif words[0] == '.ORIGIN' or words[0] == '.origin':
+        elif l.startswith("."):
+            # Ignore .text .data section elements and move on
             code_text_pre1.append(l)
-            # Ignore origin
             continue
     except:
         code_text_pre1.append(l)
@@ -1353,7 +2393,7 @@ for l in code_text:
         arg2wc = arg2wc.split('#', 2)  # Separate inline comment if any
         len_arg2wc = len(arg2wc)
         arg2 = [arg2wc[0]]
-        parseascii(arg2)
+        parseascii(arg2, parseascii_succ)
         arg2pp = arg2[0].replace(')', '(')
         arg2pp = "".join(arg2pp.split())
         arg2list = arg2pp.split('(')
@@ -1374,7 +2414,7 @@ for l in code_text:
         continue
 
 
-# Pre-process code line-by-line: STEP2: Remove all commas, re-format with single space
+# Pre-process code line-by-line: STEP3: Remove all commas, re-format with single space
 code_text_pre2 = []
 for l in code_text_pre1:
     l = l.replace(',', ' ')
@@ -1388,18 +2428,6 @@ print('')
 lines_of_code = len(code_text_pre2)
 print('Lines of code pre-processed =', lines_of_code, '\n')
 
-# Check for .ORIGIN header
-baseaddr = validate_origin(code_text_pre2[0])
-
-# Identify all labels and assign addresses
-label_list = []
-label_addr_list = []
-instrcnt = [0]
-exp_instrcnt = [0]
-labelcnt = [0]
-for line in code_text:
-    label_state = define_label(baseaddr, line, instrcnt, exp_instrcnt, labelcnt, label_list, label_addr_list)
-print_label_table(labelcnt, label_list, label_addr_list)
 
 # ----------------- Start parsing line-by-line -------------------- #
 print('')
@@ -1412,8 +2440,6 @@ instr_sts = 0
 instr_bin = []
 instr_hex = []
 linenum = 1
-pc = [0]
-pc[0] = baseaddr
 
 # Parse each line
 for line in code_text_pre2:
@@ -1438,33 +2464,66 @@ if error_flag[0] == 0:
     print('\n|| SUCCESS ||\nSuccessfully parsed the assembly code and converted to binary code...')
     gen_instr_hex(instr_bin, instr_hex)
     try:
-        # Binary text file write
-        f_des = open(f_des_path_bintext, "w")
-        f_desbin = open(f_des_path_bin, "wb")
-        binary_data = bytearray()
+        #### IMEM and DMEM Binary/Hex text & Binary file write ####
+        #### IMEM dumps
+        f_des = open(f_des_path_imem_bintext, "w")
+        imem_binary_data = bytearray()
         for line in instr_bin:
+            # Write to Binary text file
             f_des.write(line + '\n')
             dbyte3 = line[0:8]
             dbyte2 = line[8:16]
             dbyte1 = line[16:24]
             dbyte0 = line[24:32]
-            binary_data.append(int(dbyte3, 2))
-            binary_data.append(int(dbyte2, 2))
-            binary_data.append(int(dbyte1, 2))
-            binary_data.append(int(dbyte0, 2))
-        # Dump .bin file
-        instr_totalsize_bytes = instrcnt[0] * 4
-        write2bin(instr_totalsize_bytes, baseaddr, binary_data, f_desbin)
-        print('\n|| SUCCESS ||\nSuccessfully written to Binary code file...')
+            imem_binary_data.append(int(dbyte3, 2))
+            imem_binary_data.append(int(dbyte2, 2))
+            imem_binary_data.append(int(dbyte1, 2))
+            imem_binary_data.append(int(dbyte0, 2))
         f_des.close()
+
+        # Write to .bin file
+        f_desbin = open(f_des_path_imem_bin, "wb")
+        imem_bytecnt = exp_instrcnt[0] * 4
+        write2bin(imem_bytecnt, baseaddr, imem_binary_data, f_desbin, 0)
+        print('\n|| SUCCESS ||\nSuccessfully written to IMEM Binary code file...')        
         f_desbin.close()
 
-        # Hex text file write
-        f_des = open(f_des_path_hextext, "w")
+        # Write to Hex text file
+        f_des = open(f_des_path_imem_hextext, "w")
         for line in instr_hex:
             f_des.write(line + '\n')
-        print('\n|| SUCCESS ||\nSuccessfully written to Hex code file...')
+        print('\n|| SUCCESS ||\nSuccessfully written to IMEM Hex code file...')
         f_des.close()
+
+        #### DMEM dumps
+        trans2bigend(dmem_binary_data)
+        # Write to Binary text file
+        f_des = open(f_des_path_dmem_bintext, "w")
+        for i in range(0, len(dmem_binary_data), 4):  # Iterate through the bytearray in chunks of 4 bytes
+            data32bit = dmem_binary_data[i:i + 4]  # Extract the 32-bit data
+            bin_str = ''.join('{:08b}'.format(b) for b in data32bit)  # Convert data to a binary string and remove the '0b' prefix
+            f_des.write(bin_str + '\n')
+        f_des.close()
+
+        # Write to .bin file
+        f_desbin = open(f_des_path_dmem_bin, "wb")
+        dmem_binary_data_temp = dmem_binary_data.copy()
+        write2bin(dmem_bytecnt[0], data_baseaddr[0], dmem_binary_data_temp, f_desbin, 1)
+        print('\n|| SUCCESS ||\nSuccessfully written to DMEM Binary code file...')
+        f_desbin.close()
+
+        # Write to Hex text file
+        f_des = open(f_des_path_dmem_hextext, "w")
+        for i in range(0, len(dmem_binary_data), 4):  # Iterate through the bytearray in chunks of 4 bytes
+            data32bit = dmem_binary_data[i:i + 4]  # Extract the 32-bit data
+            hex_str = ''.join('{:02x}'.format(b) for b in data32bit)  # Convert data to a hexa string and remove the '0x' prefix
+            f_des.write(hex_str + '\n')
+        print('\n|| SUCCESS ||\nSuccessfully written to DMEM Hex code file...')
+        f_des.close()
+        print('\n|| BINARY GENERATOR SUMMARY ||')
+        print("IMEM binary size = {:>8} bytes @baseaddr = 0x{:08x}".format(imem_bytecnt+16, baseaddr))
+        print("DMEM binary size = {:>8} bytes @baseaddr = 0x{:08x}\n".format(dmem_bytecnt[0]+16, data_baseaddr[0]))
+        print_pass()
     except:
         print('| FATAL: Unable to create Binary/Hex code file! Please check the path/permissions...')
 else:
@@ -1472,6 +2531,7 @@ else:
     print('Total no. of instructions parsed      = ', instrcnt[0])
     print('Total no. of instructions with ERRORS = ', error_cnt[0])
     print('\n|| FAIL ||\nFailed to parse the assembly code due to errors...')
+    print_fail()
     exit(2)
 
 

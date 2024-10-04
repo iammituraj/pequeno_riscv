@@ -1,8 +1,9 @@
-.ORIGIN 0x0         
-
 # PQR5ASM Test Program
 # Multiplier using function to multiply two numbers in registers and store product in register
 # Using traditional ABI mneumonics
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 mvi sp, 0x100      # Stack pointer initialization, x2 = 0x100

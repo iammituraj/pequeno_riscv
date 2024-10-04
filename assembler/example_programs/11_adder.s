@@ -1,7 +1,8 @@
-.ORIGIN 0x0         
-
 # PQR5ASM Test Program
 # Adder to add two registers and store sum in register
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 mvi x1, 5             # x1 = 5 [= addi x1, x0, 5]

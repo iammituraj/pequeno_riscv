@@ -1,7 +1,8 @@
-.ORIGIN 0x0           
-
 # PQR5ASM Test Program
 # Fibonacci series for a range and store it in memory as array
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 # Clear registers

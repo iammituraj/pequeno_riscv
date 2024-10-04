@@ -1,21 +1,21 @@
-//     %%%%%%%%%#      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//  %%%%%%%%%%%%%%%%%  ------------------------------------------------------------------------------------------------------------------------------
-// %%%%%%%%%%%%%%%%%%%% %
-// %%%%%%%%%%%%%%%%%%%% %%
-//    %% %%%%%%%%%%%%%%%%%%
-//        % %%%%%%%%%%%%%%%                 //---- O P E N - S O U R C E ----//
-//           %%%%%%%%%%%%%%                 ╔═══╦╗──────────────╔╗──╔╗
-//           %%%%%%%%%%%%%      %%          ║╔═╗║║──────────────║║──║║
-//           %%%%%%%%%%%       %%%%         ║║─╚╣╚═╦╦══╦╗╔╦╗╔╦═╗║║╔╗║║──╔══╦══╦╦══╗
-//          %%%%%%%%%%        %%%%%%        ║║─╔╣╔╗╠╣╔╗║╚╝║║║║╔╗╣╚╝╝║║─╔╣╔╗║╔╗╠╣╔═╝ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-//         %%%%%%%    %%%%%%%%%%%%*%%%      ║╚═╝║║║║║╚╝║║║║╚╝║║║║╔╗╗║╚═╝║╚╝║╚╝║║╚═╗ /////////////////////////////////////////////////////////////////
-//        %%%%% %%%%%%%%%%%%%%%%%%%%%%%     ╚═══╩╝╚╩╣╔═╩╩╩╩══╩╝╚╩╝╚╝╚═══╩══╩═╗╠╩══╝
-//       %%%%*%%%%%%%%%%%%%  %%%%%%%%%      ────────║║─────────────────────╔═╝║
-//       %%%%%%%%%%%%%%%%%%%    %%%%%%%%%   ────────╚╝─────────────────────╚══╝
-//       %%%%%%%%%%%%%%%%                   c h i p m u n k l o g i c . c o m
-//       %%%%%%%%%%%%%%
-//         %%%%%%%%%
-//           %%%%%%%%%%%%%%%%  ----------------------------------------------------------------------------------------------------------------------
+//     %%%%%%%%%%%%      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//  %%%%%%%%%%%%%%%%%%                      
+// %%%%%%%%%%%%%%%%%%%% %%                
+//    %% %%%%%%%%%%%%%%%%%%                
+//        % %%%%%%%%%%%%%%%                 
+//           %%%%%%%%%%%%%%                 ////    O P E N - S O U R C E     ////////////////////////////////////////////////////////////
+//           %%%%%%%%%%%%%      %%          _________________________________////
+//           %%%%%%%%%%%       %%%%                ________    _                             __      __                _     
+//          %%%%%%%%%%        %%%%%%              / ____/ /_  (_)___  ____ ___  __  ______  / /__   / /   ____  ____ _(_)____ TM 
+//         %%%%%%%    %%%%%%%%%%%%*%%%           / /   / __ \/ / __ \/ __ `__ \/ / / / __ \/ //_/  / /   / __ \/ __ `/ / ___/
+//        %%%%% %%%%%%%%%%%%%%%%%%%%%%%         / /___/ / / / / /_/ / / / / / / /_/ / / / / ,<    / /___/ /_/ / /_/ / / /__  
+//       %%%%*%%%%%%%%%%%%%  %%%%%%%%%          \____/_/ /_/_/ .___/_/ /_/ /_/\__,_/_/ /_/_/|_|  /_____/\____/\__, /_/\___/
+//       %%%%%%%%%%%%%%%%%%%    %%%%%%%%%                   /_/                                              /____/  
+//       %%%%%%%%%%%%%%%%                                                             ___________________________________________________               
+//       %%%%%%%%%%%%%%                    //////////////////////////////////////////////       c h i p m u n k l o g i c . c o m    //// 
+//         %%%%%%%%%                       
+//           %%%%%%%%%%%%%%%%               
+//    
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----%% 
 //----%% File Name        : pqr5_core_top.sv
@@ -24,7 +24,7 @@
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
 //----%% Description      : pequeno_riscv_v1_0 aka PQR5 is 5-stage pipelined RISC-V CPU which supports RV32I ISA User Level v2.2.
-//----%%                    PQR5 is a 32-bit single-core CPU which incorporates strictly in-order pipeline.
+//----%%                    PQR5 is a 32-bit single-issue, single-core CPU which incorporates strictly in-order pipeline.
 //----%%                         ____________________________
 //----%%                        / CHIPMUNK LOGIC            /\
 //----%%                       /                           / /\
@@ -98,6 +98,9 @@ module pqr5_core_top #(
    output logic [3:0]       o_x31_tst           ,  // x31 bits: {x31[24], x31[16], x31[8], x31[0]}
    output logic             o_boot_flag         ,  // Boot flag: flags that the core is out of reset and booted
    `endif
+   
+   // External Stall Interface
+   input  logic             i_ext_stall         ,  // External stall to CPU
 
    // Instruction Memory/Cache Interface (IMEMIF)
    output logic [`XLEN-1:0] o_imem_pc           ,  // PC to IMEMIF
@@ -219,7 +222,7 @@ logic [5:0]       wbu_instr_type_out   ;  // Instruction type from WBU
 logic             wbu_bubble_out       ;  // Bubble from WBU
 logic [4:0]       wbu_rdt_addr_out     ;  // rdt address from WBU
 logic [`XLEN-1:0] wbu_rdt_data_out     ;  // rdt data from WBU
-logic             wbu_stall_in         ;  // Stall to WBU
+//logic             wbu_stall_in         ;  // Stall to WBU
 
 // Debug signals
 `ifdef DBG
@@ -511,10 +514,10 @@ writeback_unit #(
    .o_bubble           (wbu_bubble_out)     ,
    .o_rdt_addr         (wbu_rdt_addr_out)   , 
    .o_rdt_data         (wbu_rdt_data_out)   ,   
-   .i_stall            (wbu_stall_in)        
+   .i_stall            (i_ext_stall)        
 );
 
-assign wbu_stall_in = 1'b0 ;
+//assign wbu_stall_in = 1'b0 ;
 
 //===================================================================================================================================================
 // Debug block
@@ -649,7 +652,7 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $write  ("       %0d      |", exu_du_stall);
       $write  ("       %0d      |", maccu_exu_stall);
       $write  ("       %0d      |", wbu_maccu_stall);
-      $write  ("       %0d      |", wbu_stall_in);
+      $write  ("       %0d      |", i_ext_stall);
       $write  ("\n");
       $write  ("| Flush in |");
       $write  ("       %0d      |", exu_bu_flush);
@@ -668,22 +671,24 @@ end
 `endif
 
 // CPI Monitor
+logic is_cpu_bubble ;
+assign is_cpu_bubble = du_exu_bubble | (du_exu_instr == `INSTR_NOP) ;
+
 always @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin    
       exec_begin  <= 1'b0 ;     
-      exec_cycles <= 0    ;
+      exec_cycles <= 1    ;
       stal_cycles <= 0    ;
       bubb_cycles <= 0    ;
    end
    else begin
       if (exec_begin) begin
-         if (du_exu_bubble)                  bubb_cycles <= bubb_cycles + 1 ;
+         if (is_cpu_bubble)                  bubb_cycles <= bubb_cycles + 1 ;
          if (!du_exu_bubble && exu_du_stall) stal_cycles <= stal_cycles + 1 ;
          exec_cycles <= exec_cycles + 1 ;                       
       end
       else begin
-         exec_begin  <= ~du_exu_bubble  ;
-         exec_cycles <= exec_cycles + 1 ;
+         exec_begin  <= ~du_exu_bubble  ;         
       end
    end
 end

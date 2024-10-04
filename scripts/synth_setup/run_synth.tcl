@@ -34,6 +34,8 @@ read_xdc $xdcpath
 # STEP#2: run synthesis, report utilization and timing estimates, write checkpoint design
 synth_design -top $topmdl -part $fpgapart
 write_checkpoint -force $outputDir/post_synth
+#open_checkpoint post_synth.dcp
+report_utilization -file $outputDir/post_synth_utilization_summary.rpt
 report_timing_summary -file $outputDir/post_synth_timing_summary.rpt
 report_power -file $outputDir/post_synth_power.rpt
 
@@ -47,6 +49,7 @@ report_timing_summary -file $outputDir/post_place_timing_summary.rpt
 # STEP#4: run router, report actual utilization and timing, write checkpoint design, run drc, write verilog and xdc out
 route_design
 write_checkpoint -force $outputDir/post_route
+report_utilization -file $outputDir/post_route_utilization_summary.rpt
 report_timing_summary -file $outputDir/post_route_timing_summary.rpt
 report_timing -sort_by group -max_paths 100 -path_type summary -file $outputDir/post_route_timing.rpt
 report_clock_utilization -file $outputDir/clock_util.rpt
@@ -54,7 +57,7 @@ report_utilization -file $outputDir/post_route_util.rpt
 report_power -file $outputDir/post_route_power.rpt
 report_drc -file $outputDir/post_imp_drc.rpt
 write_verilog -force $outputDir/impl_netlist.v
-write_xdc -no_fixed_only -force $outputDir/impl.xdc
+#write_xdc -no_fixed_only -force $outputDir/impl.xdc
 
 # STEP#5: generate a bitstream
 write_bitstream -force $bitfileDir/$topmdl.bit

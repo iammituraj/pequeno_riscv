@@ -15,7 +15,10 @@
 ./src/memory/iram.sv
 ./src/memory/imem_top.sv
 
-./src/memory/dram.sv
+./src/memory/dram_b0.sv
+./src/memory/dram_b1.sv
+./src/memory/dram_b2.sv
+./src/memory/dram_b3.sv
 ./src/memory/dram_4x8.sv
 ./src/memory/dmem_top.sv
 

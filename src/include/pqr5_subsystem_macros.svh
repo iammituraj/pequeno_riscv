@@ -1,21 +1,21 @@
-//     %%%%%%%%%#      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-//  %%%%%%%%%%%%%%%%%  ------------------------------------------------------------------------------------------------------------------------------
-// %%%%%%%%%%%%%%%%%%%% %
-// %%%%%%%%%%%%%%%%%%%% %%
-//    %% %%%%%%%%%%%%%%%%%%
-//        % %%%%%%%%%%%%%%%                 //---- O P E N - S O U R C E ----//
-//           %%%%%%%%%%%%%%                 ╔═══╦╗──────────────╔╗──╔╗
-//           %%%%%%%%%%%%%      %%          ║╔═╗║║──────────────║║──║║
-//           %%%%%%%%%%%       %%%%         ║║─╚╣╚═╦╦══╦╗╔╦╗╔╦═╗║║╔╗║║──╔══╦══╦╦══╗
-//          %%%%%%%%%%        %%%%%%        ║║─╔╣╔╗╠╣╔╗║╚╝║║║║╔╗╣╚╝╝║║─╔╣╔╗║╔╗╠╣╔═╝ \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-//         %%%%%%%    %%%%%%%%%%%%*%%%      ║╚═╝║║║║║╚╝║║║║╚╝║║║║╔╗╗║╚═╝║╚╝║╚╝║║╚═╗ /////////////////////////////////////////////////////////////////
-//        %%%%% %%%%%%%%%%%%%%%%%%%%%%%     ╚═══╩╝╚╩╣╔═╩╩╩╩══╩╝╚╩╝╚╝╚═══╩══╩═╗╠╩══╝
-//       %%%%*%%%%%%%%%%%%%  %%%%%%%%%      ────────║║─────────────────────╔═╝║
-//       %%%%%%%%%%%%%%%%%%%    %%%%%%%%%   ────────╚╝─────────────────────╚══╝
-//       %%%%%%%%%%%%%%%%                   c h i p m u n k l o g i c . c o m
-//       %%%%%%%%%%%%%%
-//         %%%%%%%%%
-//           %%%%%%%%%%%%%%%%  ----------------------------------------------------------------------------------------------------------------------
+//     %%%%%%%%%%%%      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//  %%%%%%%%%%%%%%%%%%                      
+// %%%%%%%%%%%%%%%%%%%% %%                
+//    %% %%%%%%%%%%%%%%%%%%                
+//        % %%%%%%%%%%%%%%%                 
+//           %%%%%%%%%%%%%%                 ////    O P E N - S O U R C E     ////////////////////////////////////////////////////////////
+//           %%%%%%%%%%%%%      %%          _________________________________////
+//           %%%%%%%%%%%       %%%%                ________    _                             __      __                _     
+//          %%%%%%%%%%        %%%%%%              / ____/ /_  (_)___  ____ ___  __  ______  / /__   / /   ____  ____ _(_)____ TM 
+//         %%%%%%%    %%%%%%%%%%%%*%%%           / /   / __ \/ / __ \/ __ `__ \/ / / / __ \/ //_/  / /   / __ \/ __ `/ / ___/
+//        %%%%% %%%%%%%%%%%%%%%%%%%%%%%         / /___/ / / / / /_/ / / / / / / /_/ / / / / ,<    / /___/ /_/ / /_/ / / /__  
+//       %%%%*%%%%%%%%%%%%%  %%%%%%%%%          \____/_/ /_/_/ .___/_/ /_/ /_/\__,_/_/ /_/_/|_|  /_____/\____/\__, /_/\___/
+//       %%%%%%%%%%%%%%%%%%%    %%%%%%%%%                   /_/                                              /____/  
+//       %%%%%%%%%%%%%%%%                                                             ___________________________________________________               
+//       %%%%%%%%%%%%%%                    //////////////////////////////////////////////       c h i p m u n k l o g i c . c o m    //// 
+//         %%%%%%%%%                       
+//           %%%%%%%%%%%%%%%%               
+//    
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----%% 
 //----%% File Name        : pqr5_subsystem_macros.svh
@@ -51,12 +51,15 @@
 // Features
 //`define EN_LOADER                    // Define this macro to generate Loader to program the core on the fly via UART
 
-// On-board test environment INFO - configure the test environment parameters here
-`define FCLK                 10                     // System clock speed targetted for on-board testing; in MHz
-`define TCLK                 (1000.0/`FCLK)         // System clock period targetted for on-board testing; in ns
+// On-board test/simulation environment INFO - define the test environment parameters here
+`define FCLK                 10                     // System clock speed targetted for on-board testing/simulation; in MHz
+`define TCLK                 (1000.0/`FCLK)         // System clock period targetted for on-board testing/simulation; in ns
 `define IRAM_DEPTH           256                    // Depth of the generated I-RAM; Size = (I_RAM_DEPTH * 4) bytes
 `define IRAM_AW              ($clog2(`IRAM_DEPTH))  // Address width of the generated I-RAM
 `define IRAM_DW              32                     // Data width of the generated I-RAM; should be 32-bit
+`define DRAM_DEPTH           256                    // Depth of the generated D-RAM; 2^N; range=[4-16384] => Size = (DEPTH * 4) bytes;
+`define DRAM_AW              ($clog2(`DRAM_DEPTH))  // Address width of the generated D-RAM
+`define DRAM_DW              32                     // Data width of the generated D-RAM; should be 32-bit
 
 // Loader related (configuration required only if EN_LOADER is enabled)
 `define BAUDRATE             115200          // Baud rate @programming I/F; [shouldn't be faster than 1/16 FCLK]
@@ -81,7 +84,6 @@
 `define DMEM_DUMP            1       // If MEM_DBG: '1'- Dump DMEM content @end of simulation, '0'- Do not dump
 
 // DMEM Model to be generated for Simulation/Synthesis
-`define DRAM_DEPTH           256     // Depth of D-RAM; 2^N; range=[4-16384] => Size = (DEPTH * 4) bytes;
 `define DMEM_IS_ZERO_LAT     1       // '1'- Zero latency model with 100% Hit, '0'- Non-zero latency model
 `define DMEM_IS_RLAT         1       // '1'- Random latency, '0'- Fixed latency --> These settings are only for Non-zero latency model
 `define DMEM_HITRATE         90.0    // Hit rate % --> only for Random latency; latency on hit = 1 cycle always 
@@ -89,7 +91,7 @@
 `define DMEM_FIXED_LAT       1       // Fixed latency = FIXED_LAT+1 for hit/miss; range=[0-15]
 
 // Debug UART 
-`define DBGUART                              // Define this macro to enable Debug UART; SUPPORTED ONLY in DMEM Zero latency model
+//`define DBGUART                              // Define this macro to enable Debug UART; SUPPORTED ONLY in DMEM Zero latency model
 `define DBGUART_BRATE        115200          // Baud rate @programming I/F; [shouldn't be faster than 1/16 FCLK]
                                              // Validate: 
                                              // 1. (FCLK in Hz/BAUDRATE) < 2^16

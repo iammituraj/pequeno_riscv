@@ -1,5 +1,3 @@
-.ORIGIN 0x0           
-
 # PQR5 CPU Test Program - 07_test_loadstore.s
 # Load-Store instructions test: tests byte/half-word/word transfers
 # Expected memdump:
@@ -8,6 +6,9 @@
 # 0x0000_0008   : 0x 12 34 56 78
 # 0x0000_000C   : 0x 83 21 21 21
 # 0x0000_0010   : 0x 87 65 83 21
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 # Loading 32-bit immediate 0x12345678 to x1

@@ -1,7 +1,8 @@
-.ORIGIN 0x0         
-
 # PQR5ASM Test Program
 # Multiplier to multiply two registers and store product in register
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 mvi x1, 4             # x1 = 4

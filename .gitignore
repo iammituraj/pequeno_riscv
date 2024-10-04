@@ -5,8 +5,7 @@ synth/
 dump*/
 ref/
 
-/src/memory/imem*
-src/memory/iram*
+src/memory/*.sv
 assembler/sample*.*
 assembler/asm_pgm_info.txt
-assembler/asm_pgm_dump_ref
+asm_pgm_dump_ref

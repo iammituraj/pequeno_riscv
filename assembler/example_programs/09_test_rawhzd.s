@@ -1,7 +1,8 @@
-.ORIGIN 0x0           
-
 # PQR5 CPU Test Program - 09_test_rawhzd.s
 # Tests to verify mitigation against RAW data hazards by data forwarding
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 mvi  x7, 0x000           # x7 = 0x0000_0000
 mvi  x3, 0x000           

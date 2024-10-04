@@ -1,23 +1,24 @@
 ###################################################################################################
-# ╔═╦╗╔╗─────────╔╗─╔╗────╔╗
-# ║╔╣╚╬╬═╦══╦╦╦═╦╣╠╗║║╔═╦═╬╬═╗
-# ║╚╣║║║╬║║║║║║║║║═╣║╚╣╬║╬║║═╣ /////////////// O P E N S O U R C E 
-# ╚═╩╩╩╣╔╩╩╩╩═╩╩═╩╩╝╚═╩═╬╗╠╩═╝
-# ─────╚╝───────────────╚═╝
+##   _______   _                      __     __             _    
+##  / ___/ /  (_)__  __ _  __ _____  / /__  / /  ___  ___ _(_)___ TM
+## / /__/ _ \/ / _ \/  ' \/ // / _ \/  '_/ / /__/ _ \/ _ `/ / __/    //  O P E N - S O U R C E //
+## \___/_//_/_/ .__/_/_/_/\_,_/_//_/_/\_\ /____/\___/\_, /_/\__/ 
+##           /_/                                    /___/              
 ###################################################################################################
 +=================================================================================================+
 |                                   R E L E A S E   N O T E S                                     |
 +=================================================================================================+
 | IP            : Pequeno RISC-V CPU (PQR5)
-| Version       : v1.0, beta version
-| Type          : Soft core in V/SV
+| Version       : v1.0
+| Type          : Soft core in SV
 | License       : [see LICENSE.md]
-| Release Date  : June-2024
+| Release Date  : September-2024
 | 
 | Documentation : [TBD]
 | 
-| Limitations   : 1. Loader feature is untested. The feature can be enabled/disabled.
-|
+| Revision log  : v1.0 (beta) [June 2024] -- Loader feature untested
+|                 v1.0        [Sept 2024] -- Full features tested, minor bug fixes/improvements
+|                
 | Developer     : Mitu Raj, Chipmunk Logic ™ 
 | Website       : https://chipmunklogic.com
 | Contact       : chip@chipmunklogic.com

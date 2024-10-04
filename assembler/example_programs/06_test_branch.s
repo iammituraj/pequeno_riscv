@@ -1,9 +1,10 @@
-.ORIGIN 0x0         
-
 # PQR5ASM Test Program - 06_test_branch.s
 # To test Branch instructions and looping
 # if x1 = 0x111 & x2 is a no. in range [x3, x4), multiply x2 by 16 using a loop
 # Expected result is x6 = x7 = 0x0000_0020 because x6 = 0x0000_0002
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 mvi x1, 0x111  # Enable

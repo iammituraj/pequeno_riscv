@@ -1,4 +1,8 @@
-.ORIGIN 0x0         
+# PQR5 CPU Test Program - 10_test_pipeinlock.s
+# Tests to verify handling of pipeline interlock scenario   
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 mvi x1, 0xAAA

@@ -1,9 +1,10 @@
-.ORIGIN 0x0         
-
 # PQR5ASM Test Program
 # Sends the string "Hello World! from Pequeno :)" through the debug UART port
 # UART I/F specs are configured during the Pequeno subsystem generation...
 # This test program is written by ChatGPT under my guidance :D
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
     # Base addresses in memory (DMEM)

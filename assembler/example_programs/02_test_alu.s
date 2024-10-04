@@ -1,7 +1,8 @@
-.ORIGIN 0x0           
-
 # PQR5 CPU Test Program - 02_test_alu.s
 # To test all ALU (Integer Computation) instructions + LUI + AUIPC
+
+.section .text
+.org 0x00000000               # Base address of the .text section
 
 START:
 # Loading 32-bit immediate 0x3456789A to x1; special case where bit[11] = 1'b1
