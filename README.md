@@ -9,7 +9,7 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
   _FPGA demo of Pequeno running Hello world program_: https://youtu.be/GECyL9U5ZxI
 - Single-core, Single-issue, In-order execution
 - Classic 5-stage RISC-V pipeline
-- Intended for baremetal applications, not OS capable.
+- Intended for baremetal applications, not OS & interrupt capable.
 
                                              ____________________________
                                             / CHIPMUNK LOGIC            /\
