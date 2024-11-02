@@ -51,6 +51,7 @@
 #                                                                          ADD x1, x1, x2
 #                       -- Label is case-sensitive
 #                    -- %hi() and %lo() can be used to extract MS 20-bit & LS 12-bit from a 32-bit symbol. 
+#                       This together can return the 32-bit absolute address of a symbol.
 #                       This can be used to generate memory access offset for load/store operations. Or load 32-bit constant
 #                       to a register.
 #                       For eg:
@@ -65,6 +66,8 @@
 #                       # Loading 32-bit constant to register
 #                       LUI x1, %hi(0xdeadbeef)       # Load the upper 20 bits into x1
 #                       ADDI x1, x1, %lo(0xdeadbeef)  # Add the lower 12 bits to x1
+#                    -- %pcrel_hi() and %pcrel_lo() is similar to %hi() and %lo(), but the value returned is not absolute address
+#                       But the value returned is the address relative to current PC.
 #                    -- Immediate value supports ascii characters for instructions like MVI, LI
 #                       For eg: LI r0, 'A'  # Loads 0x41 to r0 register
 #                       Supports '\n', '\r', '\t' escape sequences and all 7-bit ascii characters from 0x20 to 0x7E.
@@ -78,7 +81,7 @@
 #                       Binary/Hex code files are generated in same path
 #                       If no arguments provided, source file = "./sample.s"
 #
-# Last modified on : Aug-2024
+# Last modified on : Nov-2024
 # Compatiblility   : Python 3.9 tested
 #
 # User Manual      : https://github.com/iammituraj/pqr5asm/blob/main/pqr5asm_imanual.pdf
@@ -239,6 +242,7 @@ def print_label_table(secname, labelcnt, label_list, label_addr_list):
     for i in range(labelcnt[0]):
         print('| %+-16s' % label_list[i], '| %+-8s' %secname, "| 0x{:08x}".format(label_addr_list[i]))
     print('+------------------+----------+-----------------')
+    print('')
 
 
 # Function to validate label names
@@ -1154,7 +1158,7 @@ def is_valid_word_argument(argument):
 
 # Function to define .text labels address mapping
 def define_label(baseaddr, line, instrcnt, exp_instrcnt, label_list, label_addr_list):
-    words = line.split()
+    words = line.split()    
     # Check if blank line or comment
     try:
         if words[0][0] == '#':
@@ -1205,12 +1209,12 @@ def define_label(baseaddr, line, instrcnt, exp_instrcnt, label_list, label_addr_
     else:
         # It is an instruction
         instrcnt[0] = instrcnt[0] + 1
-        if words[0] == 'LI' or words[0] == 'li' or words[0] == 'LA' or words[0] == 'la':
-            offset = 2  # Because LI = expands to two instructions
+        if words[0] == 'LI' or words[0] == 'li' or words[0] == 'LA' or words[0] == 'la' or words[0] == 'CALL' or words[0] == 'call':
+            offset = 2  # Because LI = expands to two instructions, PC increments by 8
         elif words[0] == 'JA' or words[0] == 'ja':
-            offset = 3  # Because JA = expands to three instructions
+            offset = 3  # Because JA = expands to three instructions, PC increments by 12
         else:
-            offset = 1
+            offset = 1        
         exp_instrcnt[0] = exp_instrcnt[0] + offset
 
 
@@ -1224,7 +1228,7 @@ def int2bin(num):
 
 
 # Function to convert an immediate/offset to 32 binary and return status
-def imm2bin(immval, linenum, errsts, jbflag, laflag, jaflag):
+def imm2bin(immval, linenum, errsts, jbflag, laflag, jaflag, callflag):
     try:
         # Integer literal
         if int(immval) < 0:
@@ -1277,6 +1281,14 @@ def imm2bin(immval, linenum, errsts, jbflag, laflag, jaflag):
                     pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # PC relative addr 2's complement
                 immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # PC relative addr signed 32-bit
                 return immval_bin
+            # Label --> translation --> PC relative address for call instruction
+            elif callflag == 1 and is_valid_label(immval.rstrip(':'), True):
+                addr_of_label_int = addr_of_label(immval, labelid)
+                pc_reltv_addr_int = addr_of_label_int - pc[0]  # PC relative addr
+                if pc_reltv_addr_int < 0:
+                    pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # PC relative addr 2's complement
+                immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # PC relative addr signed 32-bit
+                return immval_bin
             else:
                 print("| ERROR: Invalid immediate/offset value or label at line no: ", linenum)
                 errsts[0] = 1
@@ -1288,7 +1300,7 @@ def imm2bin(immval, linenum, errsts, jbflag, laflag, jaflag):
 
 
 # Function to parse %hi() and %lo()
-def parse_hi_lo(line):
+def parse_hi_lo(line, linenum):
     def calculate_hi(value):
         hi_value = (value + 0x800) >> 12  # Correct rounding for upper bits
         return f'0x{hi_value:05x}'  # Return as 20-bit hexadecimal
@@ -1309,7 +1321,8 @@ def parse_hi_lo(line):
 
     i = 0
     while i < len(code_part):
-        if code_part[i:i + 3] == "%hi":
+        # %hi() and %lo()
+        if code_part[i:i + 3] == "%hi" or code_part[i:i + 3] == "%lo":
             # Find the parentheses
             start = code_part.find('(', i)
             end = code_part.find(')', i)
@@ -1320,32 +1333,47 @@ def parse_hi_lo(line):
                         value = addr_of_label(arg, labelid)  # Use label address if valid
                     else:
                         value = int(arg, 0)  # Convert argument to integer
-
-                    modified_line += calculate_hi(value)
+                    if (code_part[i:i + 3] == "%hi"):
+                        modified_line += calculate_hi(value)
+                    else:
+                        modified_line += calculate_lo(value)    
                     i = end + 1  # Move past the processed %hi()
                 except ValueError:
                     return line  # Return original line on failure
             else:
                 return line  # Return original line if format is invalid
-
-        elif code_part[i:i + 3] == "%lo":
+        # %pcrel_hi() and %pcrel_lo()        
+        elif code_part[i:i + 9] == "%pcrel_hi" or code_part[i:i + 9] == "%pcrel_lo":            
             start = code_part.find('(', i)
             end = code_part.find(')', i)
-            if start != -1 and end != -1 and code_part[i + 3:start].strip() == '':
+            if start != -1 and end != -1 and code_part[i + 9:start].strip() == '':
                 arg = code_part[start + 1:end].strip()
                 try:
-                    if is_valid_label(arg):
+                    if is_valid_label(arg, True):  # Only valid for text labels!
                         value = addr_of_label(arg, labelid)  # Use label address if valid
+                        if (code_part[i:i + 9] == "%pcrel_hi"):                                                                       
+                            value = value - textline2pc[linenum] # PC relative addr
+                        elif pcrel_hi_found[0]:
+                            value = value - pcrel_hi_pc[0]   # %pcrel_hi PC relative addr 
+                        else:
+                            value = value - textline2pc[linenum] # PC relative addr 
+                            print('| WARNG: No counter-part %pcrel_hi() found at line no:', lnum, '... This may parse unintended PC relative address')
+                            warng_cnt[0] = warng_cnt[0] + 1                                           
+                        if value < 0:
+                            value = 0xffffffff + 1 + value   # 2's compliment         
                     else:
                         value = int(arg, 0)  # Convert argument to integer
-
-                    modified_line += calculate_lo(value)
+                    if (code_part[i:i + 9] == "%pcrel_hi"):
+                        pcrel_hi_found[0] = True
+                        pcrel_hi_pc[0] = textline2pc[linenum]
+                        modified_line += calculate_hi(value)
+                    else:                                         
+                        modified_line += calculate_lo(value)    
                     i = end + 1  # Move past the processed %lo()
                 except ValueError:
                     return line  # Return original line on failure
             else:
                 return line  # Return original line if format is invalid
-
         else:
             modified_line += code_part[i]
             i += 1
@@ -1404,6 +1432,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     ps_mvi_type_flag = 0
     ps_nop_type_flag = 0
     ps_j_type_flag = 0
+    is_j1_type = 0
     ps_not_type_flag = 0
     ps_inv_type_flag = 0
     ps_seqz_type_flag = 0
@@ -1414,6 +1443,8 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     ps_la_type_flag = 0
     ps_jr_type_flag = 0
     ps_ja_type_flag = 0
+    ps_call_type_flag = 0
+    ps_ret_type_flag = 0
 
     # Fields - default values
     rs1 = 'x0'
@@ -1474,8 +1505,10 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     elif opcode == 'NOP' or opcode == 'nop':
         ps_nop_type_flag = 1
         opcode_bin = '0010011'   # Pseudo instruction derived from ADDI
-    elif opcode == 'J' or opcode == 'j':
+    elif opcode == 'J' or opcode == 'j' or opcode == 'J1' or opcode == 'j1':
         ps_j_type_flag = 1
+        if opcode == 'J1' or opcode == 'j1':
+            is_j1_type = 1
         opcode_bin = '1101111'   # Pseudo instruction derived from JAL
     elif opcode == 'NOT' or opcode == 'not':
         ps_not_type_flag = 1
@@ -1519,6 +1552,13 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
             opcode_binarr.append('1100111')  # JALR
     elif opcode == 'JR' or opcode == 'jr':
         ps_jr_type_flag = 1
+        opcode_bin = '1100111'  # Pseudo instruction derived from JALR
+    elif opcode == 'CALL' or opcode == 'call':
+        ps_call_type_flag = 1
+        opcode_binarr.append('0010111')  # AUIPC
+        opcode_binarr.append('1100111')  # JALR
+    elif opcode == 'RET' or opcode == 'ret':
+        ps_ret_type_flag = 1
         opcode_bin = '1100111'  # Pseudo instruction derived from JALR
     else:
         print("| ERROR: Invalid/unsupported opcode at line no: ", linenum)
@@ -1684,11 +1724,14 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
             instr_error_flag = 1
             error_flag[0] = 1
 
-    # Validate pseudo instruction: J
+    # Validate pseudo instruction: J/J1
     if ps_j_type_flag == 1:
         try:
             j_type_flag = 1  # Derived from j-type
-            rdt = 'x0'
+            if is_j1_type:
+                rdt = 'x1'
+            else:
+                rdt = 'x0'
             imm = element[1]
             if len(element) > 2 and element[2][0] != '#':  # Integrity check; ignore if inline comment
                 print("| ERROR: Invalid no. of operands at line no: ", linenum)
@@ -1875,6 +1918,41 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
             error_flag[0] = 1
             error_cnt[0] = error_cnt[0] + 1
             return 2
+    
+    # Validate pseudo instruction: CALL
+    if ps_call_type_flag:
+        try:
+            rs1 = 'x1'  # For JALR
+            rdt = 'x1'  # For AUIPC, JALR
+            imm = element[1]
+            if len(element) > 2 and element[2][0] != '#':  # Integrity check; ignore if inline comment
+                print("| ERROR: Invalid no. of operands at line no: ", linenum)
+                instr_error_flag = 1
+                error_flag[0] = 1
+        except:
+            print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
+            error_cnt[0] = error_cnt[0] + 1
+            return 2
+        
+    # Validate pseudo instruction: RET
+    if ps_ret_type_flag:
+        try:
+            i_type_flag = 1  # Derived from i-type
+            rdt = 'x0'
+            rs1 = 'x1'
+            imm = 0
+            if len(element) > 1 and element[1][0] != '#':  # Integrity check; ignore if inline comment
+                print("| ERROR: Invalid no. of operands at line no: ", linenum)
+                instr_error_flag = 1
+                error_flag[0] = 1
+        except:
+            print("| FATAL: Instruction at line no: ", linenum, " is missing one or more operands!\n")
+            instr_error_flag = 1
+            error_flag[0] = 1
+            error_cnt[0] = error_cnt[0] + 1
+            return 2
 
     # Convert all instr fields to binary codes
     rs1_bin = reg2bin(rs1)
@@ -1884,7 +1962,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     # Decode immediate/offset
     errsts = [0]
     if r_type_flag == 0:  # Ignore only if r-type instruction
-        imm_bin = imm2bin(imm, linenum, errsts, (j_type_flag or b_type_flag), ps_la_type_flag, ps_ja_type_flag)
+        imm_bin = imm2bin(imm, linenum, errsts, (j_type_flag or b_type_flag), ps_la_type_flag, ps_ja_type_flag, ps_call_type_flag)
 
     # Check if immediate values flagged error on parsing
     if errsts[0] == 1:
@@ -2099,7 +2177,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         if imm_bin[20] == '0':
             imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
         else:
-            intval = int(imm_bin[0:20], base=2) + 1
+            intval = int(imm_bin[0:20], base=2) + 1  # Add 1 to MSB 20-bits if 11th bit is set, otherwise sign extension @ADDI will cause erratic load
             imm_bin_lui_or_auipc = int2bin(intval)
             imm_bin_31_12 = imm_bin_lui_or_auipc[12:32]  # imm[31:12] + 1
         instr_bin.append(imm_bin_31_12 + rdt_bin + opcode0)  # Write LUI/AUIPC instruction
@@ -2116,7 +2194,7 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         if imm_bin[20] == '0':
             imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
         else:
-            intval = int(imm_bin[0:20], base=2) + 1
+            intval = int(imm_bin[0:20], base=2) + 1  # Add 1 to MSB 20-bits if 11th bit is set, otherwise sign extension @ADDI will cause erratic load
             imm_bin_lui_or_auipc = int2bin(intval)
             imm_bin_31_12 = imm_bin_lui_or_auipc[12:32]  # imm[31:12] + 1
         instr_bin.append(imm_bin_31_12 + rdt_bin + opcode0)  # Write AUIPC instruction
@@ -2128,16 +2206,29 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         imm_bin_11_0 = '000000000000'  # imm[11:0] = 0
         funct3 = '000'
         instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + '00000' + opcode_binarr[2])
-    elif instr_error_flag == 0 and (ps_jr_type_flag):  # = JALR
+    elif instr_error_flag == 0 and (ps_call_type_flag):  # = AUIPC + JALR
+        # AUIPC
+        if imm_bin[20] == '0':
+            imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
+        else:
+            intval = int(imm_bin[0:20], base=2) + 1  # Add 1 to MSB 20-bits if 11th bit is set, otherwise sign extension @JALR will cause erratic load
+            imm_bin_auipc = int2bin(intval)
+            imm_bin_31_12 = imm_bin_auipc[12:32]  # imm[31:12] + 1
+        instr_bin.append(imm_bin_31_12 + rdt_bin + opcode_binarr[0])  # Write AUIPC instruction 
+        # JALR x1, x1, 0
         imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
         funct3 = '000'
-        instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_bin)
+        instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_binarr[1])   
+    elif instr_error_flag == 0 and (ps_jr_type_flag or ps_ret_type_flag):  # = JALR
+        imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
+        funct3 = '000'
+        instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_bin)    
     else:
         funct3 = 'XXX'  # Do nothing
 
     # Update pc
-    if ps_li_type_flag or ps_la_type_flag:
-        pc[0] = pc[0] + 8  # Because LI, LA = expand to two instructions
+    if ps_li_type_flag or ps_la_type_flag or ps_call_type_flag:
+        pc[0] = pc[0] + 8  # Because LI, LA, CALL = expand to two instructions
     elif ps_ja_type_flag:
         pc[0] = pc[0] + 12 # Because JA expands to three instructions
     else:
@@ -2352,8 +2443,10 @@ dmem_bytecnt = [0]
 dlabel_state = define_dlabel(code_text, dlabel_list, dlabel_addr_list, dlabelcnt)
 
 # .text labels decoder, also appends .data labels to the label_list
+textline2pc = []  # PC corresponding to each line of code_text
 istext = False
 for line in code_text:
+    textline2pc.append(baseaddr + int(exp_instrcnt[0]) * 4)
     if line.startswith(".section .text"):
         istext = True
     if istext:
@@ -2366,25 +2459,35 @@ print_label_table(".text", labelcnt, label_list, label_addr_list)
 
 # Pre-process code line-by-line: STEP2: Re-format immediate expressions
 code_text_pre1 = []
-for l in code_text:
-    # Parse %hi() %lo() if any, and replace by equivalent 20-bit and 12-bit hexa immediate
-    l = parse_hi_lo(l)
-
+lnum = 0
+pcrel_hi_found =[0]
+pcrel_hi_pc = [0]
+warng_cnt = [0]
+for l in code_text:  
     words = l.split(',')
     # Check if blank line or comment
     try:
         if words[0][0] == '#':
             code_text_pre1.append(l)
+            lnum = lnum + 1
             # Ignore comment and move on
             continue
         elif l.startswith("."):
             # Ignore .text .data section elements and move on
             code_text_pre1.append(l)
+            lnum = lnum + 1
             continue
     except:
         code_text_pre1.append(l)
+        lnum = lnum + 1
         # Ignore blank line and move on
         continue
+
+    # Parse %hi() %lo() if any, and replace by equivalent 20-bit and 12-bit hexa immediate
+    l = parse_hi_lo(l, lnum)
+    lnum = lnum + 1
+    words = l.split(',')
+
     # Could be valid instruction, check if second argument has immediate expression 'x(y)', replace it by: 'y x'
     # Also check if ascii char exists, parse and replace it with equivalent hex
     parseascii_succ = [False]
@@ -2458,9 +2561,10 @@ print('\n==========================================================')
 print('+                        Summary                         +')
 print('==========================================================')
 if error_flag[0] == 0:
-    print('Total no. of lines of code parsed     = ', lines_of_code)
-    print('Total no. of instructions parsed      = ', instrcnt[0])
-    print('Total no. of instructions with ERRORS = ', error_cnt[0])
+    print('Total no. of lines of code parsed       = ', lines_of_code)
+    print('Total no. of instructions parsed        = ', instrcnt[0])
+    print('Total no. of instructions with ERRORS   = ', error_cnt[0])
+    print('Total no. of instructions with WARNINGS = ', warng_cnt[0])
     print('\n|| SUCCESS ||\nSuccessfully parsed the assembly code and converted to binary code...')
     gen_instr_hex(instr_bin, instr_hex)
     try:
@@ -2527,9 +2631,10 @@ if error_flag[0] == 0:
     except:
         print('| FATAL: Unable to create Binary/Hex code file! Please check the path/permissions...')
 else:
-    print('Total no. of lines of code parsed     = ', lines_of_code)
-    print('Total no. of instructions parsed      = ', instrcnt[0])
-    print('Total no. of instructions with ERRORS = ', error_cnt[0])
+    print('Total no. of lines of code parsed       = ', lines_of_code)
+    print('Total no. of instructions parsed        = ', instrcnt[0])
+    print('Total no. of instructions with ERRORS   = ', error_cnt[0])
+    print('Total no. of instructions with WARNINGS = ', warng_cnt[0])
     print('\n|| FAIL ||\nFailed to parse the assembly code due to errors...')
     print_fail()
     exit(2)

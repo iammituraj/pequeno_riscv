@@ -11,7 +11,13 @@ mvi t1, 16         # x6 = 16
 mvi t2, 4          # x7 = 4
 mv a0, t1          # Set argument-1 ahead of fn call
 mv a1, t2          # Set argument-2 ahead of fn call
-jal ra, MUL        # mul(): Store next PC to ra and jump to MUL subroutine
+
+# Call mul(): Store next PC to ra and jump to MUL subroutine
+call MUL           # Or use: jal ra, MUL (since, it's short jump)
+                   # Or use: j1 MUL      (translates to jal ra, MUL)
+                   # Or use: auipc ra, %pcrel_hi(MUL)
+                   #         jalr ra, ra, %pcrel_lo(MUL)  
+
 mv t3, a0          # a0 contains the returned val from MUL, store it to x28
 sw t3, 0(x0)       # Store result to mem[0]
 
@@ -42,4 +48,4 @@ lw ra, 0(sp)          # Pop return addr from stack @sp  \
 lw t1, 4(sp)          # Pop t1 from stack @sp+4          |--> Restoring the context
 lw t2, 8(sp)          # Pop t2 from stack @sp+8         /
 addi sp, sp, 12       # Free space for 3 words in the stack
-jr ra                 # Return to the caller
+ret                   # Return to the caller; You can also use: jr ra OR jalr x0, ra, 0

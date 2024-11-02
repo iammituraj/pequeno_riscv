@@ -15,7 +15,9 @@ START:
 LI x1, 0x12345678
 
 # Loading 32-bit immediate 0x87658321 to x2
-LI x2, 0x87658321
+#LI x2, 0x87658321
+LUI x2, %hi(0x87658321)
+ADDI x2, x2, %lo(0x87658321)
 
 sb x2, 0(x0)        
 sb x1, 0(x0)        # Stores 0x78 to 0x00000000

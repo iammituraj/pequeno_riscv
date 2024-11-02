@@ -64,7 +64,7 @@ if [ "$en_run01" -eq 1 ]; then
    echo "| PQR5: RUN 01 initiated..."
    echo ""   
    mkdir -v ./regress_run_dump/01_test_regfile
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="01_test_regfile.s"
    make -C ./ compile
    make -C ./ sim
@@ -87,7 +87,7 @@ if [ "$en_run02" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/02_test_alu
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="02_test_alu.s"
    make -C ./ compile
    make -C ./ sim
@@ -110,7 +110,7 @@ if [ "$en_run03" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/03_test_alu_shift
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="03_test_alu_shift.s"
    make -C ./ compile
    make -C ./ sim
@@ -133,7 +133,7 @@ if [ "$en_run04" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/04_test_pseudo
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="04_test_pseudo.s"
    make -C ./ compile
    make -C ./ sim
@@ -156,7 +156,7 @@ if [ "$en_run05" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/05_test_jump
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="05_test_jump.s"
    make -C ./ compile
    make -C ./ sim
@@ -179,7 +179,7 @@ if [ "$en_run06" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/06_test_branch
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="06_test_branch.s"
    make -C ./ compile
    make -C ./ sim
@@ -202,7 +202,7 @@ if [ "$en_run07" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/07_test_loadstore
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="07_test_loadstore.s"
    make -C ./ compile
    make -C ./ sim
@@ -225,7 +225,7 @@ if [ "$en_run08" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/08_test_ldstall
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="08_test_ldstall.s"
    make -C ./ compile
    make -C ./ sim
@@ -248,7 +248,7 @@ if [ "$en_run09" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/09_test_rawhzd
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="09_test_rawhzd.s"
    make -C ./ compile
    make -C ./ sim
@@ -271,7 +271,7 @@ if [ "$en_run10" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/10_test_pipeinlock
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="10_test_pipeinlock.s"
    make -C ./ compile
    make -C ./ sim
@@ -294,7 +294,7 @@ if [ "$en_run11" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/10_adder
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="11_adder.s"
    make -C ./ compile
    make -C ./ sim
@@ -317,7 +317,7 @@ if [ "$en_run12" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/12_fibonacci
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="12_fibonacci.s"
    make -C ./ compile
    make -C ./ sim
@@ -340,7 +340,7 @@ if [ "$en_run13" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/13_multiplier
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="13_multiplier.s"
    make -C ./ compile
    make -C ./ sim
@@ -363,7 +363,7 @@ if [ "$en_run14" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/14_adder_func
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="14_adder_func.s"
    make -C ./ compile
    make -C ./ sim
@@ -386,7 +386,7 @@ if [ "$en_run15" -eq 1 ]; then
    echo ""
    mkdir -v ./regress_run_dump
    mkdir -v ./regress_run_dump/15_datacopy
-   make -C ./ full_clean
+   make -C ./ build_clean
    make -C ./ build ASM="15_datacopy.s"
    make -C ./ compile
    make -C ./ sim
