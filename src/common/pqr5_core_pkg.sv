@@ -209,7 +209,7 @@ function automatic string rhex2txt (int size, logic [DSIZE-1:0] hexval, string p
 endfunction
 
 // Function to dump Register File
-function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarray [], string dumpname);      
+function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarray [32], string dumpname);
    $fdisplay(fdump, "+======================================");
    $fdisplay(fdump, "| Pequeno RISC-V CPU v1.0 Simulation   ");
    $fdisplay(fdump, "+======================================");
@@ -224,7 +224,7 @@ function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarr
 endfunction
 
 // Function to display Register File
-function automatic void disp_regfile (logic [RSIZE-1:0] regarray []);
+function automatic void disp_regfile (logic [RSIZE-1:0] regarray [32]);
    int i = 0 ;
    $display("+================================================================+");
    $display("| REGFILE                                                        |");
