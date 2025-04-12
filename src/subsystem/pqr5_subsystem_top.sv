@@ -23,15 +23,19 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : This subsystem integrates PQR5 Core with Instruction and Data RAMs. The subsystem is ready to be implemented and 
-//----%%                    tested on FPGA boards which support Block RAMs. If block RAMs are not supported, RAMs will be implemented on the fabric.
-//----%%                    # Instruction RAM (I-RAM) is assumed to be loaded on reset with binary program to be executed.
+//----%% Description      : This subsystem integrates PQR5 Core with Instruction and Data RAM wrappers + Loader. 
+//----%%                    The subsystem is ready to be implemented and tested on FPGA boards which support Block RAMs.
+//----%%                    If block RAMs are not supported, RAMs will be implemented on the fabric.
+//----%%                    # Instruction RAM (I-RAM) wrapper consists of I-RAM and I-RAM Mux.
+//----%%                    # Data RAM (D-RAM) wrapper consists of D-RAM and Debug UART.
+//----%%                    # Instruction & Data RAMs are assumed to be loaded on reset with binary program to be executed.
+//----%%                    # Dedicated Reset Controller to synchronize and distribute system reset.
 //----%%                    # Configurability:
 //----%%                      -- PC_INIT can be configured to start executing program from a specific address in I-RAM after reset. 
 //----%%                      -- All other configurability features in pqr5_core_macros/pqr5_subsystem_macros include files.    
 //----%% 
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : August-2024
+//----%% Last modified on : April-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -146,6 +150,7 @@ logic [`DRAM_DW-1:0] ldr_dram_rdata    ;  // Read data
 `endif
 
 logic                ext_cpu_stall     ;  // External stall to CPU
+logic [31:0]         clktick_cnt_rg    ;  // Free-running clock tick counter
 
 //===================================================================================================================================================
 // Instances of submodules
@@ -288,6 +293,8 @@ dmem_top #(
    .o_uart_tx (o_dbg_uart_tx) ,
    `endif
 
+   .i_clktick_cnt    (clktick_cnt_rg) ,
+
    `ifdef EN_LOADER  
    .i_pgm_en         (ldr_cpu_stall)  ,
    .i_pgm_dram_addr  (ldr_dram_addr)  ,
@@ -374,6 +381,18 @@ assign ext_cpu_stall       = ldr_cpu_stall ;
 `else
 assign ext_cpu_stall       = 1'b0 ;
 `endif
+
+//===================================================================================================================================================
+// Free-running clock tick counter (Used for debug purpose)
+//===================================================================================================================================================
+always @(posedge sys_clk or negedge sys_reset_sync) begin
+   if (!sys_reset_sync) begin
+      clktick_cnt_rg <= 32'h0 ;   
+   end 
+   else begin
+      clktick_cnt_rg <= clktick_cnt_rg + 32'd1; 
+   end
+end
 
 endmodule
 //###################################################################################################################################################

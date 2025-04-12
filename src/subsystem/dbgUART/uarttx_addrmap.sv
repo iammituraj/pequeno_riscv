@@ -24,16 +24,19 @@
 //----%% Vendor           : Chipmunk Logic™, https://chipmunklogic.com
 //----%%
 //----%% Description      : Register address map for UART TX in UART IP core. 
+//----%%                    Additionally, the clock tick counter is also added to the address map. This has nothing to do with UART,
+//----%%                    and is added only for external debug purpose.
 //----%%                    +=============+========+===========================================
 //----%%                    | ADDRESS     | Access | CSR
 //----%%                    +=============+========+===========================================
 //----%%                    | 0x0000_0000 | RW     | Control {30'h0, tx_rst, tx_en}
 //----%%                    | 0x0000_0004 | RW     | TXdata  {24'h0, tx_data}
 //----%%                    | 0x0000_0008 | RO     | Status  {23'h0, tx_state, 7'h0, tx_ready}
+//----%%                    | 0x0000_000C | RO     | Counter {clock tick}
 //----%%                    +=============+========+===========================================
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : June-2024
+//----%% Last modified on : April-2025
 //----%% Notes            : -
 //----%%
 //----%% Copyright        : Open-source license, see LICENSE.md
@@ -62,7 +65,10 @@ module uarttx_addrmap (
    output logic [7:0]  o_tx_data        ,  // TX data   
    output logic        o_tx_data_valid  ,  // Data valid
    input  logic        i_tx_data_ready  ,  // Data ready
-   input  logic        i_tx_state          // TX state
+   input  logic        i_tx_state       ,  // TX state
+
+   // Clock tick counter
+   input  logic [31:0] i_clktick_cnt       // Clock tick counter
 );
 
 //===================================================================================================================================================
@@ -72,11 +78,13 @@ module uarttx_addrmap (
 localparam CSR0_CONTROL = 4'h0 ;
 localparam CSR1_TXDATA  = 4'h1 ;
 localparam CSR2_STATUS  = 4'h2 ;
+localparam CSR3_COUNTER = 4'h3 ;
 
-// Registers
-logic [1:0] csr0_control ;
-logic [7:0] csr1_txdata  ;
-logic [8:0] csr2_status  ;
+// CSRegisters
+logic [1:0]  csr0_control ;
+logic [7:0]  csr1_txdata  ;
+logic [8:0]  csr2_status  ;
+logic [31:0] csr3_counter ;
 
 //===================================================================================================================================================
 // Write logic for RW registers
@@ -107,7 +115,8 @@ end
 //===================================================================================================================================================
 // Logging RO registers
 //===================================================================================================================================================
-assign csr2_status = {i_tx_state, 7'h0, i_tx_data_ready} ;
+assign csr2_status  = {i_tx_state, 7'h0, i_tx_data_ready} ;
+assign csr3_counter = i_clktick_cnt ;
 
 //===================================================================================================================================================
 // Read logic for all registers
@@ -122,6 +131,7 @@ always @(posedge clk or negedge rstn) begin
             CSR0_CONTROL : o_data <= {30'h0, csr0_control} ;
             CSR1_TXDATA  : o_data <= {24'h0,  csr1_txdata} ;
             CSR2_STATUS  : o_data <= {23'h0,  csr2_status} ;
+            CSR3_COUNTER : o_data <= csr3_counter          ;
             default      : o_data <= 32'h0                 ;
          endcase          
       end

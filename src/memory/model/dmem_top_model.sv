@@ -82,6 +82,9 @@ module dmem_top_model#(
    output logic  o_uart_tx ,  // UART Tx
    `endif
 
+   // Clock tick counter
+   input  logic [31:0]           i_clktick_cnt    ,  // Clock tick counter
+
    // Programming Interface: used to write the binary to Instruction RAM
    input  logic                  i_pgm_en         ,  // Programming mode Enable
    input  logic [RAM_ADDR_W-1:0] i_pgm_dram_addr  ,  // Address
@@ -233,7 +236,8 @@ uarttx_addrmap inst_dbguart_addrmap (
    .o_tx_data       (uart_tx_data)       ,
    .o_tx_data_valid (uart_tx_data_valid) ,
    .i_tx_data_ready (uart_tx_ready)      ,
-   .i_tx_state      (uart_tx_state)
+   .i_tx_state      (uart_tx_state)      ,
+   .i_clktick_cnt   (i_clktick_cnt)
 );
 `endif
 
