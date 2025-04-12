@@ -39,6 +39,14 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
 | **Interrupt/Exceptions capable**           | No                                        |
 | **Debug support**                        | Yes, limited number of signals for simulation purposes only |
 
+### FPGA Resource utilization
+| **Synthesis summary**                      |                                           |
+|--------------------------------------------|-------------------------------------------|
+| **Target** | Artix-7, xc7a35tcpg236-1
+| **LUTs** | 2084
+| **Registers** | 1564
+| **Targetted clock freq** | 100 MHz
+
 ### Important notes
 Please go through _database_readme.txt_ for information about the organisation of the repo and how to setup the pqr5 build environment.
 

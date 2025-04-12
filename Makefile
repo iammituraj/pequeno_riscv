@@ -11,12 +11,16 @@
 #                    It also supports writing bitstream to target Xilinx FPGAs, flashing program binary to target.
 #                    The Makefile is compatible with terminal programs like MSYS/Gitbash in Windows...
 # Developer        : Mitu Raj, chip@chipmunklogic.com at Chipmunk Logic ™, https://chipmunklogic.com
-# Last Modified on : August-2024
+# Last Modified on : Mar-2025
 #################################################################################################################################
 
 # Define shell
 .ONESHELL:
 SHELL:=/bin/bash
+
+# Python env path: user needs to modify this path...
+PYTHON:=~/my_workspace/python/myenv/bin/python
+#PYTHON:=python
 
 # Define directories
 SRC_DIR    = $(shell pwd)/src
@@ -220,12 +224,12 @@ asm2bin: check_asm asm_clean
 	@echo "| MAKE_PQR5: Invoking Assembler ..."
 	@echo ""	
 	@cp $(ASM_DIR)/example_programs/$(ASM) $(ASM_DIR)/sample.s
-	python $(ASM_DIR)/pqr5asm.py -file=$(ASM_DIR)/sample.s -pcrel	
+	$(PYTHON) $(ASM_DIR)/pqr5asm.py -file=$(ASM_DIR)/sample.s -pcrel	
 	@mkdir $(ASM_DIR)/asm_pgm_dump_ref
 	@cp -f $(ASM_DIR)/example_programs/test_results/$(ASM)/*_dump.txt $(ASM_DIR)/asm_pgm_dump_ref/	
 	echo "The program built by the assembler is: $(ASM)" > $(ASM_DIR)/asm_pgm_info.txt
-	python $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_imem.bin $(ASM_DIR)/sample_imem_baseaddr.txt
-	python $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_dmem.bin $(ASM_DIR)/sample_dmem_baseaddr.txt
+	$(PYTHON) $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_imem.bin $(ASM_DIR)/sample_imem_baseaddr.txt
+	$(PYTHON) $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_dmem.bin $(ASM_DIR)/sample_dmem_baseaddr.txt
 
 # genram
 genram:
@@ -240,25 +244,25 @@ genram:
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking GENRAM to generate Instruction RAM with program binary initialized..."
 	@echo ""
-	python $(SCRIPT_DIR)/pqr5genram.py $(ASM_DIR)/sample_imem_hex.txt $(SRC_DIR)/memory/model/ram.sv iram $(DPT) $(DTW) $(OFT) 0
+	$(PYTHON) $(SCRIPT_DIR)/pqr5genram.py $(ASM_DIR)/sample_imem_hex.txt $(SRC_DIR)/memory/model/ram.sv iram $(DPT) $(DTW) $(OFT) 0
 	@mv $(SRC_DIR)/memory/model/iram.sv $(SRC_DIR)/memory/iram.sv 
 	@echo ""
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking GENRAM to generate Data RAM with data binary initialized..."
 	@echo ""
-	python $(SCRIPT_DIR)/pqr5genram.py $(ASM_DIR)/sample_dmem_hex.txt $(SRC_DIR)/memory/model/dram_model.sv dram $(DPT) $(DTW) $$dmem_baseaddr 1
+	$(PYTHON) $(SCRIPT_DIR)/pqr5genram.py $(ASM_DIR)/sample_dmem_hex.txt $(SRC_DIR)/memory/model/dram_model.sv dram $(DPT) $(DTW) $$dmem_baseaddr 1
 	@mv $(SRC_DIR)/memory/model/dram_b*.sv $(SRC_DIR)/memory/
 	@mv $(SRC_DIR)/memory/model/dram_4x8.sv $(SRC_DIR)/memory/dram_4x8.sv
 	@echo ""
 	@echo "| MAKE_PQR5: Generating wrapper for Instruction RAM..."
 	@echo ""
-	python $(SCRIPT_DIR)/pqr5genwrap.py $(SRC_DIR)/memory/model/ram_top.sv imem_top $(DPT) $(DTW) 0
+	$(PYTHON) $(SCRIPT_DIR)/pqr5genwrap.py $(SRC_DIR)/memory/model/ram_top.sv imem_top $(DPT) $(DTW) 0
 	@mv $(SRC_DIR)/memory/model/imem_top.sv $(SRC_DIR)/memory/imem_top.sv
 	@echo ""
 	@echo ""
 	@echo "| MAKE_PQR5: Generating wrapper for Data RAM..."
 	@echo ""
-	python $(SCRIPT_DIR)/pqr5genwrap.py $(SRC_DIR)/memory/model/dmem_top_model.sv dmem_top $(DPT) $(DTW) 1	
+	$(PYTHON) $(SCRIPT_DIR)/pqr5genwrap.py $(SRC_DIR)/memory/model/dmem_top_model.sv dmem_top $(DPT) $(DTW) 1	
 	@mv $(SRC_DIR)/memory/model/dmem_top.sv $(SRC_DIR)/memory/dmem_top.sv
 
 # build
@@ -289,7 +293,7 @@ flash: check_flash
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking Flasher ..."
 	@echo ""
-	@python $(FLASH_DIR)/peqflash.py -serport $(SP) -baud $(BAUD) -imembin "$(ASM_DIR)/sample_imem.bin" -dmembin "$(ASM_DIR)/sample_dmem.bin" $(PQF)
+	@$(PYTHON) $(FLASH_DIR)/peqflash.py -serport $(SP) -baud $(BAUD) -imembin "$(ASM_DIR)/sample_imem.bin" -dmembin "$(ASM_DIR)/sample_dmem.bin" $(PQF)
 
 # listasm
 listasm:
