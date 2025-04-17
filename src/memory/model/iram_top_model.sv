@@ -22,7 +22,7 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : This is a wrapper over Instruction RAM (I-RAM) to incorporate valid-ready handshaking and Programming Interface.
+//----%% Description      : This is a wrapper over Instruction RAM (IRAM) to incorporate valid-ready handshaking and Programming Interface.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
 //----%% Last modified on : Jan-2024
@@ -74,18 +74,18 @@ module ram_top #(
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-logic              mstr_iram_en     ;    // I-RAM Enable from Master
-logic              mstr_iram_wen    ;    // I-RAM Write Enable from Master
-logic [ADDR_W-1:0] mstr_iram_addr   ;    // I-RAM Address from Master
+logic              mstr_iram_en     ;    // IRAM Enable from Master
+logic              mstr_iram_wen    ;    // IRAM Write Enable from Master
+logic [ADDR_W-1:0] mstr_iram_addr   ;    // IRAM Address from Master
 logic              rd_en            ;    // Read enable from Master
 
 logic [ID_W-1:0]   reqid_rg         ;    // Request ID out
 
-logic              iram_en          ;    // I-RAM Enable
-logic              iram_wen         ;    // I-RAM Write Enable
-logic [ADDR_W-1:0] iram_addr        ;    // I-RAM Address
-logic [DATA_W-1:0] iram_wdata       ;    // I-RAM Write Data
-logic [DATA_W-1:0] iram_rdata       ;    // I-RAM Read Data
+logic              iram_en          ;    // IRAM Enable
+logic              iram_wen         ;    // IRAM Write Enable
+logic [ADDR_W-1:0] iram_addr        ;    // IRAM Address
+logic [DATA_W-1:0] iram_wdata       ;    // IRAM Write Data
+logic [DATA_W-1:0] iram_rdata       ;    // IRAM Read Data
 
 logic              data_valid_rg    ;    // Data valid register
 logic              ready, ready_rg  ;    // Ready, Ready register
@@ -94,7 +94,7 @@ logic              ready, ready_rg  ;    // Ready, Ready register
 // Submodule Instances
 //===================================================================================================================================================
 
-// Instruction RAM (I-RAM)
+// Instruction RAM (IRAM)
 iram #(
    .DATA_W (DATA_W) ,
    .DEPTH  (DEPTH)
@@ -132,13 +132,13 @@ end
 //===================================================================================================================================================
 // Continuous Assignments
 //===================================================================================================================================================
-// I-RAM control signals from Master
+// IRAM control signals from Master
 assign mstr_iram_en    = i_valid && ready ;
 assign mstr_iram_wen   = 1'b0             ;
 assign mstr_iram_addr  = i_addr           ;
 assign rd_en           = mstr_iram_en     ;
 
-// I-RAM Mux: selects between Master/Programming Interface control
+// IRAM Mux: selects between Master/Programming Interface control
 assign iram_en    = (i_pgm_en)? i_pgm_iram_en   : mstr_iram_en   ;
 assign iram_wen   = (i_pgm_en)? i_pgm_iram_wen  : mstr_iram_wen  ;
 assign iram_addr  = (i_pgm_en)? i_pgm_iram_addr : mstr_iram_addr ;

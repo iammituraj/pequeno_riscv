@@ -44,7 +44,8 @@
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
 //----%% Last modified on : June-2024
-//----%% Notes            : All models are synthesisable.
+//----%% Notes            : RAM max. depth = 16K, i.e, max. 64kB RAM is supported. 
+//----%%                    All models are synthesisable.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
 //----%%                                                                                             
@@ -136,13 +137,13 @@ localparam BADR_UART = 32'h0001_0000 ;
 // Internal Registers/Signals
 //===================================================================================================================================================
 logic [RAM_ADDR_W-1:0] ram_addr      ;  // Address to RAM from Memory IF
-logic [RAM_ADDR_W-1:0] ram_addr_pp   ;  // Address @RAM after D-RAM Mux
+logic [RAM_ADDR_W-1:0] ram_addr_pp   ;  // Address @RAM after DRAM Mux
 logic [DATA_W-1:0]     ram_rdata     ;  // Data read from RAM
-logic [DATA_W-1:0]     ram_wdata_pp  ;  // Write Data @RAM after D-RAM Mux
+logic [DATA_W-1:0]     ram_wdata_pp  ;  // Write Data @RAM after DRAM Mux
 logic                  ram_hit       ;  // Hit RAM
-logic                  ram_wen_pp    ;  // Write Enable @RAM after D-RAM Mux
+logic                  ram_wen_pp    ;  // Write Enable @RAM after DRAM Mux
 logic                  ram_en        ;  // Enable RAM from Memory IF
-logic [3:0]            ram_en_pp     ;  // Enable @RAM after D-RAM Mux
+logic [3:0]            ram_en_pp     ;  // Enable @RAM after DRAM Mux
 `ifdef DBGUART
 logic [11:0]       uart_addr ;  // Address to UART
 logic [DATA_W-1:0] uart_rdata;  // Data read from UART registers
@@ -302,7 +303,7 @@ assign ram_addr  = i_addr[RAM_BADDR_W-1 : 2] ; // Word addressing on RAM
 assign uart_addr = i_addr[11:0] ;  // Byte addressing on UART
 `endif
 
-// D-RAM Mux selects between Master/Programming Interface control
+// DRAM Mux selects between Master/Programming Interface control
 assign ram_addr_pp      = (i_pgm_en)? i_pgm_dram_addr    : ram_addr ;
 assign ram_en_pp        = (i_pgm_en)? {4{i_pgm_dram_en}} : (byte_en & {4{ram_en}}) ;
 assign ram_wen_pp       = (i_pgm_en)? i_pgm_dram_wen     : (i_wen & i_req) ; 
@@ -335,11 +336,11 @@ typedef enum logic {
 state                  state_rg                ;  // State register
 logic                  ready, ready_rg, ack_rg ;  // Ready, ack signals
 logic [3:0]            en, en_rg               ;  // Byte-enable from Memory Interface
-logic [3:0]            ram_en_pp               ;  // Byte-enable @RAM after D-RAM Mux
+logic [3:0]            ram_en_pp               ;  // Byte-enable @RAM after DRAM Mux
 logic                  wen_rg                  ;  // Write Enable from Memory Interface
-logic                  ram_wen_pp              ;  // Write Enable @RAM after D-RAM Mux
+logic                  ram_wen_pp              ;  // Write Enable @RAM after DRAM Mux
 logic [RAM_ADDR_W-1:0] addr, addr_rg           ;  // Address to RAM from Memory Interface
-logic [RAM_ADDR_W-1:0] ram_addr_pp             ;  // Address @RAM after D-RAM Mux
+logic [RAM_ADDR_W-1:0] ram_addr_pp             ;  // Address @RAM after DRAM Mux
 logic [DATA_W-1:0]     data_rg, rdata          ;  // W/R data to/from RAM from/to Memory Interface
 logic [DATA_W-1:0]     ram_wdata_pp            ;  // Write data to
 logic                  hit                     ;  // Hit signal
@@ -444,7 +445,7 @@ assign ready   = (i_ready | ~ack_rg) & ready_rg ;
 assign o_ready = ready  ;
 assign o_ack   = ack_rg ;
 
-// D-RAM Mux selects between Master/Programming Interface control
+// DRAM Mux selects between Master/Programming Interface control
 assign ram_addr_pp      = (i_pgm_en)? i_pgm_dram_addr    : addr_rg ;
 assign ram_en_pp        = (i_pgm_en)? {4{i_pgm_dram_en}} : en_rg   ;
 assign ram_wen_pp       = (i_pgm_en)? i_pgm_dram_wen     : wen_rg  ;

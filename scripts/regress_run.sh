@@ -16,7 +16,7 @@
 # Last modified on : Jan-2024
 # Compatiblility   : Linux/Windows bash terminal
 #
-# Copyright        : Open-source license, see developer.txt.
+# Copyright        : Open-source license, see LICENSE.md.
 #############################################################################################################
 # CONFIGURATION
 en_run01=1

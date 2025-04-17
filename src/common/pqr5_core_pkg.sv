@@ -26,7 +26,7 @@
 //----%% Description      : This Package contains all parameters/functions/tasks used by PQR5 Core blocks.
 //----%%
 //----%% Tested on        : -
-//----%% Last modified on : Mar-2023
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -122,26 +122,42 @@ task disp_simheader ();
    $display("// +==========================================================+ //"); 
    $display("// |              Pequeno RISC-V CPU - Simulation             | //");
    $display("// +==========================================================+ //");
-   $display("// | Version   : %-044s | //", `VERS);
-   $display("// | ISA       : %-044s | //", `ISA);
-   $display("// | PC_INIT   : %-044s | //", rhex2txt(32, `PC_INIT));
+   $display("// | Version     : %-042s | //", `VERS);
+   $display("// | ISA         : %-042s | //", `ISA);
+   $display("// | PC_INIT     : %-042s | //", rhex2txt(32, `PC_INIT));
    `ifdef DBG
-   $display("// | DBG       : %-044s | //", "YES");
+   $display("// | Debug mode  : %-042s | //", "YES");
    `else
-   $display("// | DBG       : %-044s | //", "NO");
+   $display("// | Debug mode  : %-042s | //", "NO");
    `endif
+   if (`DMEM_IS_ZERO_LAT) begin
+   $display("// | MEM Zerolat : %-042s | //", "YES");   
+   end else begin
+   $display("// | MEM Zerolat : %-042s | //", "NO");    
+   end
    `ifdef MEM_DBG
-   $display("// | MEM_DBG   : %-044s | //", "YES");
+   $display("// | MEM DBG     : %-042s | //", "YES");
+   $display("// | IMEM dump   : %-042s | //", ynstatus(`IMEM_DUMP));
+   $display("// | DMEM dump   : %-042s | //", ynstatus(`DMEM_DUMP));
    `else
-   $display("// | MEM_DBG   : %-044s | //", "NO");
+   $display("// | MEM DBG     : %-042s | //", "NO");
+   $display("// | IMEM dump   : %-042s | //", ynstatus(0));
+   $display("// | DMEM dump   : %-042s | //", ynstatus(0));
    `endif
-   $display("// | REGF dump : %-044s | //", ynstatus(`REGFILE_DUMP));
-   $display("// | IMEM dump : %-044s | //", ynstatus(`IMEM_DUMP));
-   $display("// | DMEM dump : %-044s | //", ynstatus(`DMEM_DUMP));
-   `ifdef SIMLIMIT
-   $display("// | SIMLIMIT  : %-044s | //", "YES");
+   `ifdef DBG
+   $display("// | REGF dump   : %-042s | //", ynstatus(`REGFILE_DUMP));
    `else
-   $display("// | SIMLIMIT  : %-044s | //", "NO");
+   $display("// | REGF dump   : %-042s | //", ynstatus(NO));
+   `endif
+   `ifdef SIMLIMIT
+   $display("// | SIMLIMIT    : %-042s | //", "YES");
+   `else
+   $display("// | SIMLIMIT    : %-042s | //", "NO");
+   `endif
+   `ifdef SIMEXIT_INSTR_END
+   $display("// | SIM exit    : %-042s | //", "YES, by END instr");
+   `else
+   $display("// | SIM exit    : %-042s | //", "NO END instr");
    `endif
    $display("// +==========================================================+ //");
    $display("//////////////////////////////////////////////////////////////////");

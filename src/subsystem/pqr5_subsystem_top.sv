@@ -26,12 +26,12 @@
 //----%% Description      : This subsystem integrates PQR5 Core with Instruction and Data RAM wrappers + Loader. 
 //----%%                    The subsystem is ready to be implemented and tested on FPGA boards which support Block RAMs.
 //----%%                    If block RAMs are not supported, RAMs will be implemented on the fabric.
-//----%%                    # Instruction RAM (I-RAM) wrapper consists of I-RAM and I-RAM Mux.
-//----%%                    # Data RAM (D-RAM) wrapper consists of D-RAM and Debug UART.
+//----%%                    # Instruction RAM (IRAM) wrapper consists of IRAM and IRAM Mux.
+//----%%                    # Data RAM (DRAM) wrapper consists of DRAM and Debug UART.
 //----%%                    # Instruction & Data RAMs are assumed to be loaded on reset with binary program to be executed.
 //----%%                    # Dedicated Reset Controller to synchronize and distribute system reset.
 //----%%                    # Configurability:
-//----%%                      -- PC_INIT can be configured to start executing program from a specific address in I-RAM after reset. 
+//----%%                      -- PC_INIT can be configured to start executing program from a specific address in IRAM after reset. 
 //----%%                      -- All other configurability features in pqr5_core_macros/pqr5_subsystem_macros include files.    
 //----%% 
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
@@ -92,31 +92,31 @@ module pqr5_subsystem_top (
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-// PQR5 Core - I-RAM connections
-logic [`XLEN-1:0] cpu_imem_pc          ;  // PC requested by CPU to I-RAM 
-logic             cpu_imem_pc_valid    ;  // PC request valid from CPU to I-RAM
-logic [`XLEN-1:0] cpu_imem_addr        ;  // PC from CPU to I-RAM converted to word address 
-logic             cpu_imem_addr_valid  ;  // Word address valid from CPU to I-RAM
-logic             imem_cpu_ready       ;  // I-RAM ready to CPU
-logic             imem_cpu_stall       ;  // Stall signal from I-RAM to CPU
-logic [`XLEN-1:0] imem_cpu_instr_pc    ;  // PC associated with instruction fetched by I-RAM to CPU
-logic [`ILEN-1:0] imem_cpu_instr       ;  // Instruction fetched by I-RAM to CPU
-logic             imem_cpu_instr_valid ;  // Instruction valid from I-RAM to CPU
-logic             cpu_imem_stall       ;  // Stall signal from CPU to I-RAM
-logic             cpu_imem_flush       ;  // Flush signal from CPU to I-RAM
+// PQR5 Core - IRAM connections
+logic [`XLEN-1:0] cpu_imem_pc          ;  // PC requested by CPU to IRAM 
+logic             cpu_imem_pc_valid    ;  // PC request valid from CPU to IRAM
+logic [`XLEN-1:0] cpu_imem_addr        ;  // PC from CPU to IRAM converted to word address 
+logic             cpu_imem_addr_valid  ;  // Word address valid from CPU to IRAM
+logic             imem_cpu_ready       ;  // IRAM ready to CPU
+logic             imem_cpu_stall       ;  // Stall signal from IRAM to CPU
+logic [`XLEN-1:0] imem_cpu_instr_pc    ;  // PC associated with instruction fetched by IRAM to CPU
+logic [`ILEN-1:0] imem_cpu_instr       ;  // Instruction fetched by IRAM to CPU
+logic             imem_cpu_instr_valid ;  // Instruction valid from IRAM to CPU
+logic             cpu_imem_stall       ;  // Stall signal from CPU to IRAM
+logic             cpu_imem_flush       ;  // Flush signal from CPU to IRAM
 
-// PQR5 Core - D-RAM connections
-logic             cpu_dmem_wen         ;  // Write Enable from CPU to D-RAM
-logic [`XLEN-1:0] cpu_dmem_addr        ;  // Address from CPU to D-RAM
-logic [1:0]       cpu_dmem_size        ;  // Access size from CPU to D-RAM
-logic [`XLEN-1:0] cpu_dmem_wdata       ;  // Write-data from CPU to D-RAM
-logic             cpu_dmem_req         ;  // Request from CPU to D-RAM
-logic             dmem_cpu_ready       ;  // D-RAM ready to CPU
-logic             dmem_cpu_stall       ;  // Stall signal from D-RAM to CPU
-logic             cpu_dmem_flush       ;  // Flush signal from CPU to D-RAM
-logic [`XLEN-1:0] dmem_cpu_rdata       ;  // Read-data from D-RAM to CPU
-logic             dmem_cpu_ack         ;  // Acknowledge from D-RAM to CPU
-logic             cpu_dmem_stall       ;  // Stall signal from CPU to D-RAM
+// PQR5 Core - DRAM connections
+logic             cpu_dmem_wen         ;  // Write Enable from CPU to DRAM
+logic [`XLEN-1:0] cpu_dmem_addr        ;  // Address from CPU to DRAM
+logic [1:0]       cpu_dmem_size        ;  // Access size from CPU to DRAM
+logic [`XLEN-1:0] cpu_dmem_wdata       ;  // Write-data from CPU to DRAM
+logic             cpu_dmem_req         ;  // Request from CPU to DRAM
+logic             dmem_cpu_ready       ;  // DRAM ready to CPU
+logic             dmem_cpu_stall       ;  // Stall signal from DRAM to CPU
+logic             cpu_dmem_flush       ;  // Flush signal from CPU to DRAM
+logic [`XLEN-1:0] dmem_cpu_rdata       ;  // Read-data from DRAM to CPU
+logic             dmem_cpu_ack         ;  // Acknowledge from DRAM to CPU
+logic             cpu_dmem_stall       ;  // Stall signal from CPU to DRAM
 
 // Clock and Reset
 logic             sys_clk              ;  // System clock
@@ -129,19 +129,19 @@ logic             tb_resetn            ;  // Test reset; for simulation only
 
 `ifdef EN_LOADER
 logic             halt_cpu             ;  // Halt CPU
-logic             ldr_cpu_stall        ;  // Stall signal from Loader to CPU while programming I-RAM
+logic             ldr_cpu_stall        ;  // Stall signal from Loader to CPU while programming IRAM
 // Loader - Reset Controller connections
 logic             ldr_sys_reset        ;  // System reset request from Loader
 logic             reset_ldr            ;  // Reset to Loader
 
-// Loader - I-RAM connections
+// Loader - IRAM connections
 logic [`IRAM_AW-1:0] ldr_iram_addr     ;  // Address
 logic [`IRAM_DW-1:0] ldr_iram_wdata    ;  // Write Data
 logic                ldr_iram_en       ;  // Access Enable
 logic                ldr_iram_wen      ;  // Write Enable
 logic [`IRAM_DW-1:0] ldr_iram_rdata    ;  // Read data
 
-// Loader - D-RAM connections
+// Loader - DRAM connections
 logic [`DRAM_AW-1:0] ldr_dram_addr     ;  // Address
 logic [`DRAM_DW-1:0] ldr_dram_wdata    ;  // Write Data
 logic                ldr_dram_en       ;  // Access Enable
@@ -244,7 +244,7 @@ pqr5_core_top #(
    .o_dmem_stall     (cpu_dmem_stall)
 );
 
-// I-RAM Wrapper
+// IRAM Wrapper
 imem_top inst_imem_top (
    .clk              (sys_clk)        ,
    .aresetn          (sys_reset_sync) ,
@@ -277,7 +277,7 @@ imem_top inst_imem_top (
    .i_ready          (~cpu_imem_stall)
 );
 
-// D-RAM Wrapper
+// DRAM Wrapper
 dmem_top #(
    .RAM_DEPTH   (`DRAM_DEPTH)       ,     
    .IS_ZERO_LAT (`DMEM_IS_ZERO_LAT) ,
@@ -312,7 +312,11 @@ dmem_top #(
    `endif
 
    .i_wen   (cpu_dmem_wen)    ,
+   `ifdef COREMARK
+   .i_addr  ({1'b0, cpu_dmem_addr[30:0]}),  // For Coremark, Linker reserved the baseaddr 0x8000_0000 for Data Memory 
+   `else
    .i_addr  (cpu_dmem_addr)   ,
+   `endif
    .i_size  (cpu_dmem_size)   ,
    .i_data  (cpu_dmem_wdata)  ,
    .i_req   (cpu_dmem_req)    ,
@@ -373,7 +377,7 @@ end
 // All continuous assignments
 //===================================================================================================================================================
 assign imem_cpu_stall      = ~imem_cpu_ready ;
-assign cpu_imem_addr       = {2'b0, cpu_imem_pc[31:2]} ;  // I-RAM has word-addressing, but CPU has byte-addressing 
+assign cpu_imem_addr       = {2'b0, cpu_imem_pc[31:2]} ;  // IRAM has word-addressing, but CPU has byte-addressing 
 assign cpu_imem_addr_valid = cpu_imem_pc_valid ;
 assign dmem_cpu_stall      = ~dmem_cpu_ready ;
 `ifdef EN_LOADER 

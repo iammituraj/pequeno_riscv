@@ -14,7 +14,7 @@
 # Last modified on : Aug-2024
 # Compatiblility   : Python 3.9 tested
 #
-# Copyright        : Open-source license, see developer.txt.
+# Copyright        : Open-source license, see LICENSE.md.
 #############################################################################################################
 
 # Import Libraries

@@ -23,7 +23,7 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : Loader programs the Instruction & Data RAM (I-RAM/D-RAM) with binary stream received via UART and boots up the CPU.
+//----%% Description      : Loader programs the Instruction & Data RAM (IRAM/DRAM) with binary stream received via UART and boots up the CPU.
 //----%%                    - Supports configurable baud rate and robust error detection while programming.
 //----%%                    - Supports booting the CPU with NOPs.
 //----%%                    - Supports re-booting the CPU with no re-programming.
@@ -47,10 +47,10 @@
 // Module definition
 module loader# (
    // Configurable Parameters
-   parameter IRAM_AW  = `IRAM_AW  ,  // Address width of I-RAM, max. 30
-   parameter IRAM_DW  = `IRAM_DW  ,  // Data width of I-RAM, max. 30
-   parameter DRAM_AW  = `DRAM_AW  ,  // Address width of D-RAM, max. 30
-   parameter DRAM_DW  = `DRAM_DW     // Data width of D-RAM, max. 30
+   parameter IRAM_AW  = `IRAM_AW  ,  // Address width of IRAM, max. 30
+   parameter IRAM_DW  = `IRAM_DW  ,  // Data width of IRAM, max. 30
+   parameter DRAM_AW  = `DRAM_AW  ,  // Address width of DRAM, max. 30
+   parameter DRAM_DW  = `DRAM_DW     // Data width of DRAM, max. 30
 )
 (
    // Clock and Reset
@@ -69,18 +69,18 @@ module loader# (
    output logic               o_err              ,  // Error in programming/other internal errors
    output logic [4:0]         o_err_code         ,  // Error code
 
-   // UART I/F to accept commands to program I-RAM
+   // UART I/F to accept commands to program IRAM
    input  logic               i_uart_rx          ,  // UART RX
    output logic               o_uart_tx          ,  // UART TX
    
-   // I-RAM Interface
+   // IRAM Interface
    output logic [IRAM_AW-1:0] o_iram_addr        ,  // Address
    output logic [IRAM_DW-1:0] o_iram_wdata       ,  // Write Data
    output logic               o_iram_en          ,  // RAM Enable
    output logic               o_iram_wen         ,  // Write Enable
    input  logic [IRAM_DW-1:0] i_iram_rdata       ,  // Read Data
 
-   // D-RAM Interface
+   // DRAM Interface
    output logic [DRAM_AW-1:0] o_dram_addr        ,  // Address
    output logic [DRAM_DW-1:0] o_dram_wdata       ,  // Write Data
    output logic               o_dram_en          ,  // RAM Enable
@@ -91,12 +91,12 @@ module loader# (
 //===================================================================================================================================================
 // Localparams (constants - DO NOT MODIFY) 
 //===================================================================================================================================================
-localparam I_PREAMBLE              = 8'hC0        ;  // Pre-amble (I-RAM binary)
-localparam D_PREAMBLE              = 8'hD0        ;  // Pre-amble (D-RAM binary)
+localparam I_PREAMBLE              = 8'hC0        ;  // Pre-amble (IRAM binary)
+localparam D_PREAMBLE              = 8'hD0        ;  // Pre-amble (DRAM binary)
 localparam POSTAMBLE               = 8'hE0        ;  // Post-amble
 localparam CMD_REQ_DEVC_SIGN       = 8'hD3        ;  // Command: Device Signature Request
-localparam CMD_BOOT_REQ_IRAM_CLN   = 8'hB1        ;  // Command: Clean Boot Request - Reset and reboot with I-RAM clean slate
-localparam CMD_BOOT_REQ            = 8'hB0        ;  // Command: Boot Request       - Reset and reboot with existing I-RAM binary
+localparam CMD_BOOT_REQ_IRAM_CLN   = 8'hB1        ;  // Command: Clean Boot Request - Reset and reboot with IRAM clean slate
+localparam CMD_BOOT_REQ            = 8'hB0        ;  // Command: Boot Request       - Reset and reboot with existing IRAM binary
 localparam SUCCESS                 = 8'h55        ;  // Success flag
 localparam ERROR_CMD_INVALID       = 8'hEC        ;  // Error code: Invalid Command
 localparam ERROR_PGM               = 8'hED        ;  // Error code: Programming Error
@@ -106,7 +106,7 @@ localparam DEVC_SIGN               = 32'hC0DE4A11 ;  // Device Signature: "Code 
 // UART programming I/F specific
 localparam BAUDRATE = int'(((`FCLK * 1000000.0) / `BAUDRATE) / 8.0 - 1) ;   // Baud rate configured
 
-// NOP instruction for I-RAM clean slate
+// NOP instruction for IRAM clean slate
 localparam INSTR_NOP = 32'h0000_0013 ;
 
 //===================================================================================================================================================
@@ -116,7 +116,7 @@ localparam INSTR_NOP = 32'h0000_0013 ;
 typedef enum logic [3:0] {
    INIT,            // INIT state
    IDLE,            // IDLE state   
-   IRAM_CLN,        // I-RAM Clean state
+   IRAM_CLN,        // IRAM Clean state
    READ_PGM_SIZE,   // Read Program Size state
    READ_PGM_BADDR,  // Read Program Base Address state
    READ_PGM_BIN,    // Read Program Binary state
@@ -159,18 +159,18 @@ logic [1:0]  sample_cnt_rg       ;  // Sample counter to count UART RX data
 logic [31:0] pgm_size_rg         ;  // Program size
 logic [29:0] instr_cnt           ;  // Instruction count; no. of instructions to be programmed
 logic [31:0] pgm_data_rg         ;  // Programming data
-logic [29:0] pgm_cnt_rg          ;  // Programming counter, to count no. of instructions written to I-RAM
+logic [29:0] pgm_cnt_rg          ;  // Programming counter, to count no. of instructions written to IRAM
 
 // Error flags
 // -----------
 // cmd_err        : sets on invalid command, cleared only on registering a valid command
-// pgm_err        : sets on errors during I-RAM/D-RAM programming, cleared only after correct programming of I-RAM/D-RAM
-// postamble_err  : sets on post-amble missing/error, cleared only after correct programming of I-RAM/D-RAM
+// pgm_err        : sets on errors during IRAM/DRAM programming, cleared only after correct programming of IRAM/DRAM
+// postamble_err  : sets on post-amble missing/error, cleared only after correct programming of IRAM/DRAM
 logic        cmd_err_rg          ;  // Invalid Command Error
 logic        pgm_err_rg          ;  // Programming Error
 logic        postamble_err_rg    ;  // Post-amble Error 
 
-// Control signals to I-RAM & D-RAM after de-muxing
+// Control signals to IRAM & DRAM after de-muxing
 logic [IRAM_AW-1:0] iram_addr  ;  // Address
 logic [IRAM_DW-1:0] iram_wdata ;  // Write Data
 logic               iram_en    ;  // RAM Enable
@@ -188,7 +188,7 @@ logic [29:0]        ram_addr_rg  ;  // Address
 logic [31:0]        ram_wdata_rg ;  // Write Data
 logic               ram_en_rg    ;  // RAM Enable
 logic               ram_wen_rg   ;  // Write Enable
-logic               ram_sel_rg   ;  // RAM select: 0= I-RAM, 1= D-RAM
+logic               ram_sel_rg   ;  // RAM select: 0= IRAM, 1= DRAM
 logic [31:0]        addr_cnt_rg  ;  // Address counter
 
 //===================================================================================================================================================
@@ -294,22 +294,22 @@ always @(posedge clk or negedge aresetn) begin
                o_busy     <= 1'b1  ;
                o_pgm_done <= 1'b0  ;                                
 
-               // I-RAM clean slate request           
+               // IRAM clean slate request           
                if (uart_rxdata[0]) begin
                   cpu_reset_rg <= 1'b0     ;  // Assert CPU reset   
-                  cpu_stall_rg <= 1'b1     ;  // Put CPU in stall state, to transfer I-RAM control to Loader 
+                  cpu_stall_rg <= 1'b1     ;  // Put CPU in stall state, to transfer IRAM control to Loader 
                   ram_sel_rg   <= 1'b0     ;                 
                   state_rg     <= IRAM_CLN ;                  
                end
                // Reboot request
                else begin
                   cpu_reset_rg <= 1'b0     ;  // Assert CPU reset
-                  cpu_stall_rg <= 1'b0     ;  // No transfer of I-RAM control reqd...                  
+                  cpu_stall_rg <= 1'b0     ;  // No transfer of IRAM control reqd...                  
                   state_rg     <= PGM_DONE ;  // Transit to DONE state to complete the single cycle reset pulse ``\__/`` to the CPU  
                end
             end
 
-            // Command: Pre-amble of I-RAM BIN stream
+            // Command: Pre-amble of IRAM BIN stream
             else if (uart_rxdata_valid && (uart_rxdata == I_PREAMBLE)) begin
                // If previous command was the other preamble, then preamble pattern detection should be reset with the currently received preamble
                if (cmd_rg == D_PREAMBLE) begin
@@ -326,7 +326,7 @@ always @(posedge clk or negedge aresetn) begin
                // Pre-amble successfully sampled...  
                if (sample_cnt_rg == 2'd3) begin    
                   cpu_reset_rg <= 1'b0 ;  // Assert CPU reset   
-                  cpu_stall_rg <= 1'b1 ;  // Put CPU in stall state, to transfer I-RAM control to Loader
+                  cpu_stall_rg <= 1'b1 ;  // Put CPU in stall state, to transfer IRAM control to Loader
                   ram_sel_rg   <= 1'b0 ;
 
                   // Reset programming status
@@ -338,7 +338,7 @@ always @(posedge clk or negedge aresetn) begin
                end
             end
 
-            // Command: Pre-amble of D-RAM BIN stream
+            // Command: Pre-amble of DRAM BIN stream
             else if (uart_rxdata_valid && (uart_rxdata == D_PREAMBLE)) begin
                // If previous command was the other preamble, then preamble pattern detection should be reset with the currently received preamble
                if (cmd_rg == I_PREAMBLE) begin
@@ -355,7 +355,7 @@ always @(posedge clk or negedge aresetn) begin
                // Pre-amble successfully sampled...  
                if (sample_cnt_rg == 2'd3) begin    
                   cpu_reset_rg <= 1'b0 ;  // Assert CPU reset   
-                  cpu_stall_rg <= 1'b1 ;  // Put CPU in stall state, to transfer D-RAM control to Loader
+                  cpu_stall_rg <= 1'b1 ;  // Put CPU in stall state, to transfer DRAM control to Loader
                   ram_sel_rg   <= 1'b1 ;
 
                   // Reset programming status
@@ -386,13 +386,13 @@ always @(posedge clk or negedge aresetn) begin
          end         
          
          // ---------------------------------------------------------------------------------------
-         // I-RAM Clean state
+         // IRAM Clean state
          // ---------------------------------------------------------------------------------------
-         // Cleans I-RAM by overwriting every data with NOP instruction
+         // Cleans IRAM by overwriting every data with NOP instruction
          // ---------------------------------------------------------------------------------------
          IRAM_CLN : begin
-            if (is_ram_addr_ovflow) begin  // Reached max addr @I-RAM
-               // Disable I-RAM, reset counter, RAM address
+            if (is_ram_addr_ovflow) begin  // Reached max addr @IRAM
+               // Disable IRAM, reset counter, RAM address
                ram_en_rg    <= 1'b0 ;
                ram_wen_rg   <= 1'b0 ;
                addr_cnt_rg  <=  0   ;
@@ -404,7 +404,7 @@ always @(posedge clk or negedge aresetn) begin
                state_rg         <= PGM_DONE ;
             end  
             else begin
-               // Write to I-RAM         
+               // Write to IRAM         
                ram_en_rg    <= 1'b1 ;
                ram_wen_rg   <= 1'b1 ;
                ram_addr_rg  <= addr_cnt_rg[31:2] ;  // RAM has word addressing
@@ -559,7 +559,7 @@ always @(posedge clk or negedge aresetn) begin
          // ---------------------------------------------------------------------------------------         
          PGM_DONE : begin
             // Put CPU back in execute state if no errors, else keep in RESET state
-            // Release I-RAM/D-RAM control by releasing CPU from stall...
+            // Release IRAM/DRAM control by releasing CPU from stall...
             cpu_reset_rg <= ~pgm_err_rg & ~postamble_err_rg ;
             cpu_stall_rg <= 1'b0 ;
             
@@ -592,10 +592,10 @@ always @(posedge clk or negedge aresetn) begin
 
 end
 
-// RAM de-mux to route RAM control signals to I-RAM or/and D-RAM
+// RAM de-mux to route RAM control signals to IRAM or/and DRAM
 always_comb begin
    case (ram_sel_rg)      
-      // I-RAM selected
+      // IRAM selected
       1'b0: begin
          iram_addr  = ram_addr_rg  ;
          iram_wdata = ram_wdata_rg ;
@@ -606,7 +606,7 @@ always_comb begin
          dram_en    = 1'b0 ;
          dram_wen   = 1'b0 ;         
       end
-      // D-RAM selected
+      // DRAM selected
       1'b1: begin
          dram_addr  = ram_addr_rg  ;
          dram_wdata = ram_wdata_rg ;
@@ -719,13 +719,13 @@ assign o_ldr_cpu_stall = cpu_stall_rg ;
 assign o_err      = cmd_err_rg | pgm_err_rg | postamble_err_rg | timeout_rg | uart_error ;
 assign o_err_code = {cmd_err_rg, pgm_err_rg, postamble_err_rg, timeout_rg, uart_error}   ;
 
-// I-RAM control signals out
+// IRAM control signals out
 assign o_iram_addr  = iram_addr  ;
 assign o_iram_wdata = iram_wdata ;
 assign o_iram_en    = iram_en    ;
 assign o_iram_wen   = iram_wen   ;
 
-// D-RAM control signals out
+// DRAM control signals out
 assign o_dram_addr  = dram_addr  ;
 assign o_dram_wdata = dram_wdata ;
 assign o_dram_en    = dram_en    ;

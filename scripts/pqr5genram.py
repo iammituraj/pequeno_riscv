@@ -29,7 +29,7 @@
 # Last modified on : Aug-2024
 # Compatiblility   : Python 3.9 tested
 #
-# Copyright        : Open-source license, see developer.txt.
+# Copyright        : Open-source license, see LICENSE.md.
 #############################################################################################################
 
 # Import Libraries
@@ -229,7 +229,8 @@ if type == "1":
         f_des_4x8.write(line + '\n')  # Because string list doesn't contain '\n' characters, all trimmed by  splitline()
 
 print('| INFO : Generated the RAM in SV files successfully...')
+ram_depth_2n = 1 << (int(ram_depth, 0)- 1).bit_length()
 if type == "0":
-    print('\n|| Success ||\n Generated I-RAM of ', ram_depth, 'x', ram_width, ' bit with binary initiated @offset addr = 0x{:08X}'.format(offset * 4))
+    print('\n|| Success ||\n Generated I-RAM of ', ram_depth_2n, 'x', ram_width, ' bit with binary initiated @offset addr = 0x{:08X}'.format(offset * 4))
 else:
-    print('\n|| Success ||\n Generated D-RAM of ', ram_depth, 'x', ram_width, ' bit with binary initiated @offset addr = 0x{:08X}'.format(offset * 4))
+    print('\n|| Success ||\n Generated D-RAM of ', ram_depth_2n, 'x', ram_width, ' bit with binary initiated @offset addr = 0x{:08X}'.format(offset * 4))
