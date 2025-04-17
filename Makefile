@@ -206,6 +206,7 @@ compile: clean build_sim
 	@echo ""
 	@echo "| MAKE_PQR5: Compiling design..."
 	@echo ""
+	set -e
 	vlog -logfile $(SIM_DIR)/vlog.log $(VLOG_FLAGS) -work $(SIM_DIR)/work -f "$(FL_DIR)/all_design_src_files.txt"
 
 # qcompile
@@ -213,6 +214,7 @@ qcompile: build_sim
 	@echo ""
 	@echo "| MAKE_PQR5: Compiling design..."
 	@echo ""
+	set -e
 	vlog -logfile $(SIM_DIR)/vlog.log $(VLOG_FLAGS) -work $(SIM_DIR)/work -f "$(FL_DIR)/all_design_src_files.txt"
 
 # sim
@@ -263,6 +265,7 @@ asm2bin: check_asm asm_clean
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking pqr5asm Assembler..."
 	@echo ""	
+	set -e
 	@cp $(ASM_DIR)/example_programs/$(ASM) $(ASM_DIR)/sample.s
 	$(PYTHON) $(ASM_DIR)/pqr5asm.py -file=$(ASM_DIR)/sample.s $(ASMF)	
 	@mkdir $(ASM_DIR)/asm_pgm_dump_ref
@@ -285,6 +288,7 @@ cmk2bin: asm_clean cmk_clean
 	@echo ""
 	@echo "| MAKE_PQR5: Building CoreMark CPU for the system..."
 	@echo ""
+	set -e
 	@master_dir=$$(pwd); \
 	cd $(COREMK_DIR); \
 	make build ; \
@@ -304,6 +308,7 @@ cmk2bin: asm_clean cmk_clean
 
 # genram
 genram:
+	set -e
 	@echo ""
 	@echo "| MAKE PQR5: Analyzing binary files for Instruction & Data base addresses..."
 	@imem_baseaddr=$$(cat $(ASM_DIR)/sample_imem_baseaddr.txt); \
@@ -362,7 +367,8 @@ coremark: cmk2bin genram compile
 synth: check_synth
 	@echo ""
 	@echo "| MAKE_PQR5: Initiating Synthesis, Implementation, and Bitfile generation in Vivado..."
-	@echo ""	
+	@echo ""
+	set -e	
 	@master_dir=$$(pwd); \
 	cd $(SYNTH_DIR); \
 	vivado -mode batch -source run_synth.tcl; \
