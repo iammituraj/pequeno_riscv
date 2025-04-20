@@ -74,7 +74,7 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 
 
 ## Important
-Please go through [readme_database.html](https://github.com/iammituraj/pequeno_riscv/edit/main/readme_database.html) for info about this repo database and how to setup the PQR5 build environment.
+Please go through [readme_database.html](https://iammituraj.github.io/iammituraj/pequeno_riscv/edit/main/readme_database.html) for info about this repo database and how to setup the PQR5 build environment.
 
 # Disclaimer
 This CPU core is intended for educational purposes only.
