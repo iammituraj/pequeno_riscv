@@ -69,7 +69,7 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 | **Iterations per second** | 8
 | **Test clock freq** | 12 MHz
 | **Test platform** | FPGA
-| **Full Report** | https://raw.githack.com/iammituraj/pequeno_riscv/tree/main/coremark/coremark_report_18Apr25.html
+| **Full Report** | [coremark/coremark_report_18Apr25.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report_18Apr25.html)
 
 
 
