@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PQR5 Database Readme</title>
+    <style>
+        body { font-family: Consolas, monospace; background: #fdfdfd; padding: 20px; color: #333; }
+        .dir { color: blue; font-weight: bold; }
+        .build { color: orange; }
+        .runtime { color: green; }
+        .synth { color: purple; }
+        .file-named { font-weight: bold; color: black; display: inline-block; width: 100px; }
+        .file-name0 { font-weight: bold; color: black; display: inline-block; width: 200px; }
+        .file-name1 { font-weight: bold; color: black; display: inline-block; width: 250px; }
+        .file-name2 { font-weight: bold; color: black; display: inline-block; width: 350px; }
+        .description { display: inline-block; }
+        ul { list-style-type: none; padding-left: 20px; }
+        li { margin: 4px 0; }
+    </style>
+</head>
+<body>
+
+<h2>📁 Pequeno RISC-V CPU v1.0 (PQR5 v1.0) - Directory Tree</h2>
+
+<ul>
+    <li><span class="dir">+ assembler : Contains the assembler related files</span>
+        <ul>
+            <li>- <span class="file-name0">pqr5asm.py</span> <span class="description">: pqr5asm Assembler for Pequeno (PQR5)</span></li>
+            <li class="build">- <span class="file-name0">sample.*</span> <span class="description">: [BUILD GENERATED] Assembler-generated files generated during build</span></li>
+            <li class="build">- <span class="file-name0">asm_pgm_info.txt</span> <span class="description">: [BUILD GENERATED] ASM program info</span></li>
+            <li><span class="dir">+ asm_pgm_dump_ref : Contains the golden reference dump of the ASM program to verify the simulation results</span>
+        </ul>
+    </li>
+
+    <li><span class="dir">+ doc : Contains all the documentations</span>
+        <ul>
+            <li>- <span class="file-name2">pequeno_riscv_v1_0_ug.pdf</span> <span class="description">: PQR5 v1.0 User Guide (YET TO BE RELEASED)</span></li>
+            <li>- <span class="file-name2">pqr5asm_imanual.pdf</span> <span class="description">: pqr5asm Assembler Instruction Manual</span></li>
+            <li>- <span class="file-name2">Programming_Pequeno_with_peqFlash.pdf</span> <span class="description">: peqFlash User Guide to program PQR5</span></li>
+        </ul>
+    </li>
+
+    <li class="runtime"><span class="dir">+ dump : [RUN-TIME GENERATED] Contains all the simulation dumps</span>
+        <ul>
+            <li>- <span class="file-name0">*_dump.txt</span> <span class="description">: IMEM/DMEM/Regfile dump</span></li>
+            <li>- <span class="file-name0">sim.vcd</span> <span class="description">: VCD dump of Subsystem</span></li>
+        </ul>
+    </li>
+
+    <li><span class="dir">+ filelist : Contains complete RTL source files list</span>
+        <ul>
+            <li>- <span class="file-name0">all_design_src_files.txt</span></li>
+        </ul>
+    </li>
+
+    <li><span class="dir">+ peqFlash : Contains the Flasher tool for PQR5 Subsystem, peqFlash</span>
+        <ul>
+            <li>- <span class="file-name0">peqflash.py</span> <span class="description">: Flasher tool for PQR5 Subsystem, peqFlash</span></li>
+        </ul>
+    </li>
+
+    <li><span class="dir">+ scripts : Contains all the scripts used by Makefile/Simulator</span>
+        <ul>
+            <li>- <span class="file-name0">pqr5genram.py</span> <span class="description">: Generates IRAM and DRAM initialized with the binary provided</span></li>
+            <li>- <span class="file-name0">pqr5genwrap.py</span> <span class="description">: Generates wrapper for the generated IRAM and DRAM</span></li>
+            <li>- <span class="file-name0">opserial.py</span> <span class="description">: Script to open the serial port to which PQR5 Subsystem's debug UART is connected</span></li>
+            <li>- <span class="file-name0">opserial.sh</span> <span class="description">: Script to run opserial.py</span></li>
+            <li>- <span class="file-name0">regress_run.sh</span> <span class="description">: Runs regression tests on PQR5 and dumps results</span></li>
+            <li>- <span class="file-name0">run.do</span> <span class="description">: Makefile initiated simulation in Linux supports sourcing this file on VSIM</span></li>
+            <li>- <span class="file-name0">decode_baseaddr.py</span> <span class="description">: Script to decode base address from the binary</span></li>
+            <li>- <span class="file-name0">bin2pqr5bin.py</span> <span class="description">: Script used by CoreMark build to convert GCC-generated binary to PQR5 (peqFlash compatible) binary</span></li>
+            <li>- <span class="file-name0">bin2hextxt.sh</span> <span class="description">: Script used by CoreMark build to generate Hex Text files corresponding to the GCC-generated binary</span></li>
+        </ul>
+    </li>
+
+    <li class="runtime"><span class="dir">+ sim : [RUN-TIME GENERATED] Contains all the simulation related files, logs, compiled libs...</span></li>
+
+    <li class="synth"><span class="dir">+ synth : [SYNTH-TIME GENERATED] Contains the synthesis and implementation setup</span>
+        <ul>
+            <li class="rtl_src"><span class="dir">+ rtl_src : Spawned RTL database for synthesis-specific modifications</span>
+            <li class="rtl_src"><span class="dir">+ xdc : Empty directory to add XDC constraints files</span>
+            <li>- <span class="file-name0">run_synth.tcl</span> <span class="description">: TCL script used by Makefile to run synthesis + implementation + bitfile generation in Vivado shell</span></li>
+            <li>- <span class="file-name0">write_bitstream.tcl</span> <span class="description">: TCL script used by Makefile to burn the bitfile to FPGA using Vivado HW manager</span></li>
+        </ul>
+    </li>
+
+    <li><span class="dir">+ src : Contains all the RTL source files of PQR5 Core and Subsystem</span>
+        <ul>
+            <li><span class="dir">+ common : Packages/modules used across different blocks</span>
+                <ul>
+                    <li>- <span class="file-name0">areset_sync.sv</span> <span class="description">: Async Reset Synchronizer</span></li>
+                    <li>- <span class="file-name0">cdc_sync.sv</span> <span class="description">: CDC Synchronizer</span></li>
+                    <li>- <span class="file-name0">pqr5_core_pkg.sv</span> <span class="description">: PQR5 Core package</span></li>
+                    <li>- <span class="file-name0">pqr5_subsystem_pkg.sv</span> <span class="description">: PQR5 Subsystem package</span></li>
+                </ul>
+            </li>
+
+            <li><span class="dir">+ core : Source files of PQR5 Core</span>
+                <ul>
+                    <li>- <span class="file-name0">alu.sv</span> <span class="description">: ALU</span></li>
+                    <li>- <span class="file-name0">decode_unit.sv</span> <span class="description">: Decode Unit (DU)</span></li>
+                    <li>- <span class="file-name0">execution_unit.sv</span> <span class="description">: Execution Unit (EXU)</span></li>
+                    <li>- <span class="file-name0">exu_branch_unit.sv</span> <span class="description">: EXU Branch Unit (EXU-BU)</span></li>
+                    <li>- <span class="file-name0">fetch_unit.sv</span> <span class="description">: Fetch Unit (FU)</span></li>
+                    <li>- <span class="file-name0">loadstore_unit.sv</span> <span class="description">: Load-Store Unit (LSU)</span></li>
+                    <li>- <span class="file-name0">memory_access_unit.sv</span> <span class="description">: Memory Access Unit (MACCU)</span></li>
+                    <li>- <span class="file-name0">opfwd_control.sv</span> <span class="description">: Operand Forward Control</span></li>
+                    <li>- <span class="file-name0">pqr5_core_top.sv</span> <span class="description">: PQR5 Core Top <b>// TOP FILE //</b></span></li>
+                    <li>- <span class="file-name0">regfile.sv</span> <span class="description">: Register File</span></li>
+                    <li>- <span class="file-name0">writeback_unit.sv</span> <span class="description">: Writeback Unit (WBU)</span></li>
+                </ul>
+            </li>
+
+            <li><span class="dir">+ include : Header files used across different blocks</span>
+                <ul>
+                    <li>- <span class="file-name1">pqr5_core_macros.svh</span> <span class="description">: PQR5 Core header file</span></li>
+                    <li>- <span class="file-name1">pqr5_subsystem_macros.svh</span> <span class="description">: PQR5 Subsystem header file</span></li>
+                </ul>
+            </li>
+
+            <li><span class="dir">+ memory : Synthesisable memory models used by Subsystem, generated by Makefile</span>
+                <ul>
+                    <li class="build">- <span class="file-named">*.sv</span> <span class="description">: [MAKEFILE GENERATED] I/D-RAM source files with bootable binary code</span></li>
+                </ul>
+            </li>
+
+            <li><span class="dir">+ subsystem : Source files of PQR5 Subsystem</span>
+                <ul>
+                    <li>- <span class="file-name0">pqr5_subsystem_top.sv</span> <span class="description">: PQR5 Subsystem Top <b>// TOP FILE //</b></span></li>
+                    <li>- <span class="file-name0">reset_ctl.sv</span> <span class="description">: Reset Controller for PQR5 Subsystem</span></li>
+                </ul>
+            </li>
+        </ul>
+    </li>
+
+    <li><span class="dir">+ coremark : All C source files and support files to build the CoreMark</span>
+    </li>
+    <li>- <span class="file-name0">LICENSE.md</span> <span class="description">: All source files to build the CoreMark</span></li>
+    <li>- <span class="file-name0">release_notes.txt</span> <span class="description">: The IP release notes</span></li>
+    <li>- <span class="file-name0">build_notes.txt</span> <span class="description">: Build, Compile, Simulate, Synthesis related notes</span></li>
+    <li>- <span class="file-name0">Makefile</span> <span class="description">: Makefile to build, compile, and simulate PQR5 Core/Subsystem with firmware</span></li>
+
+</ul>
+
+</body>
+</html>

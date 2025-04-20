@@ -1,11 +1,10 @@
 vivado/
 sim/
 synth/
-*.log
 dump*/
 ref/
+prj_roadmap/
 
 src/memory/*.sv
 assembler/sample*.*
 assembler/asm_pgm_info.txt
-asm_pgm_dump_ref

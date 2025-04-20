@@ -1,12 +1,9 @@
 # pequeno_riscv
 Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-order RISC-V CPU Core compliant with RV32I ISA.
+The core is bare RTL, balanced for area/performance, and portable across platforms like FPGA, ASIC.
 
-### Overview
-- RV32I ISA v2.2 + custom instructions
-  
-  _Assembler and Instruction Manual_: https://github.com/iammituraj/pqr5asm)
-  
-  _FPGA demo of Pequeno running Hello world program_: https://youtu.be/GECyL9U5ZxI
+## Overview
+- RV32I ISA v2.2
 - Single-core, Single-issue, In-order execution
 - Classic 5-stage RISC-V pipeline
 - Intended for baremetal applications, not OS & interrupt capable.
@@ -23,11 +20,11 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
                                        \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
   
         chipmunklogic.com                                                    [[[[[[[ O P E N - S O U R C E _
-### Feature set
+## Feature set
 | **CPU Feature Set**                        |                                           |
 |--------------------------------------------|-------------------------------------------|
 | **ISA**                                    | RV32I, user-level v2.2                    |
-| **Instructions**                           | All 37 base instructions + 16 custom instructions |
+| **Instructions**                           | All 37 base instructions                  |
 | **Cores**                                  | 1                                         |
 | **Issue**                                  | One instruction per cycle                 |
 | **Pipeline depth**                         | 5                                         |
@@ -37,9 +34,26 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
 | **Cache**                                  | Not available, but can be integrated externally |
 | **OS capable**                             | No, privilege modes are not supported     |
 | **Interrupt/Exceptions capable**           | No                                        |
-| **Debug support**                        | Yes, limited number of signals for simulation purposes only |
 
-### FPGA Resource utilization
+## Functional Block Diagram
+
+![This is an alt text.](doc/misc/pequeno_block_diagram.png "Block Diagram of PQR5")
+
+## PQR5ASM, The tailor-made Assembler
+   This RV32I assembler supports all 37 base instructions + 16 pseudo instructions 
+   
+  _Assembler and Instruction Manual_: 
+  https://github.com/iammituraj/pqr5asm
+
+
+## Pequeno in Action!  
+  * _FPGA demo of Pequeno running Hello world program_: 
+  https://youtu.be/GECyL9U5ZxI
+
+  * _FPGA demo of Pequeno being flashed by peqFlash through serial interface (UART) and running Blinky LED program_: https://www.youtube.com/watch?v=cEEZbzSd6v0
+
+
+## FPGA Resource Utilization
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
 | **Target** | Artix-7, xc7a35tcpg236-1
@@ -47,12 +61,24 @@ Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-orde
 | **Registers** | 1564
 | **Targetted clock freq** | 100 MHz
 
-### Important notes
-Please go through _database_readme.txt_ for information about the organisation of the repo and how to setup the pqr5 build environment.
+## CoreMark®
+| **Performance Validation**                 |                                           |
+|--------------------------------------------|-------------------------------------------|
+| **CoreMark score** | 0.7 CoreMark/MHz 
+| **Iterations** | 400
+| **Iterations per second** | 8
+| **Test clock freq** | 12 MHz
+| **Test platform** | FPGA
+| **Full Report** | https://github.com/iammituraj/pequeno_riscv/tree/main/coremark/coremark_report_18Apr25.html
+
+
+
+## Important
+Please go through _readme_database.html_ for info about this repo database and how to setup the PQR5 build environment.
 
 # Disclaimer
 This CPU core is intended for educational purposes only.
-Users are encouraged to review the accompanying license document (LICENSE) for detailed terms and conditions.
+The users must review the accompanying license document (LICENSE) for detailed terms and conditions before the use.
 
 # Developer
 Mitu Raj, [Chipmunk Logic](https://chipmunklogic.com), chip@chipmunklogic.com

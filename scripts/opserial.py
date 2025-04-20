@@ -17,6 +17,7 @@
 #
 # Last modified on : Aug-2024
 # Compatiblility   : Python 3.9 tested
+# Notes            : sudo setserial -g /dev/ttyUSB[01] - to list USB serial ports in Linux
 #
 # Copyright        : Open-source license
 #############################################################################################################

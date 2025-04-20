@@ -25,6 +25,7 @@
 //----%%
 //----%% Description      : pequeno_riscv_v1_0 aka PQR5 is 5-stage pipelined RISC-V CPU which supports RV32I ISA User Level v2.2.
 //----%%                    PQR5 is a 32-bit single-issue, single-core CPU which incorporates strictly in-order pipeline.
+//----%%                    The core is bare RTL, balanced for area/performance, and portable across platforms like FPGA, ASIC.
 //----%%                         ____________________________
 //----%%                        / CHIPMUNK LOGIC            /\
 //----%%                       /                           / /\

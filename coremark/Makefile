@@ -3,7 +3,7 @@
 ##  / ___/ /  (_)__  __ _  __ _____  / /__  / /  ___  ___ _(_)___ TM
 ## / /__/ _ \/ / _ \/  ' \/ // / _ \/  '_/ / /__/ _ \/ _ `/ / __/                            ////  O P E N - S O U R C E ////
 ## \___/_//_/_/ .__/_/_/_/\_,_/_//_/_/\_\ /____/\___/\_, /_/\__/ 
-##           /_/                                    /___/              
+##           /_/                                    /___/                                              chipmunklogic.com
 #################################################################################################################################
 #################################################################################################################################
 # File Name        : Makefile
@@ -18,7 +18,7 @@
 #
 # Last Modified on : Apr-2025
 # Compatibility    : Linux/Unix, Windows require terminal programs like MSYS/Gitbash
-#                    RISC-V GNU GCC 14.2.0 tested
+#                    RISC-V GCC 14.2.0 tested (newlib)
 # Notes            : Items marked as [CONFIGURE] may need to be configured before invoking this Makefile.
 # 
 #################################################################################################################################
@@ -28,9 +28,9 @@ GCC_DIR    = /opt/riscv
 GCC_PREFIX = riscv64-unknown-elf
 GCC_VER    = 14.2.0
 
-# [CONFIGURE] Coremark specific definitions
-ITERATIONS     = 2
-CLOCKS_PER_SEC = 10000000
+# [CONFIGURE] CoreMark specific definitions
+ITERATIONS     = 400        # Iterations of CoreMark
+CLOCKS_PER_SEC = 12000000   # Core clock speed
 FLAGS_STR      = ""
 
 # Target architecture and tools
@@ -59,7 +59,7 @@ DATA_BIN = $(PRJNAME)_dram.bin
 # Compiler & Assembler flags
 CFLAGS = \
     -g \
-    -O2 \
+    -O3 \
 	-march=$(ARCH) \
 	-mabi=$(ABI) \
 	-ffreestanding \
@@ -129,7 +129,7 @@ msgc:
 all: $(TARGET) dump binary sections symbols
 
 # Minimal build
-build: $(TARGET) binary
+build: $(TARGET) binary sections
 
 # Compile C & Assembly files to object files
 %.o: %.c

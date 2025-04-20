@@ -3,7 +3,7 @@
 ##  / ___/ /  (_)__  __ _  __ _____  / /__  / /  ___  ___ _(_)___ TM
 ## / /__/ _ \/ / _ \/  ' \/ // / _ \/  '_/ / /__/ _ \/ _ `/ / __/                            ////  O P E N - S O U R C E ////
 ## \___/_//_/_/ .__/_/_/_/\_,_/_//_/_/\_\ /____/\___/\_, /_/\__/ 
-##           /_/                                    /___/              
+##           /_/                                    /___/                                              chipmunklogic.com
 #################################################################################################################################
 #################################################################################################################################
 # File Name        : Makefile
@@ -52,16 +52,23 @@ DUMP_DIR   = $(shell pwd)/dump
 FL_DIR     = $(shell pwd)/filelist
 FLASH_DIR  = $(shell pwd)/peqFlash
 
-# Make variables default values
-GUI  = 0                      # GUI/Command line simulation
-ISZ  = 1024                   # IRAM size in bytes
-DSZ  = 1024                   # DRAM size in bytes
-DTW  = 32                     # Data width - IRAM
-OFT  = 0                      # Offset addr - IRAM
-ASM  =                        # Assembly pgm passed to asm2bin; MANDATORY input to recipes
-PQF  =                        # peqFlash flags; currently empty
-ASMF = -pcrel                 # pqr5asm flags; generate relocatable (text) binary by default
-#DATE = $$(date +'%d_%m_%Y')   # Date in DD-MM-YYY
+##### Make variables default values  ####
+# GUI/Command line simulation
+GUI  = 0
+# IRAM/DRAM size in bytes
+ISZ  = 1024
+DSZ  = 1024
+# Data width in RAMs
+DTW  = 32
+# Base address in IRAM                
+OFT  = 0
+# Assembly pgm passed to asm2bin; empty but MANDATORY input to recipes
+ASM  =
+# peqFlash flags
+PQF  =
+# pqr5asm flags; -pcrel to generate relocatable (text) binary by default
+ASMF = -pcrel
+#DATE = $$(date +'%d_%m_%Y') # Date in DD-MM-YYY
 
 # Derived shell variables
 IDPT = $(shell expr \( $(ISZ) + 3 \) / 4)# Depth of IRAM
@@ -93,17 +100,17 @@ help:
 	@echo ""
 	@echo "HELP"
 	@echo "===="
-	@echo "1.  make compile                                                -- To clean compile design"
-	@echo "2.  make qcompile                                               -- To quick compile without clean"
+	@echo "1.  make compile                                                -- To clean compile the PQR5 subsystem RTL database"
+	@echo "2.  make qcompile                                               -- To compile without clean"
 	@echo "3.  make sim GUI=0/1                                            -- To simulate the PQR5 subsystem"
-	@echo "4.  make run_all GUI=0/1                                        -- To clean + compile + simulate with FW"	
-	@echo "5.  make asm2bin ASM=<assembly file> ASMF=<>                    -- To run assembler and generate binary"
+	@echo "4.  make run_all GUI=0/1                                        -- To clean + compile + simulate"	
+	@echo "5.  make asm2bin ASM=<assembly file> ASMF=<>                    -- To run the assembler and generate the binaries"
 	@echo "6.  make coremark ISZ=<IRAM size> DSZ=<DRAM size>               -- To build CoreMark® CPU Benchmark"
-	@echo "7.  make genram ISZ=<IRAM size> DSZ=<DRAM size> OFT=<PC_INIT>   -- To generate IRAM & DRAM with binary initialized"
-	@echo "8.  make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To perform asm2bin + genram + compile"
+	@echo "7.  make genram ISZ=<IRAM size> DSZ=<DRAM size> OFT=<PC_INIT>   -- To generate IRAM & DRAM with binaries initialized"
+	@echo "8.  make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To build the PQR5 subsystem with FW: asm2bin + genram + compile"
 	@echo "9.  make build_synth                                            -- To generate a basic synthesis setup for Xilinx Vivado"
-	@echo "10. make synth                                                  -- To perform synthesis, implementation, bitstream generation"
-	@echo "11. make burn                                                   -- To write the generated bitstream to the target FPGA"
+	@echo "10. make synth                                                  -- To perform synthesis, implementation, and generate bitfile"
+	@echo "11. make burn                                                   -- To write the generated bitfile to the target FPGA"
 	@echo "12. make flash SP=<port> BAUD=<baudrate> PQF=<>                 -- To flash the program binary via serial port to the target"
 	@echo "13. make clean                                                  -- To clean sim + dump files"
 	@echo "14. make deep_clean                                             -- To clean sim + dump + generated RAM files"
@@ -157,6 +164,7 @@ build_synth: synth_clean
 	@cp $(SCRIPT_DIR)/synth_setup/write_bitstream.tcl $(SYNTH_DIR)/
 	@cp $(SCRIPT_DIR)/synth_setup/run_synth.tcl $(SYNTH_DIR)/
 	@mkdir -pv $(SYNTH_DIR)/rtl_src
+	@mkdir -pv $(SYNTH_DIR)/xdc
 	@cp -r $(SRC_DIR)/* $(SYNTH_DIR)/rtl_src/
 	@rm -rf $(SYNTH_DIR)/rtl_src/memory/model
 	@echo ""
@@ -206,7 +214,7 @@ compile: clean build_sim
 	@echo ""
 	@echo "| MAKE_PQR5: Compiling design..."
 	@echo ""
-	set -e
+	@set -e
 	vlog -logfile $(SIM_DIR)/vlog.log $(VLOG_FLAGS) -work $(SIM_DIR)/work -f "$(FL_DIR)/all_design_src_files.txt"
 
 # qcompile
@@ -214,7 +222,7 @@ qcompile: build_sim
 	@echo ""
 	@echo "| MAKE_PQR5: Compiling design..."
 	@echo ""
-	set -e
+	@set -e
 	vlog -logfile $(SIM_DIR)/vlog.log $(VLOG_FLAGS) -work $(SIM_DIR)/work -f "$(FL_DIR)/all_design_src_files.txt"
 
 # sim
@@ -265,7 +273,7 @@ asm2bin: check_asm asm_clean
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking pqr5asm Assembler..."
 	@echo ""	
-	set -e
+	@set -e
 	@cp $(ASM_DIR)/example_programs/$(ASM) $(ASM_DIR)/sample.s
 	$(PYTHON) $(ASM_DIR)/pqr5asm.py -file=$(ASM_DIR)/sample.s $(ASMF)	
 	@mkdir $(ASM_DIR)/asm_pgm_dump_ref
@@ -279,16 +287,33 @@ cmk2bin: asm_clean cmk_clean
 	@echo ""
 	@echo "CoreMark® CPU Benchmark Build"
 	@echo "-----------------------------"
-	@echo "Pre-requisites to build CoreMark for Pequeno subsystem"
-	@echo "1. Debug UART is enabled and DMEM_IS_ZERO_LAT = 1."
-	@echo "2. PC_INIT = 0x00000000."
-	@echo "3. Ensure SIMEXIT_INSTR_END is defined to support RTL simulation with exit condition."
+	@echo "This will compile CoreMark and build the Pequeno subsystem with the CoreMark binaries initialized on RAMs."
+	@echo ""
+	@echo "PRE-REQUISITES to build CoreMark for Pequeno subsystem"
+	@echo "1. Configure the test parameters and environment in CoreMark Makefile."
+	@echo "   . ITERATIONS     = <no. of CoreMark iterations to be performed>"
+	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
+	@echo "2. Configure CoreMark linker.ld." 
+	@echo "   . IRAM ORIGIN = 0x00000000"
+	@echo "   . IRAM LENGTH = <IRAM size>"
+	@echo "   . DRAM ORIGIN = 0x80000000"
+	@echo "   . DRAM LENGTH = <DRAM size>"
+	@echo "3. Configure the PQR5 subsystem macros:"
+	@echo "   . COREMARK      = Enabled"
+	@echo "   . DBGUART       = Enabled"
+	@echo "   . DBGUART_BRATE = <Targetted baudrate>"
+	@echo "   . FCLK          = CLOCKS_PER_SEC"
+	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH"
+	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH"	
+	@echo "4. Configure CPU Core macros:"
+	@echo "   . PC_INIT           = 0x00000000"
+	@echo "   . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END"
 	@echo ""
 	@read -p "Press ENTER to continue..." dummy
 	@echo ""
 	@echo "| MAKE_PQR5: Building CoreMark CPU for the system..."
 	@echo ""
-	set -e
+	@set -e
 	@master_dir=$$(pwd); \
 	cd $(COREMK_DIR); \
 	make build ; \
@@ -308,7 +333,7 @@ cmk2bin: asm_clean cmk_clean
 
 # genram
 genram:
-	set -e
+	@set -e
 	@echo ""
 	@echo "| MAKE PQR5: Analyzing binary files for Instruction & Data base addresses..."
 	@imem_baseaddr=$$(cat $(ASM_DIR)/sample_imem_baseaddr.txt); \
@@ -368,7 +393,7 @@ synth: check_synth
 	@echo ""
 	@echo "| MAKE_PQR5: Initiating Synthesis, Implementation, and Bitfile generation in Vivado..."
 	@echo ""
-	set -e	
+	@set -e	
 	@master_dir=$$(pwd); \
 	cd $(SYNTH_DIR); \
 	vivado -mode batch -source run_synth.tcl; \

@@ -1,3 +1,7 @@
 #!/bin/bash
 
-python opserial.py "$@"
+# Configure Python path
+PYTHON=/home/mituraj/my_workspace/python/myenv/bin/python
+#PYTHON=python
+
+$PYTHON opserial.py "$@"

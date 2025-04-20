@@ -1,9 +1,9 @@
 ###################################################################################################
-# ╔═╦╗╔╗─────────╔╗─╔╗────╔╗
-# ║╔╣╚╬╬═╦══╦╦╦═╦╣╠╗║║╔═╦═╬╬═╗
-# ║╚╣║║║╬║║║║║║║║║═╣║╚╣╬║╬║║═╣ /////////////// O P E N S O U R C E 
-# ╚═╩╩╩╣╔╩╩╩╩═╩╩═╩╩╝╚═╩═╬╗╠╩═╝                                                  
-# ─────╚╝───────────────╚═╝                                                     chipmunklogic.com
+##   _______   _                      __     __             _    
+##  / ___/ /  (_)__  __ _  __ _____  / /__  / /  ___  ___ _(_)___ TM
+## / /__/ _ \/ / _ \/  ' \/ // / _ \/  '_/ / /__/ _ \/ _ `/ / __/     //  O P E N - S O U R C E //
+## \___/_//_/_/ .__/_/_/_/\_,_/_//_/_/\_\ /____/\___/\_, /_/\__/              
+##           /_/                                    /___/                     chipmunklogic.com
 ###################################################################################################
 # Script : Script for RTL-to-bitstream non-project batch flow in Vivado
 # Author : Mitu Raj, chip@chipmunklogic.com 
@@ -26,9 +26,11 @@ file mkdir $outputDir
 file mkdir $bitfileDir
 
 # STEP#1: set RTL sources, XDC design constraints
+read_verilog -sv [ glob ./rtl_src/include/*.svh ]
+read_verilog -sv [ glob ./rtl_src/common/pqr5_core_pkg.sv ]
+read_verilog -sv [ glob ./rtl_src/common/pqr5_subsystem_pkg.sv ]
 read_verilog -sv [ glob ./rtl_src/*/*.sv ]
 read_verilog -sv [ glob ./rtl_src/*/*/*.sv ]
-read_verilog -sv [ glob ./rtl_src/*/*.svh ]
 read_xdc $xdcpath
 
 # STEP#2: run synthesis, report utilization and timing estimates, write checkpoint design
