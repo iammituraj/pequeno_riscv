@@ -397,7 +397,7 @@ if [ "$en_run15" -eq 1 ]; then
    make -C ./ diff >> ./regress_run_dump/checker.log
    echo "" >> ./regress_run_dump/checker.log
    grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 15: [PASS] 15_datacopy" >> ./regress_run_dump/regress_result.txt \
-           || echo "## RUN 1: [FAIL] 15_datacopy" >> ./regress_run_dump/regress_result.txt
+           || echo "## RUN 15: [FAIL] 15_datacopy" >> ./regress_run_dump/regress_result.txt
    cp -rf ./dump/* ./regress_run_dump/15_datacopy
    cp -f ./sim/*.log ./regress_run_dump/15_datacopy
    echo ""
