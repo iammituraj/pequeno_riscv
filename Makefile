@@ -425,6 +425,28 @@ listasm:
 
 # regress
 regress:
+	@echo ""
+	@echo "Running Regressions in the CPU"
+	@echo "==============================="
+	@echo "Running regressions validate the functionality of the PQR5 subsystem built."
+	@echo "This will run all example programs in the CPU and dump the results in dump/regress_run_dump"
+	@echo ""
+	@echo "Following configuration should be set before running regression."
+	@echo ""
+	@echo "PQR5 subsystem macros:"
+	@echo "   . IRAM_SIZE = 1024"
+	@echo "   . DRAM_SIZE = 1024"
+	@echo "   . Enable SUBSYS_DBG, MEM_DBG in PQR5 subsystem macros"
+	@echo "CPU core macros:"
+	@echo "   . PC_INIT = 32'h00000000"
+	@echo "   . REGFILE_DUMP = 1"
+	@echo "   . SIMEXIT_INSTR_END = Enable"
+	@echo ""
+	@read -p "Press ENTER to continue..." dummy
+	@echo ""
+	@echo "| MAKE_PQR5: Initiating regression runs..."
+	@echo ""
+	@set -e
 	bash $(SCRIPT_DIR)/regress_run.sh
 	@echo "|| Regression result ||"
 	@cat $(DUMP_DIR)/regress_run_dump/regress_result.txt

@@ -25,11 +25,12 @@
 //----%%
 //----%% Description      : WriteBack Unit (WBU) of pqr5 core.
 //----%%                    # Writes back results from execution pipeline to Register File. Commits all results in-order.
-//----%%                    # Acknowledgement to memory access is done by WBU. 
-//----%%                    # Single cycle latency pipeline.
+//----%%                    # The memory access response is read by WBU to perfrom write back of load operations.
+//----%%                    # Pipeline stall is applied until the response of the memory access is ready (ie., ack is ready). 
+//----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : June-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -76,6 +77,7 @@ module writeback_unit #(
    output logic             o_maccu_stall      ,  // Stall signal to MACCU   
    input  logic [4:0]       i_maccu_rdt_addr   ,  // rdt address from MACCU
    input  logic [`XLEN-1:0] i_maccu_rdt_data   ,  // rdt data from MACCU
+   input  logic             i_maccu_rdt_not_x0 ,  // rdt neq x0
    input  logic             i_maccu_is_macc    ,  // Memory access flag from MACCU
    input  logic [`XLEN-1:0] i_maccu_macc_addr  ,  // Memory access address from MACCU //**CHECKME**// only LSbs used as of now
    input  logic             i_maccu_macc_type  ,  // Memory access type from MACCU; '0'- Load, '1'- Store
@@ -91,6 +93,7 @@ module writeback_unit #(
    output logic [5:0]       o_instr_type       ,  // Instruction type from WBU
    output logic [4:0]       o_rdt_addr         ,  // rdt address from WBU
    output logic [`XLEN-1:0] o_rdt_data         ,  // rdt data from WBU
+   output logic             o_rdt_not_x0       ,  // rdt neq x0
    output logic             o_bubble           ,  // Bubble from WBU
    input  logic             i_stall               // Stall to WBU //**CHECKME**// Currently no external source to stall WBU 
 );
@@ -126,6 +129,7 @@ logic [`XLEN-1:0] rdt_data         ;  // Writeback data
 logic             rdt_wren_rg      ;  // Write Enable copy buffer
 logic [4:0]       rdt_addr_rg      ;  // Writeback address copy buffer
 logic [`XLEN-1:0] rdt_data_rg      ;  // Writeback data copy buffer
+logic             rdt_not_x0_rg    ;  // rdt neq x0
 
 // Stall logic specific
 logic             stall            ;  // Stall from outside WBU
@@ -161,29 +165,33 @@ end
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
-      rdt_wren_rg <= 1'b0 ;
-      rdt_addr_rg <= '0   ;
-      rdt_data_rg <= '0   ;      
+      rdt_wren_rg   <= 1'b0 ;
+      rdt_addr_rg   <= '0   ;
+      rdt_data_rg   <= '0   ; 
+      rdt_not_x0_rg <= 1'b0 ;     
    end
    // Out of reset
    else if (!pipe_stall) begin
       // Memory access, Load operation
       if (is_dmem_acc && is_dmem_acc_load) begin
-         rdt_wren_rg <= 1'b1             ;      	
-         rdt_data_rg <= load_data        ;  // Writeback Load data after memory access
-         rdt_addr_rg <= i_maccu_rdt_addr ;
+         rdt_wren_rg   <= 1'b1               ;      	
+         rdt_data_rg   <= load_data          ;  // Writeback Load data after memory access
+         rdt_addr_rg   <= i_maccu_rdt_addr   ;
+         rdt_not_x0_rg <= i_maccu_rdt_not_x0 ;
       end
       // Not memory access, direct writeback
       else if (is_dir_writeback) begin
-         rdt_wren_rg <= 1'b1             ;      	
-         rdt_data_rg <= i_maccu_rdt_data ;  // Writeback data from MACCU
-         rdt_addr_rg <= i_maccu_rdt_addr ;         	
+         rdt_wren_rg   <= 1'b1               ;      	
+         rdt_data_rg   <= i_maccu_rdt_data   ;  // Writeback data from MACCU
+         rdt_addr_rg   <= i_maccu_rdt_addr   ; 
+         rdt_not_x0_rg <= i_maccu_rdt_not_x0 ;        	
       end 
       // Invalid packet
       else begin
-         rdt_wren_rg <= 1'b0 ;
-         rdt_addr_rg <= '0   ;
-         rdt_data_rg <= '0   ;    	
+         rdt_wren_rg   <= 1'b0 ;
+         rdt_addr_rg   <= '0   ;
+         rdt_data_rg   <= '0   ;
+         rdt_not_x0_rg <= 1'b0 ;    	
       end           
    end
 end
@@ -268,6 +276,7 @@ assign o_instr       = wbu_instr_rg      ;
 assign o_instr_type  = wbu_instr_type_rg ;
 assign o_rdt_addr    = rdt_addr_rg       ;
 assign o_rdt_data    = rdt_data_rg       ;
+assign o_rdt_not_x0  = rdt_not_x0_rg     ;
 assign o_bubble      = wbu_bubble_rg     ;
 
 endmodule

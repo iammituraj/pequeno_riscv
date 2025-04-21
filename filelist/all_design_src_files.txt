@@ -24,6 +24,7 @@
 
 
 ############################## CORE #################################
+./src/core/static_bpredictor.sv
 ./src/core/fetch_unit.sv
 
 ./src/core/opfwd_control.sv

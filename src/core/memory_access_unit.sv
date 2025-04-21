@@ -25,11 +25,11 @@
 //----%%
 //----%% Description      : Memory Access Unit (MACCU) of PQR5 Core.
 //----%%                    # Forwards memory access requests from EXU to Data memory.
-//----%%                    # Controls only Requests to memory, Acknowledgement is expected to be done by WriteBack Unit (WBU).
-//----%%                    # Single cycle latency pipeline. 
+//----%%                    # Controls only Requests to memory, Acknowledgement is expected to be read by WriteBack Unit (WBU).
+//----%%                    # Pipeline latency = 1 cycle 
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : June-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -64,6 +64,7 @@ module memory_access_unit #(
 
    input  logic [4:0]       i_exu_rdt_addr   ,  // Writeback address from EXU
    input  logic [`XLEN-1:0] i_exu_rdt_data   ,  // Writeback data from EXU
+   input  logic             i_exu_rdt_not_x0 ,  // rdt neq x0 
    input  logic             i_exu_is_macc_op ,  // Memory access operation flag from EXU
    input  logic             i_exu_macc_cmd   ,  // Memory access command from EXU
    input  logic [`XLEN-1:0] i_exu_macc_addr  ,  // Memory access address from EXU
@@ -87,6 +88,7 @@ module memory_access_unit #(
    input  logic             i_wbu_stall      ,  // Stall signal from WBU   
    output logic [4:0]       o_wbu_rdt_addr   ,  // rdt address to WBU
    output logic [`XLEN-1:0] o_wbu_rdt_data   ,  // rdt data to WBU
+   output logic             o_wbu_rdt_not_x0 ,  // rdt neq x0
    output logic             o_wbu_is_macc    ,  // Memory access flag to WBU
    output logic [`XLEN-1:0] o_wbu_macc_addr  ,  // Memory access address to WBU     
    output logic             o_wbu_macc_type     // Memory access type to WBU; '0'- Load, '1'- Store
@@ -108,6 +110,7 @@ logic [5:0]       maccu_instr_type_rg ;  // Instruction type
 logic             maccu_bubble_rg     ;  // Bubble
 logic [4:0]       rdt_addr_rg         ;  // rdt address
 logic [`XLEN-1:0] rdt_data_rg         ;  // rdt data
+logic             rdt_not_x0_rg       ;  // rdt neq x0
 logic             is_macc_rg          ;  // Memory access flag
 logic [`XLEN-1:0] macc_addr_rg        ;  // Memory access address 
 logic             macc_type_rg        ;  // Memory access type
@@ -128,18 +131,20 @@ always_ff @(posedge clk or negedge aresetn) begin
       maccu_bubble_rg     <= 1'b1       ;
       rdt_addr_rg         <= '0         ;  
       rdt_data_rg         <= '0         ;
+      rdt_not_x0_rg       <= 1'b0       ;
       is_macc_rg          <= 1'b0       ;
       macc_addr_rg        <= '0         ;
       macc_type_rg        <= LOAD       ;
    end
    // Out of reset
-   else if (!stall) begin
+   else if (!stall) begin  // Pipe forward...
       maccu_pc_rg         <= i_exu_pc         ;
       maccu_instr_rg      <= i_exu_instr      ;
       maccu_instr_type_rg <= i_exu_instr_type ;
       maccu_bubble_rg     <= i_exu_bubble     ;
       rdt_addr_rg         <= i_exu_rdt_addr   ;  
       rdt_data_rg         <= i_exu_rdt_data   ;
+      rdt_not_x0_rg       <= i_exu_rdt_not_x0 ;
       is_macc_rg          <= i_exu_is_macc_op ;
       macc_addr_rg        <= i_exu_macc_addr  ;
       macc_type_rg        <= i_exu_macc_cmd   ;      
@@ -154,9 +159,9 @@ assign maccu_stall = stall                      ;  // No other locally generated
 assign o_exu_stall = maccu_stall                ;  // Stall signal to EXU
 
 //===================================================================================================================================================
-// Continuous assignments 
+// DMEMIF and WBU outputs
 //===================================================================================================================================================
-// Data Memory/Cache Request Interface (DMEMIF)
+// Control signals to Data Memory/Cache Request Interface
 // All control signals are combi routed to memory w/o registering @MACCU so that memory pipeline is sync with MACCU pipeline to pipe MACCU packets
 // This will ensure no extra latency if memory/cache supports max. access speed of = 1 cycle on hit
 assign o_dmem_wen   = (!i_exu_bubble && i_exu_is_macc_op && (i_exu_macc_cmd == STORE)) ;
@@ -166,13 +171,14 @@ assign o_dmem_wdata = i_exu_macc_data ;
 assign o_dmem_req   = (!i_exu_bubble && i_exu_is_macc_op) ;
 assign o_dmem_flush = 1'b0 ;  //**CHECKME**// Flush is unused as of now
 
-// Interface with WriteBack Unit (WBU)
+// Payload to WriteBack Unit (WBU)
 assign o_wbu_pc         = maccu_pc_rg         ;
 assign o_wbu_instr      = maccu_instr_rg      ;
 assign o_wbu_instr_type = maccu_instr_type_rg ;
 assign o_wbu_bubble     = maccu_bubble_rg     ;
 assign o_wbu_rdt_addr   = rdt_addr_rg         ;
 assign o_wbu_rdt_data   = rdt_data_rg         ;
+assign o_wbu_rdt_not_x0 = rdt_not_x0_rg       ;
 assign o_wbu_is_macc    = is_macc_rg          ;
 assign o_wbu_macc_addr  = macc_addr_rg        ;
 assign o_wbu_macc_type  = macc_type_rg        ;

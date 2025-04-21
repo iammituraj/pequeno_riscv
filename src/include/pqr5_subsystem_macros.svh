@@ -50,16 +50,16 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Features
 //`define EN_LOADER                    // Define this macro to generate Loader to program the core on the fly via UART
-`define COREMARK                     // Define this macro to enable Coremark Benchmarking
+//`define COREMARK                     // Define this macro to enable Coremark Benchmarking
 
 // On-board Test/Simulation environment INFO - define the parameters here
 `define FCLK                 10                         // System clock speed targetted for on-board testing/simulation; in MHz
 `define TCLK                 (1000.0/`FCLK)             // System clock period targetted for on-board testing/simulation; in ns
-`define IRAM_SIZE            32768                      // Size of the generated IRAM; in bytes
+`define IRAM_SIZE            1024                       // Size of the generated IRAM; in bytes
 `define IRAM_DW              32                         // Data width of the generated IRAM [CONSTANT]
 `define IRAM_DEPTH           ((`IRAM_SIZE*8)/`IRAM_DW)  // Depth of the generated IRAM 
 `define IRAM_AW              ($clog2(`IRAM_DEPTH))      // Address width of the generated IRAM
-`define DRAM_SIZE            8192                       // Size of the generated DRAM; in bytes, max. 64kB
+`define DRAM_SIZE            1024                       // Size of the generated DRAM; in bytes, max. 64kB
 `define DRAM_DW              32                         // Data width of the generated DRAM [CONSTANT]
 `define DRAM_DEPTH           ((`DRAM_SIZE*8)/`DRAM_DW)  // Depth of the generated IRAM
 `define DRAM_AW              ($clog2(`DRAM_DEPTH))      // Address width of the generated DRAM
@@ -82,7 +82,7 @@
 `define SIMCYCLES            30000     // If SIMLIMIT is enabled: Max. no. of clock cycles of simulation 
 
 // Memory Dump during simulation
-//`define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; UNDEFINE FOR SYNTHESIS
+`define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; UNDEFINE FOR SYNTHESIS
 `define IMEM_DUMP            1       // If MEM_DBG: '1'- Dump IMEM content @end of simulation, '0'- Do not dump
 `define DMEM_DUMP            1       // If MEM_DBG: '1'- Dump DMEM content @end of simulation, '0'- Do not dump
 

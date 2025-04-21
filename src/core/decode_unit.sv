@@ -24,13 +24,13 @@
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
 //----%% Description      : Decode Unit (DU) of PQR5 Core.
-//----%%                    # Decodes all instructions fetched by Fetch Unit (FU).
-//----%%                    # Sends decoded register addresses to Register File/Execution Unit (EXU).
-//----%%                    # Sends decoded instruction fields, type, opcode, immediates to EXU.
-//----%%                    # Single cycle latency pipeline.
+//----%%                    # Decodes the instruction fetched by Fetch Unit (FU).
+//----%%                    # Sends the decoded register addresses to Register File for read.
+//----%%                    # Sends the decoded information as payload to Execution Unit (EXU).
+//----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Feb-2023
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -88,6 +88,7 @@ module decode_unit #(
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
    output logic [4:0]       o_exu_rs1          ,  // rs1 (source register-1) address to EXU
    output logic [4:0]       o_exu_rdt          ,  // rdt (destination register) address to EXU
+   output logic             o_exu_rdt_not_x0   ,  // rdt neq x0
    output logic [2:0]       o_exu_funct3       ,  // funct3 to EXU
    output logic [6:0]       o_exu_funct7       ,  // funct7 to EXU
 
@@ -144,7 +145,6 @@ logic             flush               ;  // Flush from outside FU
 // Synchronous logic to decode instruction type
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-
    // Reset   
    if (!aresetn) begin
       instr_type_rg <= 6'b000000 ;        
@@ -169,7 +169,6 @@ always_ff @(posedge clk or negedge aresetn) begin
          endcase     
       end                   
    end
-
 end
 
 //===================================================================================================================================================
@@ -177,8 +176,7 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn)       begin du_pc_rg <= PC_INIT     ; end
-   else if (i_exu_bu_flush) begin du_pc_rg <= i_exu_bu_pc ; end  // Pipe in EXU-BU PC on flush
-   else if (!stall)         begin du_pc_rg <= i_fu_pc     ; end  // Pipe through...
+   else if (!stall)         begin du_pc_rg <= i_fu_pc     ; end  // Pipe forward...
 end
 
 //===================================================================================================================================================
@@ -187,7 +185,7 @@ end
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_instr_rg <= `INSTR_NOP ; end
    else if (flush)    begin du_instr_rg <= `INSTR_NOP ; end  // Pipe in NOP instruction on flush
-   else if (!stall)   begin du_instr_rg <= i_fu_instr ; end  // Pipe through... 
+   else if (!stall)   begin du_instr_rg <= i_fu_instr ; end  // Pipe forward... 
 end
 
 //===================================================================================================================================================
@@ -196,7 +194,7 @@ end
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_bubble_rg <= 1'b1 ;        end
    else if (flush)    begin du_bubble_rg <= 1'b1 ;        end  // Invalidate on flush
-   else if (!stall)   begin du_bubble_rg <= i_fu_bubble ; end  // Pipe through...
+   else if (!stall)   begin du_bubble_rg <= i_fu_bubble ; end  // Pipe forward...
 end
 
 //===================================================================================================================================================
@@ -204,7 +202,7 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_br_taken_rg <= 1'b0          ; end
-   else if (!stall)   begin du_br_taken_rg <= i_fu_br_taken ; end  // Pipe through...
+   else if (!stall)   begin du_br_taken_rg <= i_fu_br_taken ; end  // Pipe forward...
 end
 
 assign o_exu_bu_br_taken = du_br_taken_rg ;
@@ -243,14 +241,14 @@ assign o_fu_stall = du_stall             ;  // Stall signal to FU
 assign flush = i_exu_bu_flush ;  // Only EXU-BU can flush FU from outside
 
 //===================================================================================================================================================
-// Continuous assignments
+// All other signals
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
 assign o_du_dbg = {(du_opcode == OP_LUI), (du_opcode == OP_JALR), (du_opcode == OP_LOAD), is_op_alui, instr_type_rg} ;
 `endif
 
-// Other internal signals
+// Internal signals
 assign fu_opcode  = i_fu_instr[6:0]    ;
 assign reg_src0   = du_instr_rg[19:15] ;
 assign reg_src1   = du_instr_rg[24:20] ;
@@ -265,14 +263,14 @@ assign is_j_type  = instr_type_rg[0]   ;
 assign funct3     = du_instr_rg[14:12] ;
 assign funct7     = du_instr_rg[31:25] ;
 
-// Interface with Register File (RF)
+// Read-side control signals to Register File (RF)
 assign o_rf_rden    = ~stall            ;  // DU and RF (read-side) are at the same stage of pipeline, so they should stall together always
 assign rf_reg_src0  = i_fu_instr[19:15] ; 
 assign rf_reg_src1  = i_fu_instr[24:20] ;
-assign o_rf_rs0     = rf_reg_src0       ;  // Combi routing to sync RF read-data with DU outputs to EXU 
-assign o_rf_rs1     = rf_reg_src1       ;  // Combi routing to sync RF read-data with DU outputs to EXU
+assign o_rf_rs0     = rf_reg_src0       ;  // Combi routing to sync the read-data from RF with DU payload to EXU 
+assign o_rf_rs1     = rf_reg_src1       ;  // Combi routing to sync the read-data from RF with DU payload to EXU
 
-// Interface with Execution Unit (EXU)
+// Payload to Execution Unit (EXU)
 assign o_exu_pc         = du_pc_rg    ;
 assign o_exu_instr      = du_instr_rg ;
 assign o_exu_bubble     = flush | du_bubble_rg ;  // Flush should invalidate next instruction from going to EXU and executed  
@@ -282,6 +280,7 @@ assign o_exu_alu_opcode = alu_opcode ;
 assign o_exu_rs0        = reg_src0   ;
 assign o_exu_rs1        = reg_src1   ;
 assign o_exu_rdt        = reg_dest   ;
+assign o_exu_rdt_not_x0 = |reg_dest  ;
 assign o_exu_funct3     = funct3     ;
 assign o_exu_funct7     = funct7     ;
 

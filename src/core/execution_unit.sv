@@ -24,17 +24,18 @@
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
 //----%% Description      : Execution Unit (EXU) of PQR5 Core.
-//----%%                    # Executes all instructions decoded by Decode Unit (DU); in-order execution.
+//----%%                    # Executes the instruction decoded by Decode Unit (DU); in-order execution.
 //----%%                    # Only valid instructions are executed, if invalid instruction, bubble is inserted.
 //----%%                    # Supports pipeline interlock mechanism to mitigate Load instruction RAW hazards.
-//----%%                    # Incorporates ALU to execute all ALU instructions + LUI/AUIPC instructions.
-//----%%                    # Incorporates Branch Unit (EXU-BU) to execute all Jump/Branch instructions.
-//----%%                    # Incorporates Load-Store Unit (LSU) to execute all Load/Store instructions.
-//----%%                    # Sends EXU results/memory access commands to Memory Access Unit (MACCU). 
-//----%%                    # Single cycle latency pipeline in ALU, EXU-BU, LSU data paths.
+//----%%                    # Incorporates ALU to execute ALU instructions + LUI/AUIPC instructions.
+//----%%                    # Incorporates Branch Unit (EXU-BU) to execute Jump/Branch instructions. Generates branch flush after
+//----%%                      branch resolution, if the branch prediction was wrong.
+//----%%                    # Incorporates Load-Store Unit (LSU) to execute Load/Store instructions.
+//----%%                    # Sends EXU results/memory access commands as payload to Memory Access Unit (MACCU). 
+//----%%                    # Pipeline latency = 1 cycle at all execution units ALU, LSU, EXU-BU.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Feb-2023
+//----%% Last modified on : Apr-2025
 //----%% Notes            : - 
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -84,7 +85,8 @@ module execution_unit #(
    input  logic [3:0]       i_du_alu_opcode    ,  // ALU opcode from DU    
    input  logic [4:0]       i_du_rs0           ,  // rs0 (source register-0) address from DU
    input  logic [4:0]       i_du_rs1           ,  // rs1 (source register-1) address from DU
-   input  logic [4:0]       i_du_rdt           ,  // rdt (destination register) address from DU        
+   input  logic [4:0]       i_du_rdt           ,  // rdt (destination register) address from DU     
+   input  logic             i_du_rdt_not_x0    ,  // rdt neq x0   
    input  logic [2:0]       i_du_funct3        ,  // funct3 from DU    
    input  logic [6:0]       i_du_funct7        ,  // funct7 from DU //**CHECKME**// Unused as of now
      
@@ -109,6 +111,7 @@ module execution_unit #(
 
    output logic [4:0]       o_maccu_rdt_addr   ,  // Writeback address to MACCU
    output logic [`XLEN-1:0] o_maccu_rdt_data   ,  // Writeback data to MACCU
+   output logic             o_maccu_rdt_not_x0 ,  // Write back address neq x0
    output logic             o_maccu_is_macc_op ,  // Memory access operation flag to MACCU
    output logic             o_maccu_macc_cmd   ,  // Memory access command to MACCU; '0'- Load, '1'- Store
    output logic [`XLEN-1:0] o_maccu_macc_addr  ,  // Memory access address to MACCU
@@ -148,6 +151,7 @@ logic [5:0]       instr_type         ;  // Instruction type
 logic [5:0]       exu_instr_type_rg  ;  // Instruction type
 logic             exu_bubble         ;  // Bubble
 logic [4:0]       exu_rdt_rg         ;  // rdt address
+logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
 logic [`XLEN-1:0] exu_result         ;  // EXU result for writeback
 logic             is_exu_result_wb   ;  // Flags if EXU result requires writeback
 logic             is_exu_result_mem  ;  // Flags if EXU result requires memory access
@@ -268,7 +272,7 @@ assign immU       = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;                 // L
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_pc_rg <= PC_INIT  ; end
-   else if (!stall)   begin exu_pc_rg <= i_du_pc  ; end  // Pipe through...
+   else if (!stall)   begin exu_pc_rg <= i_du_pc  ; end  // Pipe forward...
 end
 
 //===================================================================================================================================================
@@ -276,7 +280,7 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_instr_rg <= `INSTR_NOP ; end
-   else if (!stall)   begin exu_instr_rg <= i_du_instr ; end  // Pipe through... 
+   else if (!stall)   begin exu_instr_rg <= i_du_instr ; end  // Pipe forward... 
 end
 
 //===================================================================================================================================================
@@ -284,15 +288,21 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_instr_type_rg <= '0         ; end
-   else if (!stall)   begin exu_instr_type_rg <= instr_type ; end  // Pipe through... 
+   else if (!stall)   begin exu_instr_type_rg <= instr_type ; end  // Pipe forward... 
 end
 
 //===================================================================================================================================================
 // Synchronous logic to pipe rdt
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin exu_rdt_rg <= '0       ; end
-   else if (!stall)   begin exu_rdt_rg <= i_du_rdt ; end  // Pipe through... 
+   if (!aresetn) begin
+      exu_rdt_rg        <= '0   ; 
+      exu_rdt_not_x0_rg <= 1'b0 ;
+   end
+   else if (!stall) begin // Pipe forward... 
+      exu_rdt_rg        <= i_du_rdt        ;  
+      exu_rdt_not_x0_rg <= i_du_rdt_not_x0 ;
+   end 
 end
 
 //===================================================================================================================================================
@@ -315,8 +325,8 @@ assign exu_bubble        = bu_bubble & alu_bubble & lsu_bubble ;  // If EXU-BU, 
 //  ------------------------
 //  If current instr is Load, and next instr is RISB-type, then any RAW access leads to RAW hazard...
 //  This is taken care by generating pipeline interlock. This simply generates stall to DU, inserts a bubble in pipeline, allowing MACCU to load
-//  data in next cycle (if available, else stall from MACCU). 
-//  Once MACCU registers the result ie., Load data, operand forwarding can take over and mitigate the RAW hazard...
+//  the data in the next cycle (if available, else stall from MACCU). 
+//  Once MACCU registers the result ie., Load data, operand forwarding can take over this data and mitigate the RAW hazard...
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access
 always_comb begin
@@ -331,7 +341,7 @@ end
 
 assign is_du_rs0_eq_exu_rdt = (i_du_rs0 == exu_rdt_rg) ;
 assign is_du_rs1_eq_exu_rdt = (i_du_rs1 == exu_rdt_rg) ;
-assign is_exu_rdt_not_x0    = (|exu_rdt_rg) ;
+assign is_exu_rdt_not_x0    = exu_rdt_not_x0_rg ;
 assign is_du_instr_risb     = {i_du_is_r_type, i_du_is_i_type, i_du_is_s_type, i_du_is_b_type} ;
 assign is_du_instr_valid    = ~i_du_bubble ;
 assign is_exu_instr_valid   = ~exu_bubble  ;
@@ -348,7 +358,7 @@ assign exu_stall  = (stall & ~i_du_bubble) | is_pipe_inlock ;  // If invalid ins
 assign o_du_stall = exu_stall     ;  // Stall signal to DU
 
 //===================================================================================================================================================
-// All continuous assignments
+// All other signals
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
@@ -358,11 +368,11 @@ assign o_exu_dbg = {is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~
 // Internal signals
 assign instr_type     = {i_du_is_r_type, i_du_is_i_type, i_du_is_s_type, i_du_is_b_type, i_du_is_u_type, i_du_is_j_type} ;
 
-// EXU-BU Interface
+// EXU-BU outputs to the Core pipeline
 assign o_exu_bu_flush = bu_flush     ;
 assign o_exu_bu_pc    = bu_branch_pc ;
 
-// Interface with MACCU
+// Payload to MACCU
 assign o_maccu_pc         = exu_pc_rg         ;
 assign o_maccu_instr      = exu_instr_rg      ;
 assign o_maccu_instr_type = exu_instr_type_rg ;
@@ -371,6 +381,7 @@ assign o_maccu_bubble     = exu_bubble | i_maccu_stall ; // Stall should invalid
                                                          // This is a strict in-order requirement 
 assign o_maccu_rdt_addr   = exu_rdt_rg        ;
 assign o_maccu_rdt_data   = exu_result        ;
+assign o_maccu_rdt_not_x0 = exu_rdt_not_x0_rg ;
 assign o_maccu_is_macc_op = is_exu_result_mem ;
 assign o_maccu_macc_cmd   = lsu_mem_cmd       ;
 assign o_maccu_macc_addr  = lsu_mem_addr      ;
