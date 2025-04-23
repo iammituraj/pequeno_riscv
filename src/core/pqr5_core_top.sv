@@ -176,7 +176,8 @@ logic             du_exu_is_s_type  ;  // S-type instruction flag from DU to EXU
 logic             du_exu_is_b_type  ;  // B-type instruction flag from DU to EXU
 logic             du_exu_is_u_type  ;  // U-type instruction flag from DU to EXU
 logic             du_exu_is_j_type  ;  // J-type instruction flag from DU to EXU
-logic [5:0]       du_exu_instr_type ;  // Instruction type from DU to EXU
+logic             du_exu_is_risb    ;  // RISB flag from DU to EXU
+logic             du_exu_is_riuj    ;  // RIUJ flag from DU to EXU
 logic [11:0]      du_exu_i_type_imm ;  // I-type immediate from DU to EXU
 logic [11:0]      du_exu_s_type_imm ;  // S-type immediate from DU to EXU
 logic [11:0]      du_exu_b_type_imm ;  // B-type immediate from DU to EXU
@@ -186,7 +187,7 @@ logic [19:0]      du_exu_j_type_imm ;  // J-type immediate from DU to EXU
 // EXU-MACCU Interface
 logic [`XLEN-1:0] exu_maccu_pc         ;  // PC from EXU to MACCU    
 logic [`ILEN-1:0] exu_maccu_instr      ;  // Instruction from EXU to MACCU
-logic [5:0]       exu_maccu_instr_type ;  // Instruction type from EXU to MACCU
+logic             exu_maccu_is_riuj    ;  // RIUJ flag from EXU to MACCU
 logic             exu_maccu_bubble     ;  // Bubble from EXU to MACCU
 logic             maccu_exu_stall      ;  // Stall signal from MACCU to EXU
 
@@ -202,15 +203,16 @@ logic [`XLEN-1:0] exu_maccu_data       ;  // Memory access data (for Store) from
 // MACCU-WBU Interface  
 logic [`XLEN-1:0] maccu_wbu_pc         ;  // PC from MACCU to WBU   
 logic [`ILEN-1:0] maccu_wbu_instr      ;  // Instruction from MACCU to WBU
-logic [5:0]       maccu_wbu_instr_type ;  // Instruction type from MACCU to WBU
+logic             maccu_wbu_is_riuj    ;  // RIUJ flag from MACCU to WBU
 logic             maccu_wbu_bubble     ;  // Bubble from MACCU to WBU
 logic             wbu_maccu_stall      ;  // Stall signal from WBU to MACCU  
 logic [4:0]       maccu_wbu_rdt_addr   ;  // rdt address from MACCU to WBU
 logic [`XLEN-1:0] maccu_wbu_rdt_data   ;  // rdt data from MACCU to WBU
 logic             maccu_wbu_rdt_not_x0 ;  // rdt neq x0
 logic             maccu_wbu_is_macc    ;  // Memory access flag from MACCU to WBU
+logic             maccu_wbu_is_load    ;  // Load operation flag from MACCU to WBU
+logic             maccu_wbu_is_dwback  ;  // Direct writeback operation flag from MACCU to WBU
 logic [`XLEN-1:0] maccu_wbu_macc_addr  ;  // Memory access address from MACCU to WBU
-logic             maccu_wbu_macc_type  ;  // Memory access type from MACCU to WBU
 logic [`XLEN-1:0] maccu_result         ;  // Memory access result to be sent to Operand Forward block
 logic [`XLEN-1:0] dmem_load_data       ;  // Load data from memory access
 
@@ -222,7 +224,7 @@ logic [`XLEN-1:0] wbu_rf_rdt_data  ;  // rdt data from WBU to RF
 // WBU Interface
 logic [`XLEN-1:0] wbu_pc_out           ;  // PC from WBU
 logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
-logic [5:0]       wbu_instr_type_out   ;  // Instruction type from WBU
+logic             wbu_is_riuj_out      ;  // RIUJ flag from WBU
 logic             wbu_bubble_out       ;  // Bubble from WBU
 logic [4:0]       wbu_rdt_addr_out     ;  // rdt address from WBU
 logic [`XLEN-1:0] wbu_rdt_data_out     ;  // rdt data from WBU
@@ -234,7 +236,7 @@ logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
 logic [2:0]       fu_dbg    ;  // Debug signal from FU  : {branch_taken, is_op_branch, is_op_jal}
 logic [9:0]       du_dbg    ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
 logic [4:0]       exu_dbg   ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
-logic [3:0]       wbu_dbg   ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, pipe_stall, dmem_acc_stall}
+logic [4:0]       wbu_dbg   ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, is_dir_writeback, pipe_stall, dmem_acc_stall}
 logic [`XLEN-1:0] regf [32] ;  // Debug signal from REGF: Register File
 `endif
 
@@ -323,6 +325,8 @@ decode_unit #(
    .o_exu_is_b_type   (du_exu_is_b_type)  ,
    .o_exu_is_u_type   (du_exu_is_u_type)  ,
    .o_exu_is_j_type   (du_exu_is_j_type)  ,
+   .o_exu_is_risb     (du_exu_is_risb)    ,
+   .o_exu_is_riuj     (du_exu_is_riuj)    ,
    .o_exu_i_type_imm  (du_exu_i_type_imm) ,
    .o_exu_s_type_imm  (du_exu_s_type_imm) ,
    .o_exu_b_type_imm  (du_exu_b_type_imm) ,
@@ -357,34 +361,33 @@ opfwd_control inst_opfwd_control (
 
    .i_du_rs0            (du_exu_rs0)           ,
    .i_du_rs1            (du_exu_rs1)           , 
-   .i_du_instr_type     (du_exu_instr_type)    ,
+   .i_du_instr_risb     (du_exu_is_risb)       ,
    .i_du_instr_valid    (~du_exu_bubble)       ,
 
    .i_exu_result        (exu_maccu_rdt_data)   ,  
    .i_exu_rdt           (exu_maccu_rdt_addr)   ,  
    .i_exu_rdt_not_x0    (exu_maccu_rdt_not_x0) ,
-   .i_exu_instr_type    (exu_maccu_instr_type) ,  
+   .i_exu_instr_riuj    (exu_maccu_is_riuj)    ,  
    .i_exu_instr_valid   (~exu_maccu_bubble)    ,
 
    .i_maccu_result      (maccu_result)         ,
    .i_maccu_rdt         (maccu_wbu_rdt_addr)   ,
    .i_maccu_rdt_not_x0  (maccu_wbu_rdt_not_x0) ,
-   .i_maccu_instr_type  (maccu_wbu_instr_type) ,
+   .i_maccu_instr_riuj  (maccu_wbu_is_riuj)    ,
    .i_maccu_instr_valid (~maccu_wbu_bubble)    ,  
 
    .i_wbu_result        (wbu_rdt_data_out)     ,  
    .i_wbu_rdt           (wbu_rdt_addr_out)     ,  
    .i_wbu_rdt_not_x0    (wbu_rdt_not_x0_out)   ,
-   .i_wbu_instr_type    (wbu_instr_type_out)   ,  
+   .i_wbu_instr_riuj    (wbu_is_riuj_out)      ,  
    .i_wbu_instr_valid   (~wbu_bubble_out)      ,
 
    .o_fwd_op0           (opfwd_exu_op0)        , 
    .o_fwd_op1           (opfwd_exu_op1) 
 );
 
-assign du_exu_instr_type = {du_exu_is_r_type, du_exu_is_i_type, du_exu_is_s_type, du_exu_is_b_type, du_exu_is_u_type, du_exu_is_j_type} ;
 // If Load access@MACCU, forward load data from DMEM access, else forward register writeback data
-assign maccu_result      = (maccu_wbu_is_macc && !maccu_wbu_macc_type)? dmem_load_data : maccu_wbu_rdt_data ;  
+assign maccu_result      = (maccu_wbu_is_load)? dmem_load_data : maccu_wbu_rdt_data ;  
 
 // Execution Unit (EXU)
 execution_unit #(
@@ -424,6 +427,8 @@ execution_unit #(
    .i_du_is_b_type     (du_exu_is_b_type)  ,
    .i_du_is_u_type     (du_exu_is_u_type)  ,
    .i_du_is_j_type     (du_exu_is_j_type)  ,
+   .i_du_is_risb       (du_exu_is_risb)    ,
+   .i_du_is_riuj       (du_exu_is_riuj)    ,
    .i_du_i_type_imm    (du_exu_i_type_imm) ,
    .i_du_s_type_imm    (du_exu_s_type_imm) ,
    .i_du_b_type_imm    (du_exu_b_type_imm) ,
@@ -432,7 +437,7 @@ execution_unit #(
 
    .o_maccu_pc         (exu_maccu_pc)         ,
    .o_maccu_instr      (exu_maccu_instr)      ,
-   .o_maccu_instr_type (exu_maccu_instr_type) ,
+   .o_maccu_is_riuj    (exu_maccu_is_riuj)    ,
    .o_maccu_bubble     (exu_maccu_bubble)     ,
    .i_maccu_stall      (maccu_exu_stall)      ,
 
@@ -455,7 +460,7 @@ memory_access_unit #(
 
    .i_exu_pc         (exu_maccu_pc)         ,
    .i_exu_instr      (exu_maccu_instr)      ,
-   .i_exu_instr_type (exu_maccu_instr_type) ,
+   .i_exu_is_riuj    (exu_maccu_is_riuj)    ,
    .i_exu_bubble     (exu_maccu_bubble)     ,
    .o_exu_stall      (maccu_exu_stall)      ,
 
@@ -478,15 +483,16 @@ memory_access_unit #(
 
    .o_wbu_pc         (maccu_wbu_pc)         ,
    .o_wbu_instr      (maccu_wbu_instr)      ,
-   .o_wbu_instr_type (maccu_wbu_instr_type) ,
+   .o_wbu_is_riuj    (maccu_wbu_is_riuj)    ,
    .o_wbu_bubble     (maccu_wbu_bubble)     ,
    .i_wbu_stall      (wbu_maccu_stall)      ,
    .o_wbu_rdt_addr   (maccu_wbu_rdt_addr)   ,
    .o_wbu_rdt_data   (maccu_wbu_rdt_data)   ,
    .o_wbu_rdt_not_x0 (maccu_wbu_rdt_not_x0) ,
    .o_wbu_is_macc    (maccu_wbu_is_macc)    ,
-   .o_wbu_macc_addr  (maccu_wbu_macc_addr)  ,
-   .o_wbu_macc_type  (maccu_wbu_macc_type)
+   .o_wbu_is_load    (maccu_wbu_is_load)    ,
+   .o_wbu_is_dwback  (maccu_wbu_is_dwback)  ,
+   .o_wbu_macc_addr  (maccu_wbu_macc_addr)  
 );
 
 // WriteBack Unit (WBU)
@@ -508,15 +514,16 @@ writeback_unit #(
    
    .i_maccu_pc         (maccu_wbu_pc)         ,
    .i_maccu_instr      (maccu_wbu_instr)      ,
-   .i_maccu_instr_type (maccu_wbu_instr_type) ,
+   .i_maccu_is_riuj    (maccu_wbu_is_riuj)    ,
    .i_maccu_bubble     (maccu_wbu_bubble)     ,
    .o_maccu_stall      (wbu_maccu_stall)      ,
    .i_maccu_rdt_addr   (maccu_wbu_rdt_addr)   ,
    .i_maccu_rdt_data   (maccu_wbu_rdt_data)   ,
    .i_maccu_rdt_not_x0 (maccu_wbu_rdt_not_x0) ,
    .i_maccu_is_macc    (maccu_wbu_is_macc)    ,
+   .i_maccu_is_load    (maccu_wbu_is_load)    ,
+   .i_maccu_is_dwback  (maccu_wbu_is_dwback)  ,
    .i_maccu_macc_addr  (maccu_wbu_macc_addr)  ,
-   .i_maccu_macc_type  (maccu_wbu_macc_type)  ,
    
    .o_rf_wren          (wbu_rf_wren)        ,
    .o_rf_rdt_addr      (wbu_rf_rdt_addr)    ,
@@ -524,7 +531,7 @@ writeback_unit #(
    
    .o_pc               (wbu_pc_out)         ,  
    .o_instr            (wbu_instr_out)      ,  
-   .o_instr_type       (wbu_instr_type_out) ,  
+   .o_is_riuj          (wbu_is_riuj_out)    ,  
    .o_bubble           (wbu_bubble_out)     ,
    .o_rdt_addr         (wbu_rdt_addr_out)   , 
    .o_rdt_data         (wbu_rdt_data_out)   , 

@@ -98,6 +98,8 @@ module decode_unit #(
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
    output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU
    output logic             o_exu_is_j_type    ,  // J-type instruction flag to EXU
+   output logic             o_exu_is_risb      ,  // RISB flag to EXU
+   output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
    output logic [11:0]      o_exu_i_type_imm   ,  // I-type immediate to EXU
    output logic [11:0]      o_exu_s_type_imm   ,  // S-type immediate to EXU
    output logic [11:0]      o_exu_b_type_imm   ,  // B-type immediate to EXU
@@ -241,14 +243,14 @@ assign o_fu_stall = du_stall             ;  // Stall signal to FU
 assign flush = i_exu_bu_flush ;  // Only EXU-BU can flush FU from outside
 
 //===================================================================================================================================================
-// All other signals
+// ALl decoded signals
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
 assign o_du_dbg = {(du_opcode == OP_LUI), (du_opcode == OP_JALR), (du_opcode == OP_LOAD), is_op_alui, instr_type_rg} ;
 `endif
 
-// Internal signals
+// Instruction decoded
 assign fu_opcode  = i_fu_instr[6:0]    ;
 assign reg_src0   = du_instr_rg[19:15] ;
 assign reg_src1   = du_instr_rg[24:20] ;
@@ -290,6 +292,8 @@ assign o_exu_is_s_type  = is_s_type  ;
 assign o_exu_is_b_type  = is_b_type  ;
 assign o_exu_is_u_type  = is_u_type  ;
 assign o_exu_is_j_type  = is_j_type  ;
+assign o_exu_is_risb    = is_r_type | is_i_type | is_s_type | is_b_type ;  // R/I/S/B-type instruction?
+assign o_exu_is_riuj    = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
 assign o_exu_i_type_imm = {du_instr_rg[31:20]}                                                       ;
 assign o_exu_s_type_imm = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;
 assign o_exu_b_type_imm = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]}   ;

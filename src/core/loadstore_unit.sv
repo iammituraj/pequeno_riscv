@@ -26,7 +26,7 @@
 //----%% Description      : This is the Load-Store unit used by Execution Unit (EXU) of PQR5 Core. Decodes all Load/Store instructions and 
 //----%%                    generates memory access commands.
 //----%%
-//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
+//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Feb-2023
 //----%% Notes            : -
 //----%%                  
@@ -121,19 +121,18 @@ always_comb begin
    endcase      
 end
 
-//===================================================================================================================================================
-// Continuous assignments
-//===================================================================================================================================================
+// Opcode decoding
 assign is_op_load  = (i_opcode == OP_LOAD) ;
 assign is_op_store = i_is_s_type           ;
 assign bubble      = (is_op_load || is_op_store)? i_bubble : 1'b1 ;  // Insert bubble if neither Load/Store instruction
 
+// Load/Store address decoding
 assign immI        = {{(`XLEN-12){i_immI[11]}}, i_immI} ;  // Sign-extend
 assign immS        = {{(`XLEN-12){i_immS[11]}}, i_immS} ;  // Sign-extend
 assign load_addr   = i_op0 + immI ;
 assign store_addr  = i_op0 + immS ;
 
-// Memory Access Interface
+// Memory Access Interface outputs
 assign o_mem_cmd   = mem_cmd_rg  ;
 assign o_mem_addr  = mem_addr_rg ;
 assign o_mem_size  = mem_size_rg ;

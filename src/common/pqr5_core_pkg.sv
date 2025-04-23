@@ -147,7 +147,7 @@ task disp_simheader ();
    `ifdef DBG
    $display("// | REGF dump   : %-042s | //", ynstatus(`REGFILE_DUMP));
    `else
-   $display("// | REGF dump   : %-042s | //", ynstatus(NO));
+   $display("// | REGF dump   : %-042s | //", ynstatus(0));
    `endif
    `ifdef SIMLIMIT
    $display("// | SIMLIMIT    : %-042s | //", "YES");

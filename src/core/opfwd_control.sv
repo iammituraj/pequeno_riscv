@@ -30,11 +30,13 @@
 //----%%                    -- EXU result   is forwarded to EXU input if dest regaddr of (N-1)th instruction = src regaddr of Nth instruction
 //----%%                    -- MACCU result is forwarded to EXU input if dest regaddr of (N-2)th instruction = src regaddr of Nth instruction
 //----%%                    -- WBU result   is forwarded to EXU input if dest regaddr of (N-3)th instruction = src regaddr of Nth instruction
-//----%%                    For Nth instruction at EXU input, (N-1)th instruction = instruction registered at EXU
-//----%%                                                      (N-2)th instruction = instruction registered at MACCU
-//----%%                                                      (N-3)th instruction = instruction registered at WBU
+//----%%                    -- EXU > MACCU > WBU: The results are forwarded in the priority order of who holds the latest writeback data.
 //----%%
-//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
+//----%%                    For Nth instruction at EXU input, (N-1)th instruction = instruction registered at EXU output
+//----%%                                                      (N-2)th instruction = instruction registered at MACCU output
+//----%%                                                      (N-3)th instruction = instruction registered at WBU output
+//----%%
+//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
@@ -57,29 +59,29 @@ module opfwd_control (
    // Interface with Decode Unit (DU) 
    input  logic [4:0]       i_du_rs0            ,  // rs0 from DU
    input  logic [4:0]       i_du_rs1            ,  // rs1 from DU 
-   input  logic [5:0]       i_du_instr_type     ,  // Instruction type from DU
+   input  logic             i_du_instr_risb     ,  // RISB instruction flag from DU
    input  logic             i_du_instr_valid    ,  // Instruction valid from DU 
 
    // Interface with Execution Unit (EXU)
    input  logic [`XLEN-1:0] i_exu_result        ,  // Result from EXU
    input  logic [4:0]       i_exu_rdt           ,  // rdt from EXU
    input  logic             i_exu_rdt_not_x0    ,  // rdt neq x0
-   input  logic [5:0]       i_exu_instr_type    ,  // Instruction type from EXU
+   input  logic             i_exu_instr_riuj    ,  // RIUJ instruction flag from EXU
    input  logic             i_exu_instr_valid   ,  // Instruction valid from EXU 
 
    // Interface with Memory Access Unit (MACCU)
    input  logic [`XLEN-1:0] i_maccu_result      ,  // Result from MACCU
    input  logic [4:0]       i_maccu_rdt         ,  // rdt from MACCU
    input  logic             i_maccu_rdt_not_x0  ,  // rdt neq x0
-   input  logic [5:0]       i_maccu_instr_type  ,  // Instruction type from MACCU
+   input  logic             i_maccu_instr_riuj  ,  // RIUJ instruction flag from MACCU
    input  logic             i_maccu_instr_valid ,  // Instruction valid from MACCU 
 
    // Interface with Write Back Unit (WBU)
-   input  logic [`XLEN-1:0] i_wbu_result        ,  // Result from EXU
-   input  logic [4:0]       i_wbu_rdt           ,  // rdt from EXU
+   input  logic [`XLEN-1:0] i_wbu_result        ,  // Result from WBU
+   input  logic [4:0]       i_wbu_rdt           ,  // rdt from WBU
    input  logic             i_wbu_rdt_not_x0    ,  // rdt neq x0
-   input  logic [5:0]       i_wbu_instr_type    ,  // Instruction type from EXU
-   input  logic             i_wbu_instr_valid   ,  // Instruction valid from EXU 
+   input  logic             i_wbu_instr_riuj    ,  // RIUJ instruction flag from WBU
+   input  logic             i_wbu_instr_valid   ,  // Instruction valid from WBU
 
    // Forwarded Operands
    output logic [`XLEN-1:0] o_fwd_op0           ,  // Forwarded Operand-0
@@ -262,10 +264,10 @@ assign is_exu_rdt_not_x0   = i_exu_rdt_not_x0   ;
 assign is_maccu_rdt_not_x0 = i_maccu_rdt_not_x0 ;
 assign is_wbu_rdt_not_x0   = i_wbu_rdt_not_x0   ;
 
-assign is_du_instr_risb    = i_du_instr_type[R]    | i_du_instr_type[I]    | i_du_instr_type[S]    | i_du_instr_type[B]    ;
-assign is_exu_instr_riuj   = i_exu_instr_type[R]   | i_exu_instr_type[I]   | i_exu_instr_type[U]   | i_exu_instr_type[J]   ;
-assign is_maccu_instr_riuj = i_maccu_instr_type[R] | i_maccu_instr_type[I] | i_maccu_instr_type[U] | i_maccu_instr_type[J] ;
-assign is_wbu_instr_riuj   = i_wbu_instr_type[R]   | i_wbu_instr_type[I]   | i_wbu_instr_type[U]   | i_wbu_instr_type[J]   ;
+assign is_du_instr_risb    = i_du_instr_risb    ;
+assign is_exu_instr_riuj   = i_exu_instr_riuj   ;
+assign is_maccu_instr_riuj = i_maccu_instr_riuj ;
+assign is_wbu_instr_riuj   = i_wbu_instr_riuj   ;
 
 endmodule
 //###################################################################################################################################################

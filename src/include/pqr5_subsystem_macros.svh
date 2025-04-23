@@ -110,6 +110,7 @@
 
 // COREMARK override ..............//
 `ifdef COREMARK
+`undef SIMLIMIT
 `undef DMEM_IS_ZERO_LAT
 `define DMEM_IS_ZERO_LAT     1 
 `ifndef DBGUART

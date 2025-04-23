@@ -96,6 +96,8 @@ module execution_unit #(
    input  logic             i_du_is_b_type     ,  // B-type instruction flag from DU 
    input  logic             i_du_is_u_type     ,  // U-type instruction flag from DU 
    input  logic             i_du_is_j_type     ,  // J-type instruction flag from DU 
+   input  logic             i_du_is_risb       ,  // RISB flag from DU //**CHECKME**// Unused signal as of now
+   input  logic             i_du_is_riuj       ,  // RIUJ flag from DU
    input  logic [11:0]      i_du_i_type_imm    ,  // I-type immediate from DU
    input  logic [11:0]      i_du_s_type_imm    ,  // S-type immediate from DU
    input  logic [11:0]      i_du_b_type_imm    ,  // B-type immediate from DU
@@ -105,7 +107,7 @@ module execution_unit #(
    // Interface with Memory Access Unit (MACCU)
    output logic [`XLEN-1:0] o_maccu_pc         ,  // PC to MACCU
    output logic [`ILEN-1:0] o_maccu_instr      ,  // Executed instruction to MACCU
-   output logic [5:0]       o_maccu_instr_type ,  // Instruction type
+   output logic             o_maccu_is_riuj    ,  // RIUJ flag to MACCU
    output logic             o_maccu_bubble     ,  // Bubble to MACCU
    input  logic             i_maccu_stall      ,  // Stall signal from MACCU
 
@@ -147,8 +149,7 @@ logic             lsu_bubble         ;  // Bubble from LSU
 // MACCU control specific
 logic [`XLEN-1:0] exu_pc_rg          ;  // PC
 logic [`ILEN-1:0] exu_instr_rg       ;  // Instruction
-logic [5:0]       instr_type         ;  // Instruction type
-logic [5:0]       exu_instr_type_rg  ;  // Instruction type
+logic             exu_is_riuj_rg     ;  // RIUJ flag
 logic             exu_bubble         ;  // Bubble
 logic [4:0]       exu_rdt_rg         ;  // rdt address
 logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
@@ -162,6 +163,7 @@ logic             is_exu_instr_load    ;  // Flags if EXU instr is Load
 logic             is_src_eq_dest       ;  // Flags RAW access ie., EXU instr's destination register = DU instr's source register
 logic             is_du_rs0_eq_exu_rdt ;  // Flags if DU rs0 == EXU rdt
 logic             is_du_rs1_eq_exu_rdt ;  // Flags if DU rs1 == EXU rdt
+logic             is_du_rsx_eq_exu_rdt ;  // Flags if DU rs0/1 == EXU rdt
 logic             is_exu_rdt_not_x0    ;  // Flags if EXU rdt != x0
 logic [3:0]       is_du_instr_risb     ;  // Flags if DU instr = R/I/S/B-type
 logic             is_du_instr_valid    ;  // Flags if DU instr is valid
@@ -284,11 +286,11 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 //===================================================================================================================================================
-// Synchronous logic to pipe instruction type
+// Synchronous logic to pipe RIUJ flag
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin exu_instr_type_rg <= '0         ; end
-   else if (!stall)   begin exu_instr_type_rg <= instr_type ; end  // Pipe forward... 
+   if      (!aresetn) begin exu_is_riuj_rg <= 1'b0         ; end
+   else if (!stall)   begin exu_is_riuj_rg <= i_du_is_riuj ; end  // Pipe forward... 
 end
 
 //===================================================================================================================================================
@@ -331,16 +333,17 @@ assign exu_bubble        = bu_bubble & alu_bubble & lsu_bubble ;  // If EXU-BU, 
 // Combinatorial logic to flag RAW access
 always_comb begin
    case (is_du_instr_risb)
-      4'b1000 : is_src_eq_dest = (is_du_rs0_eq_exu_rdt || is_du_rs1_eq_exu_rdt) && is_exu_rdt_not_x0 ;  // R-type RAW access; x0 never causes hazard
-      4'b0100 : is_src_eq_dest = (is_du_rs0_eq_exu_rdt                        ) && is_exu_rdt_not_x0 ;  // I-type RAW access; x0 never causes hazard
-      4'b0010 : is_src_eq_dest = (is_du_rs0_eq_exu_rdt || is_du_rs1_eq_exu_rdt) && is_exu_rdt_not_x0 ;  // S-type RAW access; x0 never causes hazard
-      4'b0001 : is_src_eq_dest = (is_du_rs0_eq_exu_rdt || is_du_rs1_eq_exu_rdt) && is_exu_rdt_not_x0 ;  // B-type RAW access; x0 never causes hazard
+      4'b1000 , //is_src_eq_dest = (is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 ;  // R-type RAW access; x0 never causes hazard
+      4'b0010 , //is_src_eq_dest = (is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 ;  // S-type RAW access; x0 never causes hazard
+      4'b0001 : is_src_eq_dest = is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 ;  // B-type RAW access; x0 never causes hazard
+      4'b0100 : is_src_eq_dest = is_du_rs0_eq_exu_rdt && is_exu_rdt_not_x0 ;  // I-type RAW access; x0 never causes hazard
       default : is_src_eq_dest = 1'b0 ;   
    endcase
 end
 
 assign is_du_rs0_eq_exu_rdt = (i_du_rs0 == exu_rdt_rg) ;
 assign is_du_rs1_eq_exu_rdt = (i_du_rs1 == exu_rdt_rg) ;
+assign is_du_rsx_eq_exu_rdt = is_du_rs0_eq_exu_rdt | is_du_rs1_eq_exu_rdt ;
 assign is_exu_rdt_not_x0    = exu_rdt_not_x0_rg ;
 assign is_du_instr_risb     = {i_du_is_r_type, i_du_is_i_type, i_du_is_s_type, i_du_is_b_type} ;
 assign is_du_instr_valid    = ~i_du_bubble ;
@@ -358,15 +361,12 @@ assign exu_stall  = (stall & ~i_du_bubble) | is_pipe_inlock ;  // If invalid ins
 assign o_du_stall = exu_stall     ;  // Stall signal to DU
 
 //===================================================================================================================================================
-// All other signals
+// All other output signals from EXU
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
 assign o_exu_dbg = {is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
 `endif
-
-// Internal signals
-assign instr_type     = {i_du_is_r_type, i_du_is_i_type, i_du_is_s_type, i_du_is_b_type, i_du_is_u_type, i_du_is_j_type} ;
 
 // EXU-BU outputs to the Core pipeline
 assign o_exu_bu_flush = bu_flush     ;
@@ -375,7 +375,7 @@ assign o_exu_bu_pc    = bu_branch_pc ;
 // Payload to MACCU
 assign o_maccu_pc         = exu_pc_rg         ;
 assign o_maccu_instr      = exu_instr_rg      ;
-assign o_maccu_instr_type = exu_instr_type_rg ;
+assign o_maccu_is_riuj    = exu_is_riuj_rg    ;
 assign o_maccu_bubble     = exu_bubble | i_maccu_stall ; // Stall should invalidate instr to disable new memory access requests @maccu
                                                          // cz stall may be fwded from WBU and DMEMIF@maccu may accept new requests otherwise
                                                          // This is a strict in-order requirement 

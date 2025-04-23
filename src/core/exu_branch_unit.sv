@@ -23,10 +23,10 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : This is the branch unit used by Execution Unit (EXU) of PQR5 Core. Decodes all Jump and Branch instructions and generate branch
-//----%%                    status signals.
+//----%% Description      : This is the branch unit used by Execution Unit (EXU) of PQR5 Core. Decodes all Jump and Branch instructions and generate
+//----%%                    branch status signals.
 //----%%
-//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
+//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Feb-2023
 //----%% Notes            : -
 //----%%                  
@@ -121,11 +121,10 @@ end
 // Combinatorial logic for branch decoding
 //===================================================================================================================================================
 // - No flush for JAL because it is already handled by FU 
-// - JALR always generates flush
+// - JALR always generates flush, cz Branch predictor is static and hence can never resolve the branch address.
 // - Branch instructions: flush iff current branch status != status computed after execution 
 //===================================================================================================================================================
 always_comb begin
-
    // JAL
    if (is_j_type && !i_bubble) begin
       branch_taken = 1'b1         ;
@@ -138,63 +137,62 @@ always_comb begin
       branch_pc    = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
       flush        = 1'b1 ;  
    end
-   // Branch Instructions
-   else if (is_b_type && !i_bubble) begin
-      case (i_funct3)
-         F3_BEQ  : begin
-                      branch_taken = is_op0_eq_op1 ;
-                      branch_pc    = branch_taken ? pc_plus_immB : pc_plus_4 ;
-                      flush        = is_branch_taken_diff ;                  
-                   end                       
-         F3_BNE  : begin
-                      branch_taken = ~is_op0_eq_op1 ; 
-                      branch_pc    = branch_taken ? pc_plus_immB : pc_plus_4 ;
-                      flush        = is_branch_taken_diff ;  
-                   end
-         F3_BLT  : begin
-                      branch_taken = is_sign_op0_lt_op1 ;
-                      branch_pc    = branch_taken ? pc_plus_immB : pc_plus_4 ;
-                      flush        = is_branch_taken_diff ;
-                   end
-         F3_BGE  : begin
-                      branch_taken = ~is_sign_op0_lt_op1 ; 
-                      branch_pc    = branch_taken ? pc_plus_immB : pc_plus_4 ;
-                      flush        = is_branch_taken_diff ;
-                   end
-         F3_BLTU : begin
-                      branch_taken = is_op0_lt_op1 ;
-                      branch_pc    = branch_taken ? pc_plus_immB : pc_plus_4 ;
-                      flush        = is_branch_taken_diff ;
-                   end
-         F3_BGEU : begin
-                      branch_taken = ~is_op0_lt_op1 ; 
-                      branch_pc    = branch_taken ? pc_plus_immB : pc_plus_4 ;
-                      flush        = is_branch_taken_diff ;
-                   end
-         default : begin  // Illegal Branch instruction
-                      branch_taken = 1'b0      ;
-                      branch_pc    = pc_plus_4 ;
-                      flush        = 1'b0      ;     
-                   end            
-      endcase            
-   end
-   // Not Jump/Branch instruction, invalid instruction
+   // Branch/Invalid Instructions
    else begin
-      branch_taken = 1'b0      ;
-      branch_pc    = pc_plus_4 ;  
-      flush        = 1'b0      ; 
+      // Branch Instructions
+      if (is_b_type && !i_bubble) begin
+         case (i_funct3)
+            F3_BEQ  : begin
+                         branch_taken = is_op0_eq_op1 ;
+                         flush        = is_branch_taken_diff ;                  
+                      end                       
+            F3_BNE  : begin
+                         branch_taken = ~is_op0_eq_op1 ; 
+                         flush        = is_branch_taken_diff ;  
+                      end
+            F3_BLT  : begin
+                         branch_taken = is_sign_op0_lt_op1 ;
+                         flush        = is_branch_taken_diff ;
+                      end
+            F3_BGE  : begin
+                         branch_taken = ~is_sign_op0_lt_op1 ; 
+                         flush        = is_branch_taken_diff ;
+                      end
+            F3_BLTU : begin
+                         branch_taken = is_op0_lt_op1 ;
+                         flush        = is_branch_taken_diff ;
+                      end
+            F3_BGEU : begin
+                         branch_taken = ~is_op0_lt_op1 ; 
+                         flush        = is_branch_taken_diff ;
+                      end
+            default : begin  // Illegal Branch instruction
+                         branch_taken = 1'b0      ;
+                         flush        = 1'b0      ;     
+                      end            
+         endcase
+      end
+      // Not Jump/Branch instructions, invalid instruction
+      else begin
+         branch_taken = 1'b0 ;  
+         flush        = 1'b0 ; 
+      end
+      branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
    end
-
 end
 
-//===================================================================================================================================================
-// Continuous assignments
-//===================================================================================================================================================
+assign is_op0_eq_op1        = (i_op0 == i_op1)                  ;  // Equality
+assign is_op0_lt_op1        = (i_op0 < i_op1)                   ;  // Unsigned comparison
+assign is_sign_op0_lt_op1   = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
+assign is_branch_taken_diff = branch_taken ^ i_branch_taken     ;  // Compare current and computed status and flag if different 
+
+// Opcode decoding
 assign is_op_jalr = (i_opcode == OP_JALR) ;
 assign bubble     = (is_j_type || is_op_jalr)? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
                                                                   // JAL/JALR instructions need to propagate fwd in pipeline for writeback
                                                                   // Invalid/Branch instructions need not propagate fwd in pipeline 
 
+// Decoded immediates
 assign immJ          = {{(`XLEN-20){i_immJ[19]}}, i_immJ[18:0], 1'b0} ;  // Sign-extend after x2
 assign immI          = {{(`XLEN-12){i_immI[11]}}, i_immI}             ;  // Sign-extend
 assign immB          = {{(`XLEN-12){i_immB[11]}}, i_immB[10:0], 1'b0} ;  // Sign-extend after x2
@@ -202,11 +200,6 @@ assign pc_plus_4     = i_pc  + `XLEN'(4) ;
 assign pc_plus_immJ  = i_pc  + immJ      ;
 assign op0_plus_immI = i_op0 + immI      ;
 assign pc_plus_immB  = i_pc  + immB      ;
-
-assign is_op0_eq_op1        = (i_op0 == i_op1)                  ;
-assign is_op0_lt_op1        = (i_op0 < i_op1)                   ;  // Unsigned comparison
-assign is_sign_op0_lt_op1   = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
-assign is_branch_taken_diff = branch_taken ^ i_branch_taken     ;  // Compare current and computed status and flag if different 
 
 // Outputs
 assign o_nxt_instr_pc = nxt_instr_pc_rg ;
