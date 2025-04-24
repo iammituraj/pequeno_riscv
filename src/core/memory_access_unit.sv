@@ -104,7 +104,7 @@ localparam STORE = 1'b1 ;
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-// MACCU packets
+// Packets buffered from EXU
 logic [`XLEN-1:0] maccu_pc_rg         ;  // PC 
 logic [`ILEN-1:0] maccu_instr_rg      ;  // Instruction
 logic             maccu_is_riuj_rg    ;  // RIUJ flag
@@ -112,6 +112,8 @@ logic             maccu_bubble_rg     ;  // Bubble
 logic [4:0]       rdt_addr_rg         ;  // rdt address
 logic [`XLEN-1:0] rdt_data_rg         ;  // rdt data
 logic             rdt_not_x0_rg       ;  // rdt neq x0
+
+// Other packets in the Payload to MACCU
 logic             is_macc             ;  // Memory access flag
 logic             is_macc_rg          ;  // Memory access flag registered
 logic             is_cmd_load         ;  // Memory access command from EXU is Load flag

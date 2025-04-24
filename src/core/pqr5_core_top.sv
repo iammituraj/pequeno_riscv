@@ -168,7 +168,6 @@ logic [4:0]       du_exu_rs1        ;  // rs1 from DU to EXU
 logic [4:0]       du_exu_rdt        ;  // rdt from DU to EXU
 logic             du_exu_rdt_not_x0 ;  // rdt neq x0
 logic [2:0]       du_exu_funct3     ;  // funct3 from DU to EXU
-logic [6:0]       du_exu_funct7     ;  // funct7 from DU to EXU
 
 logic             du_exu_is_r_type  ;  // R-type instruction flag from DU to EXU
 logic             du_exu_is_i_type  ;  // I-type instruction flag from DU to EXU
@@ -178,6 +177,9 @@ logic             du_exu_is_u_type  ;  // U-type instruction flag from DU to EXU
 logic             du_exu_is_j_type  ;  // J-type instruction flag from DU to EXU
 logic             du_exu_is_risb    ;  // RISB flag from DU to EXU
 logic             du_exu_is_riuj    ;  // RIUJ flag from DU to EXU
+logic             du_exu_is_jalr    ;  // JALR flag from DU to EXU
+logic             du_exu_is_load    ;  // Load flag from DU to EXU
+logic             du_exu_is_lui     ;  // LUI flag from DU to EXU
 logic [11:0]      du_exu_i_type_imm ;  // I-type immediate from DU to EXU
 logic [11:0]      du_exu_s_type_imm ;  // S-type immediate from DU to EXU
 logic [11:0]      du_exu_b_type_imm ;  // B-type immediate from DU to EXU
@@ -317,7 +319,6 @@ decode_unit #(
    .o_exu_rdt         (du_exu_rdt)        , 
    .o_exu_rdt_not_x0  (du_exu_rdt_not_x0) ,
    .o_exu_funct3      (du_exu_funct3)     , 
-   .o_exu_funct7      (du_exu_funct7)     ,
    
    .o_exu_is_r_type   (du_exu_is_r_type)  ,
    .o_exu_is_i_type   (du_exu_is_i_type)  ,
@@ -327,6 +328,9 @@ decode_unit #(
    .o_exu_is_j_type   (du_exu_is_j_type)  ,
    .o_exu_is_risb     (du_exu_is_risb)    ,
    .o_exu_is_riuj     (du_exu_is_riuj)    ,
+   .o_exu_is_jalr     (du_exu_is_jalr)    ,
+   .o_exu_is_load     (du_exu_is_load)    ,
+   .o_exu_is_lui      (du_exu_is_lui)     ,
    .o_exu_i_type_imm  (du_exu_i_type_imm) ,
    .o_exu_s_type_imm  (du_exu_s_type_imm) ,
    .o_exu_b_type_imm  (du_exu_b_type_imm) ,
@@ -419,7 +423,6 @@ execution_unit #(
    .i_du_rdt           (du_exu_rdt)        ,
    .i_du_rdt_not_x0    (du_exu_rdt_not_x0) ,
    .i_du_funct3        (du_exu_funct3)     ,
-   .i_du_funct7        (du_exu_funct7)     ,
 
    .i_du_is_r_type     (du_exu_is_r_type)  ,
    .i_du_is_i_type     (du_exu_is_i_type)  ,
@@ -429,6 +432,9 @@ execution_unit #(
    .i_du_is_j_type     (du_exu_is_j_type)  ,
    .i_du_is_risb       (du_exu_is_risb)    ,
    .i_du_is_riuj       (du_exu_is_riuj)    ,
+   .i_du_is_jalr       (du_exu_is_jalr)    ,
+   .i_du_is_load       (du_exu_is_load)    ,
+   .i_du_is_lui        (du_exu_is_lui)     ,
    .i_du_i_type_imm    (du_exu_i_type_imm) ,
    .i_du_s_type_imm    (du_exu_s_type_imm) ,
    .i_du_b_type_imm    (du_exu_b_type_imm) ,

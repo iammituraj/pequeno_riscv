@@ -88,7 +88,6 @@ module execution_unit #(
    input  logic [4:0]       i_du_rdt           ,  // rdt (destination register) address from DU     
    input  logic             i_du_rdt_not_x0    ,  // rdt neq x0   
    input  logic [2:0]       i_du_funct3        ,  // funct3 from DU    
-   input  logic [6:0]       i_du_funct7        ,  // funct7 from DU //**CHECKME**// Unused as of now
      
    input  logic             i_du_is_r_type     ,  // R-type instruction flag from DU 
    input  logic             i_du_is_i_type     ,  // I-type instruction flag from DU 
@@ -96,8 +95,11 @@ module execution_unit #(
    input  logic             i_du_is_b_type     ,  // B-type instruction flag from DU 
    input  logic             i_du_is_u_type     ,  // U-type instruction flag from DU 
    input  logic             i_du_is_j_type     ,  // J-type instruction flag from DU 
-   input  logic             i_du_is_risb       ,  // RISB flag from DU //**CHECKME**// Unused signal as of now
+   input  logic             i_du_is_risb       ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
    input  logic             i_du_is_riuj       ,  // RIUJ flag from DU
+   input  logic             i_du_is_jalr       ,  // JALR flag from DU
+   input  logic             i_du_is_load       ,  // Load flag from DU
+   input  logic             i_du_is_lui        ,  // LUI flag from DU
    input  logic [11:0]      i_du_i_type_imm    ,  // I-type immediate from DU
    input  logic [11:0]      i_du_s_type_imm    ,  // S-type immediate from DU
    input  logic [11:0]      i_du_b_type_imm    ,  // B-type immediate from DU
@@ -146,16 +148,16 @@ logic [1:0]       lsu_mem_size       ;  // Memory data size
 logic [`XLEN-1:0] lsu_mem_data       ;  // Memory data (for Store)
 logic             lsu_bubble         ;  // Bubble from LSU
 
-// MACCU control specific
+// Buffered packets from DU
 logic [`XLEN-1:0] exu_pc_rg          ;  // PC
 logic [`ILEN-1:0] exu_instr_rg       ;  // Instruction
 logic             exu_is_riuj_rg     ;  // RIUJ flag
-logic             exu_bubble         ;  // Bubble
 logic [4:0]       exu_rdt_rg         ;  // rdt address
 logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
+
+// EXU results in the Payload to MACCU
+logic             exu_bubble         ;  // Bubble
 logic [`XLEN-1:0] exu_result         ;  // EXU result for writeback
-logic             is_exu_result_wb   ;  // Flags if EXU result requires writeback
-logic             is_exu_result_mem  ;  // Flags if EXU result requires memory access
 
 // Pipeline Interlock logic specific
 logic             is_exu_instr_valid   ;  // Flags if EXU instr is valid
@@ -167,6 +169,8 @@ logic             is_du_rsx_eq_exu_rdt ;  // Flags if DU rs0/1 == EXU rdt
 logic             is_exu_rdt_not_x0    ;  // Flags if EXU rdt != x0
 logic [3:0]       is_du_instr_risb     ;  // Flags if DU instr = R/I/S/B-type
 logic             is_du_instr_valid    ;  // Flags if DU instr is valid
+logic             is_exu_result_wb     ;  // Flags if EXU result requires writeback
+logic             is_exu_result_mem    ;  // Flags if EXU result requires memory access
 logic             is_pipe_inlock       ;  // Flags if pipeline interlock required
 
 // Stall logic specific
@@ -187,9 +191,9 @@ exu_branch_unit #(
    .i_stall        (stall)             ,
    .i_pc           (i_du_pc)           ,    
    .i_bubble       (i_du_bubble | is_pipe_inlock),  // Pipeline interlock should insert bubble in all exec units    
-   .is_j_type      (i_du_is_j_type)    ,    
-   .is_b_type      (i_du_is_b_type)    ,    
-   .i_opcode       (i_du_opcode)       ,    
+   .i_is_j_type    (i_du_is_j_type)    ,    
+   .i_is_b_type    (i_du_is_b_type)    ,  
+   .i_is_jalr      (i_du_is_jalr)      ,
    .i_funct3       (i_du_funct3)       ,    
    .i_immJ         (i_du_j_type_imm)   ,    
    .i_immI         (i_du_i_type_imm)   ,    
@@ -226,7 +230,7 @@ loadstore_unit inst_loadstore_unit (
    .i_stall     (stall)           ,
    .i_bubble    (i_du_bubble | is_pipe_inlock),  // Pipeline interlock should insert bubble in all exec units 
    .i_is_s_type (i_du_is_s_type)  ,
-   .i_opcode    (i_du_opcode)     ,
+   .i_is_load   (i_du_is_load)    ,
    .i_funct3    (i_du_funct3)     ,
    .i_immI      (i_du_i_type_imm) ,
    .i_immS      (i_du_s_type_imm) ,
@@ -246,26 +250,26 @@ loadstore_unit inst_loadstore_unit (
 always_comb begin
    case ({i_du_is_r_type, i_du_is_i_type, i_du_is_u_type}) 
       3'b100  : begin  // R-type instruction
-                   alu_op0  = i_op0  ;
-                   alu_op1  = i_op1  ; 
+                   alu_op0  = i_op0 ;
+                   alu_op1  = i_op1 ; 
                 end
       3'b010  : begin  // I-type instruction
-                   alu_op0  = i_op0  ;
-                   alu_op1  = immI   ;
+                   alu_op0  = i_op0 ;
+                   alu_op1  = immI  ;
                 end
       3'b001  : begin  // U-type instruction
                    alu_op0  = is_op_lui? '0 : i_du_pc ;  // 0+immU for LUI, pc+immU for AUIPC
                    alu_op1  = immU ;
                 end          
       default : begin  // Illegal instruction
-                   alu_op0  = '0 ;
-                   alu_op1  = '0 ;  
+                   alu_op0  = i_op0 ;
+                   alu_op1  = i_op1 ;  
                 end      	
    endcase  
 end
 
 assign alu_opcode = i_du_alu_opcode ;
-assign is_op_lui  = (i_du_opcode == OP_LUI) ;
+assign is_op_lui  = i_du_is_lui     ;
 assign immI       = {{(`XLEN-12){i_du_i_type_imm[11]}}, i_du_i_type_imm} ;  // Sign-extend
 assign immU       = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;                 // LSbs to fill 0s
 
@@ -325,9 +329,10 @@ assign exu_bubble        = bu_bubble & alu_bubble & lsu_bubble ;  // If EXU-BU, 
 //===================================================================================================================================================
 //  Pipeline Interlock logic
 //  ------------------------
-//  If current instr is Load, and next instr is RISB-type, then any RAW access leads to RAW hazard...
-//  This is taken care by generating pipeline interlock. This simply generates stall to DU, inserts a bubble in pipeline, allowing MACCU to load
-//  the data in the next cycle (if available, else stall from MACCU). 
+//  If current instr is Load, and next instr is RISB-type with RAW access, then
+//  EXU result doesn't contain the Load data for operand forwarding, so the RAW access may lead to RAW hazard...
+//  This is mitigated by generating pipeline interlock. This logic generates 1-cycle stall to DU, inserts bubble in pipeline, allowing MACCU to load
+//  the data in the next cycle (if available, else MACCU generates stall next cycle). 
 //  Once MACCU registers the result ie., Load data, operand forwarding can take over this data and mitigate the RAW hazard...
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access

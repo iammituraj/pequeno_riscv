@@ -88,12 +88,15 @@
 |   Following configuration should be set before running regression.
 |
 |   PQR5 subsystem macros:
-|      . IRAM_SIZE = 1024
-|      . DRAM_SIZE = 1024
-|      . Enable SUBSYS_DBG, MEM_DBG in PQR5 subsystem macros
+|      . IRAM_SIZE  = 1024
+|      . DRAM_SIZE  = 1024
+|      . SUBSYS_DBG = Enable
+|      . MEM_DBG    = Enable
+|      . SIMLIMIT   = Enable
 |   CPU core macros:
-|      . PC_INIT = 32'h00000000
-|      . REGFILE_DUMP = 1
+|      . PC_INIT           = 32'h00000000
+|      . REGFILE_DUMP      = 1
+|      . SIMLIMIT          = Enable
 |      . SIMEXIT_INSTR_END = Enable
 |
 |   Run regressions: make regress
@@ -107,27 +110,27 @@
 |   STEPS
 |   -----
 |   1) Configure the test parameters and environment in coremark/Makefile.
-|      . ITERATIONS     = <no. of CoreMark iterations to be performed>"
-|      . CLOCKS_PER_SEC = <Core clock speed>"
+|      . ITERATIONS     = <no. of CoreMark iterations to be performed>
+|      . CLOCKS_PER_SEC = <Core clock speed>
 |
-|   2) Configure coremark/linker.ld." 
-|      . IRAM ORIGIN = 0x00000000"
-|      . IRAM LENGTH = <IRAM size>"
+|   2) Configure coremark/linker.ld.
+|      . IRAM ORIGIN = 0x00000000
+|      . IRAM LENGTH = <IRAM size>
 |      . DRAM ORIGIN = 0x80000000"
-|      . DRAM LENGTH = <DRAM size>"
+|      . DRAM LENGTH = <DRAM size>
 |
-|   3) Configure the PQR5 subsystem macros:"
-|      . COREMARK      = Enable"
-|      . DBGUART       = Enable"
-|      . DBGUART_BRATE = <Targetted baudrate>"
-|      . FCLK          = CLOCKS_PER_SEC"
-|      . IRAM_SIZE     = IRAM LENGTH"
-|      . DRAM_SIZE     = DRAM LENGTH"	
+|   3) Configure the PQR5 subsystem macros:
+|      . COREMARK      = Enable
+|      . DBGUART       = Enable
+|      . DBGUART_BRATE = <Targetted baudrate>
+|      . FCLK          = CLOCKS_PER_SEC
+|      . IRAM_SIZE     = IRAM LENGTH
+|      . DRAM_SIZE     = DRAM LENGTH	
 |      . SIMLIMIT      = Disable
 |
-|   4) Configure CPU core macros:"
-|      . PC_INIT           = 0x00000000"
-|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END"
+|   4) Configure CPU core macros:
+|      . PC_INIT           = 0x00000000
+|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END
 |
 |   5) Run CoreMark: make coremark ISZ=<IRAM size> DSZ=<DRAM size> 
 |

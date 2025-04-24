@@ -89,14 +89,14 @@ module fetch_unit #(
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-// IMEMIF specific
+// PC generation related
 logic [`XLEN-1:0] pc_rg              ;  // PC to IMEMIF
 logic             pc_valid_rg        ;  // PC valid
 logic             pc_rst_flag_rg     ;  // Flag to indicate if PC is coming out of reset
 logic [`XLEN-1:0] pc_plus_four       ;  // PC+4
 logic [`XLEN-1:0] nxt_pc             ;  // Next PC to IMEMIF
 
-// Instruction pipe buffers
+// Instruction buffers
 logic [`ILEN-1:0] instr_rg [2]       ;  // Instruction buffer with two entries (Buffer-1, Buffer-2)
 logic             instr_valid_rg [2] ;  // Instruction valid corresponding to instruction buffer entries
 logic [`XLEN-1:0] instr_pc_rg [2]    ;  // PC corresponding to instruction buffer entries

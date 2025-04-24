@@ -57,9 +57,9 @@ module exu_branch_unit #(
    input  logic             i_stall          ,  // Stall signal
    input  logic [`XLEN-1:0] i_pc             ,  // Incoming PC
    input  logic             i_bubble         ,  // Bubble in
-   input  logic             is_j_type        ,  // J-type instruction flag
-   input  logic             is_b_type        ,  // B-type instruction flag
-   input  logic [6:0]       i_opcode         ,  // Opcode
+   input  logic             i_is_j_type      ,  // J-type instruction flag
+   input  logic             i_is_b_type      ,  // B-type instruction flag
+   input  logic             i_is_jalr        ,  // JALR flag
    input  logic [2:0]       i_funct3         ,  // funct3
    input  logic [19:0]      i_immJ           ,  // J-type immediate
    input  logic [11:0]      i_immI           ,  // I-type immediate
@@ -90,7 +90,6 @@ logic [`XLEN-1:0] pc_plus_4                     ;  // PC+4
 logic [`XLEN-1:0] pc_plus_immJ, pc_plus_immB    ;  // PC+immJ and PC+immB        
 logic [`XLEN-1:0] op0_plus_immI                 ;  // op0+immI  
 
-logic             is_op_jalr                    ;  // JALR instruction flag  
 logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Unsigned comparison flag 
 logic             is_sign_op0_lt_op1            ;  // Signed comparison flag 
 logic             is_branch_taken_diff          ;  // Branch taken difference flag
@@ -126,13 +125,13 @@ end
 //===================================================================================================================================================
 always_comb begin
    // JAL
-   if (is_j_type && !i_bubble) begin
+   if (i_is_j_type && !i_bubble) begin
       branch_taken = 1'b1         ;
       branch_pc    = pc_plus_immJ ;
       flush        = 1'b0         ;
    end
    // JALR
-   else if (is_op_jalr && !i_bubble) begin
+   else if (i_is_jalr && !i_bubble) begin
       branch_taken = 1'b1 ;
       branch_pc    = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
       flush        = 1'b1 ;  
@@ -140,7 +139,7 @@ always_comb begin
    // Branch/Invalid Instructions
    else begin
       // Branch Instructions
-      if (is_b_type && !i_bubble) begin
+      if (i_is_b_type && !i_bubble) begin
          case (i_funct3)
             F3_BEQ  : begin
                          branch_taken = is_op0_eq_op1 ;
@@ -186,11 +185,10 @@ assign is_op0_lt_op1        = (i_op0 < i_op1)                   ;  // Unsigned c
 assign is_sign_op0_lt_op1   = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
 assign is_branch_taken_diff = branch_taken ^ i_branch_taken     ;  // Compare current and computed status and flag if different 
 
-// Opcode decoding
-assign is_op_jalr = (i_opcode == OP_JALR) ;
-assign bubble     = (is_j_type || is_op_jalr)? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
-                                                                  // JAL/JALR instructions need to propagate fwd in pipeline for writeback
-                                                                  // Invalid/Branch instructions need not propagate fwd in pipeline 
+// Bubble
+assign bubble     = (i_is_j_type || i_is_jalr)? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
+                                                                   // JAL/JALR instructions need to propagate fwd in pipeline for writeback
+                                                                   // Invalid/Branch instructions need not propagate fwd in pipeline 
 
 // Decoded immediates
 assign immJ          = {{(`XLEN-20){i_immJ[19]}}, i_immJ[18:0], 1'b0} ;  // Sign-extend after x2
