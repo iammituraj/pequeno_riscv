@@ -204,7 +204,7 @@ always_comb begin
    rdt_data = '0   ;
    if (!pipe_stall) begin
       // Memory access, Load operation
-      if (is_dmem_acc && is_dmem_acc_load) begin
+      if (is_dmem_acc_load) begin
          rdt_wren = 1'b1             ;      	
          rdt_data = load_data        ;  // Writeback Load data after memory access
          rdt_addr = i_maccu_rdt_addr ;
