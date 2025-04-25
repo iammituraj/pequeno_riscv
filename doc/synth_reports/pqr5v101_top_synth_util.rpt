@@ -1,9 +1,9 @@
 Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 ------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2019.2 (lin64) Build 2708876 Wed Nov  6 21:39:14 MST 2019
-| Date         : Mon Apr 21 22:36:39 2025
+| Date         : Sat Apr 26 02:43:47 2025
 | Host         : chipbook running 64-bit Ubuntu 24.04.2 LTS
-| Command      : report_utilization -file pqr5v101_top_synth_report.txt
+| Command      : report_utilization -file pqr5v101_hier_synth_util.rpt
 | Design       : pqr5_core_top
 | Device       : 7a35tcpg236-1
 | Design State : Synthesized
@@ -30,13 +30,13 @@ Table of Contents
 +----------------------------+------+-------+-----------+-------+
 |          Site Type         | Used | Fixed | Available | Util% |
 +----------------------------+------+-------+-----------+-------+
-| Slice LUTs*                | 1509 |     0 |     20800 |  7.25 |
-|   LUT as Logic             | 1461 |     0 |     20800 |  7.02 |
+| Slice LUTs*                | 1436 |     0 |     20800 |  6.90 |
+|   LUT as Logic             | 1388 |     0 |     20800 |  6.67 |
 |   LUT as Memory            |   48 |     0 |      9600 |  0.50 |
 |     LUT as Distributed RAM |   48 |     0 |           |       |
 |     LUT as Shift Register  |    0 |     0 |           |       |
-| Slice Registers            |  572 |     0 |     41600 |  1.38 |
-|   Register as Flip Flop    |  572 |     0 |     41600 |  1.38 |
+| Slice Registers            |  562 |     0 |     41600 |  1.35 |
+|   Register as Flip Flop    |  562 |     0 |     41600 |  1.35 |
 |   Register as Latch        |    0 |     0 |     41600 |  0.00 |
 | F7 Muxes                   |    0 |     0 |     16300 |  0.00 |
 | F8 Muxes                   |    0 |     0 |      8150 |  0.00 |
@@ -56,8 +56,8 @@ Table of Contents
 | 0     |            _ |         Set |            - |
 | 0     |            _ |       Reset |            - |
 | 0     |          Yes |           - |            - |
-| 16    |          Yes |           - |          Set |
-| 492   |          Yes |           - |        Reset |
+| 13    |          Yes |           - |          Set |
+| 485   |          Yes |           - |        Reset |
 | 0     |          Yes |         Set |            - |
 | 64    |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
@@ -92,7 +92,7 @@ Table of Contents
 +-----------------------------+------+-------+-----------+--------+
 |          Site Type          | Used | Fixed | Available |  Util% |
 +-----------------------------+------+-------+-----------+--------+
-| Bonded IOB                  |  207 |     0 |       106 | 195.28 |
+| Bonded IOB                  |  208 |     0 |       106 | 196.23 |
 | Bonded IPADs                |    0 |     0 |        10 |   0.00 |
 | Bonded OPADs                |    0 |     0 |         4 |   0.00 |
 | PHY_CONTROL                 |    0 |     0 |         5 |   0.00 |
@@ -151,19 +151,19 @@ Table of Contents
 +----------+------+---------------------+
 | Ref Name | Used | Functional Category |
 +----------+------+---------------------+
-| LUT6     |  642 |                 LUT |
-| FDCE     |  492 |        Flop & Latch |
-| LUT4     |  336 |                 LUT |
-| LUT2     |  304 |                 LUT |
-| LUT5     |  294 |                 LUT |
-| LUT3     |  140 |                 LUT |
+| LUT6     |  535 |                 LUT |
+| FDCE     |  485 |        Flop & Latch |
+| LUT5     |  335 |                 LUT |
+| LUT4     |  313 |                 LUT |
+| LUT2     |  254 |                 LUT |
+| LUT3     |  142 |                 LUT |
 | OBUF     |  105 |                  IO |
-| IBUF     |  102 |                  IO |
+| IBUF     |  103 |                  IO |
 | CARRY4   |   91 |          CarryLogic |
 | RAMD32   |   72 |  Distributed Memory |
 | FDRE     |   64 |        Flop & Latch |
 | RAMS32   |   24 |  Distributed Memory |
-| FDPE     |   16 |        Flop & Latch |
+| FDPE     |   13 |        Flop & Latch |
 | LUT1     |   11 |                 LUT |
 | BUFG     |    1 |               Clock |
 +----------+------+---------------------+

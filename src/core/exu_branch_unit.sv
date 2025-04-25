@@ -117,73 +117,52 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 //===================================================================================================================================================
-// Combinatorial logic for branch decoding
+// Combinatorial logic for branch decoding & resolution
 //===================================================================================================================================================
-// - No flush for JAL because it is already handled by FU 
-// - JALR always generates flush, cz Branch predictor is static and hence can never resolve the branch address.
-// - Branch instructions: flush iff current branch status != status computed after execution 
+// - JAL never generates flush because it is already handled by the Branch Predictor in FU correctly, and the branch is always taken.
+// - JALR always generates flush, cz the Branch predictor is static and hence can never resolve the branch address.
+//   The branch is always taken, while the Branch predictor always resolves it wrongly as not taken always.
+// - Branch instructions: flush iff current branch status != status computed after execution .
 //===================================================================================================================================================
 always_comb begin
-   // JAL
-   if (i_is_j_type && !i_bubble) begin
-      branch_taken = 1'b1         ;
-      branch_pc    = pc_plus_immJ ;
-      flush        = 1'b0         ;
-   end
-   // JALR
-   else if (i_is_jalr && !i_bubble) begin
-      branch_taken = 1'b1 ;
-      branch_pc    = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
-      flush        = 1'b1 ;  
-   end
-   // Branch/Invalid Instructions
-   else begin
-      // Branch Instructions
-      if (i_is_b_type && !i_bubble) begin
-         case (i_funct3)
-            F3_BEQ  : begin
-                         branch_taken = is_op0_eq_op1 ;
-                         flush        = is_branch_taken_diff ;                  
-                      end                       
-            F3_BNE  : begin
-                         branch_taken = ~is_op0_eq_op1 ; 
-                         flush        = is_branch_taken_diff ;  
-                      end
-            F3_BLT  : begin
-                         branch_taken = is_sign_op0_lt_op1 ;
-                         flush        = is_branch_taken_diff ;
-                      end
-            F3_BGE  : begin
-                         branch_taken = ~is_sign_op0_lt_op1 ; 
-                         flush        = is_branch_taken_diff ;
-                      end
-            F3_BLTU : begin
-                         branch_taken = is_op0_lt_op1 ;
-                         flush        = is_branch_taken_diff ;
-                      end
-            F3_BGEU : begin
-                         branch_taken = ~is_op0_lt_op1 ; 
-                         flush        = is_branch_taken_diff ;
-                      end
-            default : begin  // Illegal Branch instruction
-                         branch_taken = 1'b0      ;
-                         flush        = 1'b0      ;     
-                      end            
-         endcase
-      end
-      // Not Jump/Branch instructions, invalid instruction
-      else begin
-         branch_taken = 1'b0 ;  
-         flush        = 1'b0 ; 
-      end
-      branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
-   end
+   case ({i_is_j_type, i_is_jalr, i_is_b_type})
+      // JAL
+      3'b100  : branch_taken = 1'b1 ;
+      // JALR
+      3'b010  : branch_taken = 1'b1 ;
+      // Branch
+      3'b001  : begin
+                   // Which branch instruction?
+                   case (i_funct3)
+                      F3_BEQ  : branch_taken =  is_op0_eq_op1      ;                
+                      F3_BNE  : branch_taken = ~is_op0_eq_op1      ; 
+                      F3_BLT  : branch_taken =  is_sign_op0_lt_op1 ;
+                      F3_BGE  : branch_taken = ~is_sign_op0_lt_op1 ;
+                      F3_BLTU : branch_taken =  is_op0_lt_op1      ;
+                      F3_BGEU : branch_taken = ~is_op0_lt_op1      ;
+                      default : branch_taken =  1'b0               ;  // Illegal Branch instruction --> May or may not lead to flush, it's fine either way...
+                   endcase
+                end
+      // Invalid instruction
+      default : branch_taken = 1'b0 ;  // Never leads to flush cz Branch Predictor should also have the same branch taken status = 0
+   endcase
+end
+
+// Combinatorial logic for Branch PC resolution
+always_comb begin
+   case ({i_is_j_type, i_is_jalr, i_is_b_type})
+      3'b100  : branch_pc = pc_plus_immJ ;
+      3'b010  : branch_pc = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
+      3'b001  : branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
+      default : branch_pc = pc_plus_4 ;
+   endcase
 end
 
 assign is_op0_eq_op1        = (i_op0 == i_op1)                  ;  // Equality
 assign is_op0_lt_op1        = (i_op0 < i_op1)                   ;  // Unsigned comparison
 assign is_sign_op0_lt_op1   = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
 assign is_branch_taken_diff = branch_taken ^ i_branch_taken     ;  // Compare current and computed status and flag if different 
+assign flush                = is_branch_taken_diff & ~i_bubble  ;  // Generate flush if branch taken status differ after the resolution 
 
 // Bubble
 assign bubble     = (i_is_j_type || i_is_jalr)? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR

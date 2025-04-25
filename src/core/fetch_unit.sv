@@ -212,6 +212,9 @@ end
 
 //===================================================================================================================================================
 // Branch prediction logic
+// -----------------------
+// Handles all Jump, Branch instructions.
+// Generates branch taken status, which is later validated during branch resolution at Execution Unit (EXU).
 //===================================================================================================================================================
 // Static Branch Predictor
 static_bpredictor inst_static_bpredictor(

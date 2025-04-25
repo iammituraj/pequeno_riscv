@@ -68,7 +68,8 @@ assign o_branch_pc = i_pc + pc_offset ;
 
 // Branch Prediction
 // - If Jump instruction, branch is always taken
-// - If Branch instruction, branch is taken if backward jump    
+// - If Branch instruction, branch is taken if backward jump 
+// - Branch taken status is never set if the instruction is not Branch/Jump   
 assign o_branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_valid ;  
 
 endmodule

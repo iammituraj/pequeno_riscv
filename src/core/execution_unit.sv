@@ -262,8 +262,8 @@ always_comb begin
                    alu_op1  = immU ;
                 end          
       default : begin  // Illegal instruction
-                   alu_op0  = i_op0 ;
-                   alu_op1  = i_op1 ;  
+                   alu_op0  = '0 ;
+                   alu_op1  = '0 ; 
                 end      	
    endcase  
 end
@@ -382,7 +382,7 @@ assign o_maccu_pc         = exu_pc_rg         ;
 assign o_maccu_instr      = exu_instr_rg      ;
 assign o_maccu_is_riuj    = exu_is_riuj_rg    ;
 assign o_maccu_bubble     = exu_bubble | i_maccu_stall ; // Stall should invalidate instr to disable new memory access requests @maccu
-                                                         // cz stall may be fwded from WBU and DMEMIF@maccu may accept new requests otherwise
+                                                         // cz the stall may be fwded from WBU and DMEMIF@maccu may accept new requests otherwise.
                                                          // This is a strict in-order requirement 
 assign o_maccu_rdt_addr   = exu_rdt_rg        ;
 assign o_maccu_rdt_data   = exu_result        ;

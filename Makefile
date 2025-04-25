@@ -305,6 +305,7 @@ cmk2bin: asm_clean cmk_clean
 	@echo "   . FCLK          = CLOCKS_PER_SEC"
 	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH"
 	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH"	
+	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation required"
 	@echo "   . SIMLIMIT      = Disabled"
 	@echo "4. Configure CPU Core macros:"
 	@echo "   . PC_INIT           = 0x00000000"

@@ -125,7 +125,8 @@
 |      . DBGUART_BRATE = <Targetted baudrate>
 |      . FCLK          = CLOCKS_PER_SEC
 |      . IRAM_SIZE     = IRAM LENGTH
-|      . DRAM_SIZE     = DRAM LENGTH	
+|      . DRAM_SIZE     = DRAM LENGTH
+|      . SUBSYS_DBG    = Enable if RTL simulation required	
 |      . SIMLIMIT      = Disable
 |
 |   4) Configure CPU core macros:

@@ -181,6 +181,7 @@ assign o_exu_stall = maccu_stall                ;  // Stall signal to EXU
 // Control signals to Data Memory/Cache Request Interface
 // All control signals are combi routed to memory w/o registering @MACCU so that memory pipeline is sync with MACCU pipeline to pipe MACCU packets
 // This will ensure no extra latency if memory/cache supports max. access speed of = 1 cycle on hit
+// If the memory/cache access >1 cycle, then WBU may assert stall in the next cycle
 assign o_dmem_wen   = is_store ;
 assign o_dmem_addr  = i_exu_macc_addr ;
 assign o_dmem_size  = i_exu_macc_size ;
