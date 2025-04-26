@@ -306,7 +306,6 @@ cmk2bin: asm_clean cmk_clean
 	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH"
 	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH"	
 	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation required"
-	@echo "   . SIMLIMIT      = Disabled"
 	@echo "4. Configure CPU Core macros:"
 	@echo "   . PC_INIT           = 0x00000000"
 	@echo "   . SIMEXIT_INSTR_END = Enabled if you require RTL simulation with exit on END"

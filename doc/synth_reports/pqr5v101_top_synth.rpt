@@ -1,9 +1,9 @@
 Copyright 1986-2019 Xilinx, Inc. All Rights Reserved.
 ------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2019.2 (lin64) Build 2708876 Wed Nov  6 21:39:14 MST 2019
-| Date         : Sat Apr 26 02:43:47 2025
+| Date         : Sat Apr 26 15:55:32 2025
 | Host         : chipbook running 64-bit Ubuntu 24.04.2 LTS
-| Command      : report_utilization -file pqr5v101_hier_synth_util.rpt
+| Command      : report_utilization -file pqr5v101_top_synth.rpt
 | Design       : pqr5_core_top
 | Device       : 7a35tcpg236-1
 | Design State : Synthesized
@@ -30,8 +30,8 @@ Table of Contents
 +----------------------------+------+-------+-----------+-------+
 |          Site Type         | Used | Fixed | Available | Util% |
 +----------------------------+------+-------+-----------+-------+
-| Slice LUTs*                | 1436 |     0 |     20800 |  6.90 |
-|   LUT as Logic             | 1388 |     0 |     20800 |  6.67 |
+| Slice LUTs*                | 1424 |     0 |     20800 |  6.85 |
+|   LUT as Logic             | 1376 |     0 |     20800 |  6.62 |
 |   LUT as Memory            |   48 |     0 |      9600 |  0.50 |
 |     LUT as Distributed RAM |   48 |     0 |           |       |
 |     LUT as Shift Register  |    0 |     0 |           |       |
@@ -151,13 +151,13 @@ Table of Contents
 +----------+------+---------------------+
 | Ref Name | Used | Functional Category |
 +----------+------+---------------------+
-| LUT6     |  535 |                 LUT |
+| LUT6     |  565 |                 LUT |
 | FDCE     |  485 |        Flop & Latch |
-| LUT5     |  335 |                 LUT |
-| LUT4     |  313 |                 LUT |
-| LUT2     |  254 |                 LUT |
-| LUT3     |  142 |                 LUT |
+| LUT5     |  326 |                 LUT |
+| LUT4     |  294 |                 LUT |
+| LUT2     |  252 |                 LUT |
 | OBUF     |  105 |                  IO |
+| LUT3     |  104 |                 LUT |
 | IBUF     |  103 |                  IO |
 | CARRY4   |   91 |          CarryLogic |
 | RAMD32   |   72 |  Distributed Memory |

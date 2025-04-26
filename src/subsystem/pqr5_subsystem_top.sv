@@ -35,7 +35,7 @@
 //----%%                      -- All other configurability features in pqr5_core_macros/pqr5_subsystem_macros include files.    
 //----%% 
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : April-2025
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.

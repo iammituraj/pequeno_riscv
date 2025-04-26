@@ -127,7 +127,6 @@
 |      . IRAM_SIZE     = IRAM LENGTH
 |      . DRAM_SIZE     = DRAM LENGTH
 |      . SUBSYS_DBG    = Enable if RTL simulation required	
-|      . SIMLIMIT      = Disable
 |
 |   4) Configure CPU core macros:
 |      . PC_INIT           = 0x00000000

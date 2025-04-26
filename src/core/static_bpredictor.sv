@@ -28,7 +28,7 @@
 //----%%                    # Unconditional Jumps are always taken (JAL)
 //----%%                    # If Branch instruction, the branch is taken if backward jump, else not taken. 
 //----%%
-//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
+//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
