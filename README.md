@@ -29,8 +29,9 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 | **Issue**                                  | One instruction per cycle                 |
 | **Pipeline depth**                         | 5                                         |
 |                                            | Fetch, Decode, Execution, Memory Access, Writeback |
+| **Execution model**                        | In-order
 | **Bus architecture**                       | Harvard, separate instruction/data bus    |
-| **Branch Prediction**                      | Yes, static                               |
+| **Branch prediction**                      | Yes, static                               |
 | **Cache**                                  | Not available, but can be integrated externally |
 | **OS capable**                             | No, privilege modes are not supported     |
 | **Interrupt/Exceptions capable**           | No                                        |
@@ -52,13 +53,15 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 
   * _FPGA demo of Pequeno being flashed by peqFlash through serial interface (UART) and running Blinky LED program_: https://www.youtube.com/watch?v=cEEZbzSd6v0
 
+The validation was primarily done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
 
 ## FPGA Resource Utilization
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
+| **Core version** | pqr5 v1.0.1
 | **Target** | Artix-7, xc7a35tcpg236-1
-| **LUTs** | 2084
-| **Registers** | 1564
+| **LUTs** | 1424
+| **Registers** | 562
 | **Targetted clock freq** | 100 MHz
 
 ## CoreMark®
