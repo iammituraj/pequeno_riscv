@@ -18,15 +18,18 @@
 //    
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----%% 
-//----%% File Name        : alu.sv
-//----%% Module Name      : ALU                                           
+//----%% File Name        : static_bpredictor.sv
+//----%% Module Name      : Static Branch Predictor                                          
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : ALU used by Execution Unit (EXU) of PQR5 Core. The ALU supports all RV32I integer computation instructions.
+//----%% Description      : Static Branch Predictor used by the Fetch Unit (FU) of PQR5 Core. 
+//----%%                    The predictor is static in nature and doesn't keep track of branch resolution history.
+//----%%                    # Unconditional Jumps are always taken (JAL)
+//----%%                    # If Branch instruction, the branch is taken if backward jump, else not taken. 
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Feb-2023
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -34,74 +37,42 @@
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 //###################################################################################################################################################
-//                                                                     A L U                                         
+//                                                    S T A T I C   B R A N C H   P R E D I C T O R                                       
 //###################################################################################################################################################
-// Header files
+// Header files included
 `include "../include/pqr5_core_macros.svh"
 
-// Packages imported
-import pqr5_core_pkg :: * ;
-
 // Module definition
-module alu (
-   input  logic             clk      ,  // Clock
-   input  logic             aresetn  ,  // Asynchronous Reset; active-low
-   input  logic             i_stall  ,  // Stall signal
-   input  logic             i_bubble ,  // Bubble in
-   input  logic [`XLEN-1:0] i_op0    ,  // Operand-0
-   input  logic [`XLEN-1:0] i_op1    ,  // Operand-1
-   input  logic [3:0]       i_opcode ,  // Opcode
-   output logic [`XLEN-1:0] o_result ,  // Result
-   output logic             o_bubble    // Bubble out
+module static_bpredictor (  
+   // Fetch Unit Interface
+   input  logic             i_is_op_jal       ,  // JAL instruction?
+   input  logic             i_is_op_branch    ,  // Branch instruction? 
+   input  logic [`XLEN-1:0] i_immJ            ,  // Sign-extended Immediate (Jump) 
+   input  logic [`XLEN-1:0] i_immB            ,  // Sign-extended Immediate (Branch)
+   input  logic             i_instr_valid     ,  // Instruction valid
+   input  logic [`XLEN-1:0] i_pc              ,  // PC of 
+
+   // Branch Prediction signals
+   output logic [`XLEN-1:0] o_branch_pc       ,  // Branch PC         
+   output logic             o_branch_taken       // Branch taken status; '0'- not taken, '1'- taken
 );
 
-//===================================================================================================================================================
-// Combinatorial logic to compute result
-//===================================================================================================================================================
-logic [`XLEN-1:0] result ;  // ALU result
-logic             bubble ;  // Bubble
-
-always_comb begin
-   bubble = i_bubble ;
-   case (i_opcode)
-      // Legal ALU instructions
-      ALU_ADD  : result = i_op0 + i_op1 ; 
-      ALU_SUB  : result = i_op0 - i_op1 ;
-      ALU_SLT  : result = {{`XLEN-1{1'b0}}, (signed'(i_op0) < signed'(i_op1))} ;
-      ALU_SLTU : result = {{`XLEN-1{1'b0}}, (i_op0 < i_op1)} ;
-      ALU_XOR  : result = i_op0 ^ i_op1 ;
-      ALU_OR   : result = i_op0 | i_op1 ;
-      ALU_AND  : result = i_op0 & i_op1 ;
-      ALU_SLL  : result = i_op0 << i_op1[4:0] ;
-      ALU_SRL  : result = i_op0 >> i_op1[4:0] ;
-      ALU_SRA  : result = (signed'(i_op0)) >>> i_op1[4:0] ;
-      default  : begin result = '0 ; bubble = 1'b1 ; end  // Insert bubble on illegal ALU instruction  	
-   endcase
+// Branch PC computation
+logic [`XLEN-1:0] pc_offset ;  // Offset to be added to PC after prediction
+always_comb begin   
+   if      (i_is_op_jal)    begin pc_offset = i_immJ ; end  // JAL
+   else if (i_is_op_branch) begin pc_offset = i_immB ; end  // Branch
+   else                     begin pc_offset = '0     ; end  // PC
 end
+assign o_branch_pc = i_pc + pc_offset ;
 
-//===================================================================================================================================================
-// Synchronous logic to register outputs
-//===================================================================================================================================================
-logic [`XLEN-1:0] result_rg ;  // ALU result
-logic             bubble_rg ;  // Bubble
-
-always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
-   if (!aresetn) begin
-      result_rg <= '0   ;
-      bubble_rg <= 1'b1 ;       
-   end
-   // Out of reset
-   else if (!i_stall) begin
-      result_rg <= result ;
-      bubble_rg <= bubble ;
-   end
-end
-
-assign o_result = result_rg ;
-assign o_bubble = bubble_rg ;
+// Branch Prediction
+// - If Jump instruction, branch is always taken
+// - If Branch instruction, branch is taken if backward jump 
+// - Branch taken status is never set if the instruction is not Branch/Jump   
+assign o_branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_valid ;  
 
 endmodule
 //###################################################################################################################################################
-//                                                                     A L U                                          
+//                                                    S T A T I C   B R A N C H   P R E D I C T O R                                       
 //###################################################################################################################################################

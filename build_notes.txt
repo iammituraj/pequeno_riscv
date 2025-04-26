@@ -44,7 +44,7 @@
 |            -- OFT and PC_INIT should be the same.
 |            By default, Makefile generates relocatable binary code with ASMF=-pcrel
 |
-|   3) Configure PQR5 Core and Subsystem configurable macros in src/include/ for RTL elaboration
+|   3) Configure PQR5 Core and Subsystem macros in src/include/ for RTL elaboration & simulation
 |   
 |   4) Compile PQR5 Core and Subsystem with the generated memory models
 |      >> make compile
@@ -79,12 +79,28 @@
 |      b) Generate the bitstream and send to the target
 |      c) Invoke peqFlash to flash the program binary by running: make flash
 |
-|  11) To run regression: make regress
-|      This is used to validate the functionality of the PQR5 subsystem built.
-|      This will run all example programs and dump the regression results in dump/regress_run_dump
-|      Regressions are run with OFT=0, DEPTH=256 by default, so PC_INIT of the CPU should be 0
 |
-|   NOTE: run "make help" to understand the full list of Makefile recipes & parameters
+|   Running Regressions in the CPU
+|   ===============================
+|   Running regressions validate the functionality of the PQR5 subsystem built.
+|   This will run all example programs in the CPU and dump the results in dump/regress_run_dump.
+|
+|   Following configuration should be set before running regression.
+|
+|   PQR5 subsystem macros:
+|      . IRAM_SIZE  = 1024
+|      . DRAM_SIZE  = 1024
+|      . SUBSYS_DBG = Enable
+|      . MEM_DBG    = Enable
+|      . SIMLIMIT   = Enable
+|   CPU core macros:
+|      . PC_INIT           = 32'h00000000
+|      . REGFILE_DUMP      = 1
+|      . SIMLIMIT          = Enable
+|      . SIMEXIT_INSTR_END = Enable
+|
+|   Run regressions: make regress
+|
 |
 |   Building CoreMark® CPU Benchmark
 |   ================================
@@ -94,26 +110,27 @@
 |   STEPS
 |   -----
 |   1) Configure the test parameters and environment in coremark/Makefile.
-|      . ITERATIONS     = <no. of CoreMark iterations to be performed>"
-|      . CLOCKS_PER_SEC = <Core clock speed>"
+|      . ITERATIONS     = <no. of CoreMark iterations to be performed>
+|      . CLOCKS_PER_SEC = <Core clock speed>
 |
-|   2) Configure coremark/linker.ld." 
-|      . IRAM ORIGIN = 0x00000000"
-|      . IRAM LENGTH = <IRAM size>"
+|   2) Configure coremark/linker.ld.
+|      . IRAM ORIGIN = 0x00000000
+|      . IRAM LENGTH = <IRAM size>
 |      . DRAM ORIGIN = 0x80000000"
-|      . DRAM LENGTH = <DRAM size>"
+|      . DRAM LENGTH = <DRAM size>
 |
-|   3) Configure the PQR5 subsystem macros:"
-|      . COREMARK      = Enabled"
-|      . DBGUART       = Enabled"
-|      . DBGUART_BRATE = <Targetted baudrate>"
-|      . FCLK          = CLOCKS_PER_SEC"
-|      . IRAM_SIZE     = IRAM LENGTH"
-|      . DRAM_SIZE     = DRAM LENGTH"	
+|   3) Configure the PQR5 subsystem macros:
+|      . COREMARK      = Enable
+|      . DBGUART       = Enable
+|      . DBGUART_BRATE = <Targetted baudrate>
+|      . FCLK          = CLOCKS_PER_SEC
+|      . IRAM_SIZE     = IRAM LENGTH
+|      . DRAM_SIZE     = DRAM LENGTH
+|      . SUBSYS_DBG    = Enable if RTL simulation required	
 |
-|   4) Configure CPU Core macros:"
-|      . PC_INIT           = 0x00000000"
-|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END"
+|   4) Configure CPU core macros:
+|      . PC_INIT           = 0x00000000
+|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END
 |
 |   5) Run CoreMark: make coremark ISZ=<IRAM size> DSZ=<DRAM size> 
 |
@@ -121,6 +138,9 @@
 |      At the end of the execution of all iterations of CoreMark, a benchmark report is generated,
 |      which is serially sent through the Debug UART. Serial terminal is required to view this report.
 |      Please note that simulation can be slow and produces no dump.
+|
+|
+|   NOTE: run "make help" to understand the full list of Makefile recipes & parameters
 |
 +------------------------------------------------------------------------------------------------------+
 |  C H I P M U N K   L O G I C  ™                                                   chipmunklogic.com  |  

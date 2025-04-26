@@ -305,11 +305,12 @@ cmk2bin: asm_clean cmk_clean
 	@echo "   . FCLK          = CLOCKS_PER_SEC"
 	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH"
 	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH"	
+	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation required"
 	@echo "4. Configure CPU Core macros:"
 	@echo "   . PC_INIT           = 0x00000000"
-	@echo "   . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END"
+	@echo "   . SIMEXIT_INSTR_END = Enabled if you require RTL simulation with exit on END"
 	@echo ""
-	@read -p "Press ENTER to continue..." dummy
+	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
 	@echo ""
 	@echo "| MAKE_PQR5: Building CoreMark CPU for the system..."
 	@echo ""
@@ -425,6 +426,30 @@ listasm:
 
 # regress
 regress:
+	@echo ""
+	@echo "Running Regressions in the CPU"
+	@echo "==============================="
+	@echo "Running regressions validate the functionality of the PQR5 subsystem built."
+	@echo "This will run all example programs in the CPU and dump the results in dump/regress_run_dump"
+	@echo ""
+	@echo "Following configuration should be set before running regression."
+	@echo ""
+	@echo "PQR5 subsystem macros:"
+	@echo "   . IRAM_SIZE  = 1024"
+	@echo "   . DRAM_SIZE  = 1024"
+	@echo "   . SUBSYS_DBG = Enable"
+	@echo "   . MEM_DBG    = Enable"
+	@echo "   . SIMLIMIT   = Enable"
+	@echo "CPU core macros:"
+	@echo "   . PC_INIT           = 32'h00000000"
+	@echo "   . REGFILE_DUMP      = 1"
+	@echo "   . SIMEXIT_INSTR_END = Enable"
+	@echo ""
+	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
+	@echo ""
+	@echo "| MAKE_PQR5: Initiating regression runs..."
+	@echo ""
+	@set -e
 	bash $(SCRIPT_DIR)/regress_run.sh
 	@echo "|| Regression result ||"
 	@cat $(DUMP_DIR)/regress_run_dump/regress_result.txt

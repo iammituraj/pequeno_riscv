@@ -26,8 +26,8 @@
 //----%% Description      : This is the Load-Store unit used by Execution Unit (EXU) of PQR5 Core. Decodes all Load/Store instructions and 
 //----%%                    generates memory access commands.
 //----%%
-//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Feb-2023
+//----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.md.
@@ -53,7 +53,7 @@ module loadstore_unit (
    input  logic             i_stall     ,  // Stall signal    
    input  logic             i_bubble    ,  // Bubble in 
    input  logic             i_is_s_type ,  // S-type instruction flag 
-   input  logic [6:0]       i_opcode    ,  // Opcode
+   input  logic             i_is_load   ,  // Load flag
    input  logic [2:0]       i_funct3    ,  // funct3
    input  logic [11:0]      i_immI      ,  // I-type immediate
    input  logic [11:0]      i_immS      ,  // S-type immediate
@@ -79,12 +79,13 @@ localparam STORE = 1'b1 ;
 //===================================================================================================================================================
 logic             mem_cmd_rg              ;  // Memory command
 logic [`XLEN-1:0] mem_addr_rg             ;  // Memory address
-logic [1:0]       mem_size_rg             ;  // Size
+logic [1:0]       mem_size_rg             ;  // Memory access size
 logic [`XLEN-1:0] mem_data_rg             ;  // Memory data
 logic             bubble, bubble_rg       ;  // Bubble
 logic [`XLEN-1:0] immI, immS              ;  // I/S-type immediates sign-extended
 logic [`XLEN-1:0] load_addr, store_addr   ;  // Load/Store addresses
 logic [`XLEN-1:0] store_data              ;  // Store data
+logic [1:0]       memacc_size             ;  // Memory access size
 logic             is_op_load, is_op_store ;  // Load/Store instruction flags
 
 //===================================================================================================================================================
@@ -103,7 +104,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    else if (!i_stall) begin 
       mem_cmd_rg  <= is_op_store ;      
       mem_addr_rg <= is_op_store ? store_addr : load_addr ;  
-      mem_size_rg <= i_funct3[1:0] ;
+      mem_size_rg <= memacc_size ;
       mem_data_rg <= is_op_store ? store_data : '0 ;
       bubble_rg   <= bubble ;          
    end
@@ -113,7 +114,7 @@ end
 //  Combinatorial logic to form Store data to DMEMIF
 //===================================================================================================================================================
 always_comb begin
-   case (i_funct3[1:0])
+   case (memacc_size)
       BYTE    : store_data = i_op1[7:0]  << (8 * store_addr[`XLSB]) ;  // Extend LS Byte and send
       HWORD   : store_data = i_op1[15:0] << (8 * store_addr[`XLSB]) ;  // Extend LS Half-word and send
       WORD    : store_data = i_op1 ;                                   // Send word
@@ -121,19 +122,19 @@ always_comb begin
    endcase      
 end
 
-//===================================================================================================================================================
-// Continuous assignments
-//===================================================================================================================================================
-assign is_op_load  = (i_opcode == OP_LOAD) ;
-assign is_op_store = i_is_s_type           ;
+// Opcode decoding
+assign is_op_load  = i_is_load    ;
+assign is_op_store = i_is_s_type  ;
+assign memacc_size = i_funct3[1:0];
 assign bubble      = (is_op_load || is_op_store)? i_bubble : 1'b1 ;  // Insert bubble if neither Load/Store instruction
 
+// Load/Store address decoding
 assign immI        = {{(`XLEN-12){i_immI[11]}}, i_immI} ;  // Sign-extend
 assign immS        = {{(`XLEN-12){i_immS[11]}}, i_immS} ;  // Sign-extend
 assign load_addr   = i_op0 + immI ;
 assign store_addr  = i_op0 + immS ;
 
-// Memory Access Interface
+// Memory Access Interface outputs
 assign o_mem_cmd   = mem_cmd_rg  ;
 assign o_mem_addr  = mem_addr_rg ;
 assign o_mem_size  = mem_size_rg ;
