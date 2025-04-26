@@ -11,7 +11,7 @@
 | IP            : Pequeno RISC-V CPU (PQR5)
 | Version       : v1.0
 | Type          : Soft core in SV
-| License       : [see LICENSE.md]
+| License       : [see LICENSE]
 | Release Date  : September-2024
 | 
 | Documentation : [TBD]

@@ -20,6 +20,7 @@
 # Last modified on : Apr-2025
 # Compatiblility   : Python 3.9 tested
 #
+# Copyright        : Open-source license, see LICENSE.
 #############################################################################################################
 
 # Import libs

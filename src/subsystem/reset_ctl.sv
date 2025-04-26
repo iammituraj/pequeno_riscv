@@ -34,7 +34,7 @@
 //----%% Last modified on : Jan-2024
 //----%% Notes            : External reset is assumed to be glitch-free.
 //----%%                  
-//----%% Copyright        : Open-source license, see LICENSE.md.
+//----%% Copyright        : Open-source license, see LICENSE.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

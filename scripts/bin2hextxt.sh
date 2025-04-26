@@ -19,6 +19,7 @@
 # Last modified on : Apr-2025
 # Compatiblility   : Linux/Unix
 #
+# Copyright        : Open-source license, see LICENSE.
 #############################################################################################################
 
 #!/bin/bash

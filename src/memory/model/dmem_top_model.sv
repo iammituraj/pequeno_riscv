@@ -47,7 +47,7 @@
 //----%% Notes            : RAM max. depth = 16K, i.e, max. 64kB RAM is supported. 
 //----%%                    All models are synthesisable.
 //----%%                  
-//----%% Copyright        : Open-source license, see LICENSE.md.
+//----%% Copyright        : Open-source license, see LICENSE.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

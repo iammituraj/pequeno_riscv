@@ -28,7 +28,7 @@
 //----%% Last modified on : Nov-2022
 //----%% Notes            : Infers Block RAM on FPGAs in Read-First configuration. Use appropriate attribute to direct Synthesiser tool.
 //----%%                  
-//----%% Copyright        : Open-source license, see LICENSE.md.
+//----%% Copyright        : Open-source license, see LICENSE.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

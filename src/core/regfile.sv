@@ -33,7 +33,7 @@
 //----%% Last modified on : Jan-2024
 //----%% Notes            : No reset implemented, as the FPGA BRAMs don't support resetting mem arrays.
 //----%%                  
-//----%% Copyright        : Open-source license, see LICENSE.md.
+//----%% Copyright        : Open-source license, see LICENSE.
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
