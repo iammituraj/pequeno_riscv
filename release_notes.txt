@@ -9,15 +9,16 @@
 |                                   R E L E A S E   N O T E S                                     |
 +=================================================================================================+
 | IP            : Pequeno RISC-V CPU (PQR5)
-| Version       : v1.0
+| Version       : v1.0.1
 | Type          : Soft core in SV
 | License       : [see LICENSE]
-| Release Date  : September-2024
+| Release Date  : Apr-2025
 | 
 | Documentation : [TBD]
 | 
 | Revision log  : v1.0 (beta) [June 2024] -- Loader feature untested
 |                 v1.0        [Sept 2024] -- Full features tested, minor bug fixes/improvements
+|                 v1.0.1      [Apr  2025] -- Added CoreMark support, Optimized the CPU hardware
 |                
 | Developer     : Mitu Raj, Chipmunk Logic ™ 
 | Website       : https://chipmunklogic.com
