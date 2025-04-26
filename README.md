@@ -67,6 +67,7 @@ The validation was primarily done on Xilinx Artix-7 based FPGA boards Basys-3, C
 ## CoreMark®
 | **Performance Validation**                 |                                           |
 |--------------------------------------------|-------------------------------------------|
+| **Core version** | pqr5 v1.0.1
 | **CoreMark score** | 0.7 CoreMark/MHz 
 | **Iterations** | 400
 | **Iterations per second** | 8
@@ -81,7 +82,7 @@ Please go through [readme_database.html](https://raw.githack.com/iammituraj/pequ
 
 # Disclaimer
 This CPU core is intended for educational purposes only.
-The users must review the accompanying license document (LICENSE) for detailed terms and conditions before the use.
+The users must review the accompanying license document ([LICENSE](LICENSE)) for detailed terms and conditions before the use.
 
 # Developer
 Mitu Raj, [Chipmunk Logic](https://chipmunklogic.com), chip@chipmunklogic.com
