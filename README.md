@@ -73,7 +73,7 @@ The validation was primarily done on Xilinx Artix-7 based FPGA boards Basys-3, C
 | **Iterations per second** | 8
 | **Test clock freq** | 12 MHz
 | **Test platform** | FPGA
-| **Full Report** | [coremark/coremark_report_18Apr25.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
+| **Full Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
 
 
 ## Important
