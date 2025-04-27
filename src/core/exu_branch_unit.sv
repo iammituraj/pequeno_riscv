@@ -149,10 +149,10 @@ end
 
 // Combinatorial logic for Branch PC resolution
 always_comb begin
-   case ({i_is_j_type, i_is_jalr, i_is_b_type})
-      3'b100  : branch_pc = pc_plus_immJ ;
-      3'b010  : branch_pc = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
-      3'b001  : branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
+   casez ({i_is_j_type, i_is_jalr, i_is_b_type, branch_taken})
+      4'b100? : branch_pc = pc_plus_immJ ;
+      4'b010? : branch_pc = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
+      4'b0011 : branch_pc = pc_plus_immB ;
       default : branch_pc = pc_plus_4 ;
    endcase
 end

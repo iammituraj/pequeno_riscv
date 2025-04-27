@@ -101,15 +101,6 @@ localparam J = 0 ;  // Index for J-type instruction flag
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-logic [`XLEN-1:0] exu_fwd_op0            ;  // EXU fwd Operand-0
-logic [`XLEN-1:0] exu_fwd_op1            ;  // EXU fwd Operand-1
-
-logic [`XLEN-1:0] maccu_fwd_op0          ;  // MACCU fwd Operand-0
-logic [`XLEN-1:0] maccu_fwd_op1          ;  // MACCU fwd Operand-1
-
-logic [`XLEN-1:0] wbu_fwd_op0            ;  // WBU fwd Operand-0
-logic [`XLEN-1:0] wbu_fwd_op1            ;  // WBU fwd Operand-1 
-
 logic             is_exu_rdt_not_x0      ;  // Flags if EXU rdt != x0
 logic             is_maccu_rdt_not_x0    ;  // Flags if MACCU rdt != x0
 logic             is_wbu_rdt_not_x0      ;  // Flags if WBU rdt != x0
@@ -135,27 +126,21 @@ always_comb begin
    if (is_exu_instr_riuj && is_du_instr_risb && i_exu_instr_valid && i_du_instr_valid) begin
       // Operand-0 fwd; x0 never causes hazards
       if ((i_du_rs0 == i_exu_rdt) && is_exu_rdt_not_x0) begin 
-         exu_fwd_op0       = i_exu_result ;  // Potential RAW hazard, forward WBU result 
          is_du_exu_op0_raw = 1'b1         ;
       end      
       else begin 
-         exu_fwd_op0       = i_rf_op0     ;  // No hazard, bypass RF operand
          is_du_exu_op0_raw = 1'b0         ;
       end
       // Operand-1 fwd; I-type instr @DU output doesn't have operand-1, but no harm in forwarding as it is anyway unused...
       if ((i_du_rs1 == i_exu_rdt) && is_exu_rdt_not_x0) begin 
-         exu_fwd_op1       = i_exu_result ;  // Potential RAW hazard, forward WBU result 
          is_du_exu_op1_raw = 1'b1         ;
       end       
       else begin 
-         exu_fwd_op1       = i_rf_op1     ;  // No hazard, bypass RF operand
          is_du_exu_op1_raw = 1'b0         ;
       end                                       	
    end
    // No hazard condition, bypass
    else begin
-      exu_fwd_op0       = i_rf_op0 ;
-      exu_fwd_op1       = i_rf_op1 ; 
       is_du_exu_op0_raw = 1'b0     ;
       is_du_exu_op1_raw = 1'b0     ;	
    end
@@ -169,27 +154,21 @@ always_comb begin
    if (is_maccu_instr_riuj && is_du_instr_risb && i_maccu_instr_valid && i_du_instr_valid) begin
       // Operand-0 fwd; x0 never causes hazards
       if ((i_du_rs0 == i_maccu_rdt) && is_maccu_rdt_not_x0) begin 
-         maccu_fwd_op0       = i_maccu_result ;  // Potential RAW hazard, forward WBU result 
          is_du_maccu_op0_raw = 1'b1           ;
       end      
       else begin 
-         maccu_fwd_op0       = i_rf_op0       ;  // No hazard, bypass RF operand
          is_du_maccu_op0_raw = 1'b0           ;
       end
       // Operand-1 fwd; I-type instr @DU output doesn't have operand-1, but no harm in forwarding as it is anyway unused...
       if ((i_du_rs1 == i_maccu_rdt) && is_maccu_rdt_not_x0) begin 
-         maccu_fwd_op1       = i_maccu_result ;  // Potential RAW hazard, forward WBU result 
          is_du_maccu_op1_raw = 1'b1           ;
       end      
       else begin 
-         maccu_fwd_op1       = i_rf_op1       ;  // No hazard, bypass RF operand
          is_du_maccu_op1_raw = 1'b0           ;
       end                                       	
    end
    // No hazard condition, bypass
    else begin
-      maccu_fwd_op0       = i_rf_op0 ;
-      maccu_fwd_op1       = i_rf_op1 ;
       is_du_maccu_op0_raw = 1'b0     ; 	
       is_du_maccu_op1_raw = 1'b0     ;
    end
@@ -203,27 +182,21 @@ always_comb begin
    if (is_wbu_instr_riuj && is_du_instr_risb && i_wbu_instr_valid && i_du_instr_valid) begin
       // Operand-0 fwd; x0 never causes hazards
       if ((i_du_rs0 == i_wbu_rdt) && is_wbu_rdt_not_x0) begin 
-         wbu_fwd_op0       = i_wbu_result ;  // Potential RAW hazard, forward WBU result 
          is_du_wbu_op0_raw = 1'b1         ;
       end      
       else begin 
-         wbu_fwd_op0       = i_rf_op0     ;  // No hazard, bypass RF operand
          is_du_wbu_op0_raw = 1'b0         ;
       end
       // Operand-1 fwd; I-type instr @DU output doesn't have operand-1, but no harm in forwarding as it is anyway unused...
       if ((i_du_rs1 == i_wbu_rdt) && is_wbu_rdt_not_x0) begin 
-         wbu_fwd_op1       = i_wbu_result ;  // Potential RAW hazard, forward WBU result 
          is_du_wbu_op1_raw = 1'b1         ;
       end       
       else begin 
-         wbu_fwd_op1       = i_rf_op1     ;  // No hazard, bypass RF operand
          is_du_wbu_op1_raw = 1'b0         ;
       end                                       	
    end
    // No hazard condition, bypass
-   else begin
-      wbu_fwd_op0       = i_rf_op0 ;
-      wbu_fwd_op1       = i_rf_op1 ; 
+   else begin 
       is_du_wbu_op0_raw = 1'b0     ;	
       is_du_wbu_op1_raw = 1'b0     ;
    end
@@ -234,9 +207,9 @@ end
 //===================================================================================================================================================
 always_comb begin 
    casez (is_op0_raw)
-      3'b1??  : begin o_fwd_op0 = exu_fwd_op0   ; end  // EXU fwd, highest priority
-      3'b01?  : begin o_fwd_op0 = maccu_fwd_op0 ; end  // MACCU fwd
-      3'b001  : begin o_fwd_op0 = wbu_fwd_op0   ; end  // WBU fwd      
+      3'b1??  : begin o_fwd_op0 = i_exu_result  ; end  // EXU fwd, highest priority
+      3'b01?  : begin o_fwd_op0 = i_maccu_result; end  // MACCU fwd
+      3'b001  : begin o_fwd_op0 = i_wbu_result  ; end  // WBU fwd      
       default : begin o_fwd_op0 = i_rf_op0      ; end  // Bypass  
    endcase
 end
@@ -248,9 +221,9 @@ assign is_op0_raw = {is_du_exu_op0_raw, is_du_maccu_op0_raw, is_du_wbu_op0_raw} 
 //===================================================================================================================================================
 always_comb begin 
    casez (is_op1_raw)
-      3'b1??  : begin o_fwd_op1 = exu_fwd_op1   ; end  // EXU fwd, highest priority
-      3'b01?  : begin o_fwd_op1 = maccu_fwd_op1 ; end  // MACCU fwd
-      3'b001  : begin o_fwd_op1 = wbu_fwd_op1   ; end  // WBU fwd      
+      3'b1??  : begin o_fwd_op1 = i_exu_result  ; end  // EXU fwd, highest priority
+      3'b01?  : begin o_fwd_op1 = i_maccu_result; end  // MACCU fwd
+      3'b001  : begin o_fwd_op1 = i_wbu_result  ; end  // WBU fwd      
       default : begin o_fwd_op1 = i_rf_op1      ; end  // Bypass  
    endcase
 end

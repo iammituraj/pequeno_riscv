@@ -259,9 +259,10 @@ loadstore_unit inst_loadstore_unit (
 //===================================================================================================================================================
 always_comb begin
    // Operand-0
-   case ({i_du_is_u_type}) 
-      1'b1    : alu_op0  = is_op_lui? '0 : i_du_pc ;  // 0+immU for LUI, pc+immU for AUIPC 
-      default : alu_op0  = i_op0 ;                    // For all other instructions, forward op0 from Opfwd block to the ALU
+   case ({i_du_is_u_type, is_op_lui}) 
+      2'b11   : alu_op0  = '0      ;  // 0+immU for LUI
+      2'b10   : alu_op0  = i_du_pc ;  // pc+immU for AUIPC 
+      default : alu_op0  = i_op0   ;  // For all other instructions, forward op0 from Opfwd block to the ALU
    endcase
    // Operand-1
    case ({i_du_is_i_type, i_du_is_u_type}) 
