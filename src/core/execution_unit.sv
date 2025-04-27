@@ -58,70 +58,74 @@ module execution_unit #(
 )
 (
    // Clock and Reset
-   input  logic             clk                ,  // Clock
-   input  logic             aresetn            ,  // Asynchronous Reset; active-low
+   input  logic             clk                 ,  // Clock
+   input  logic             aresetn             ,  // Asynchronous Reset; active-low
    
    `ifdef DBG
    // Debug Interface  
-   output logic [4:0]       o_exu_dbg          ,  // Debug signal
+   output logic [4:0]       o_exu_dbg           ,  // Debug signal
    `endif
 
    // Operands from Register File/Operand Forward Control
-   input  logic [`XLEN-1:0] i_op0              ,  // Operand-0
-   input  logic [`XLEN-1:0] i_op1              ,  // Operand-1
+   input  logic [`XLEN-1:0] i_op0               ,  // Operand-0
+   input  logic [`XLEN-1:0] i_op1               ,  // Operand-1
 
    // EXU-BU Interface
-   output logic             o_exu_bu_flush     ,  // Flush signal to upstream pipeline
-   output logic [`XLEN-1:0] o_exu_bu_pc        ,  // Branch PC to upstream pipeline   
-   input  logic             i_exu_bu_br_taken  ,  // Branch taken status from upstream pipeline
+   output logic             o_exu_bu_flush      ,  // Flush signal to upstream pipeline
+   output logic [`XLEN-1:0] o_exu_bu_pc         ,  // Branch PC to upstream pipeline   
+   input  logic             i_exu_bu_br_taken   ,  // Branch taken status from upstream pipeline
    
    // Interface with Decode Unit (DU)   
-   input  logic [`XLEN-1:0] i_du_pc            ,  // PC from DU        
-   input  logic [`ILEN-1:0] i_du_instr         ,  // Instruction decoded and sent from DU     
-   input  logic             i_du_bubble        ,  // Bubble from DU    
-   output logic             o_du_stall         ,  // Stall signal to DU
+   input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU        
+   input  logic [`ILEN-1:0] i_du_instr          ,  // Instruction decoded and sent from DU     
+   input  logic             i_du_bubble         ,  // Bubble from DU    
+   output logic             o_du_stall          ,  // Stall signal to DU
 
-   input  logic [6:0]       i_du_opcode        ,  // Instruction opcode from DU 
-   input  logic             i_du_is_alu_op     ,  // ALU operation flag from DU     
-   input  logic [3:0]       i_du_alu_opcode    ,  // ALU opcode from DU    
-   input  logic [4:0]       i_du_rs0           ,  // rs0 (source register-0) address from DU
-   input  logic [4:0]       i_du_rs1           ,  // rs1 (source register-1) address from DU
-   input  logic [4:0]       i_du_rdt           ,  // rdt (destination register) address from DU     
-   input  logic             i_du_rdt_not_x0    ,  // rdt neq x0   
-   input  logic [2:0]       i_du_funct3        ,  // funct3 from DU    
+   input  logic [6:0]       i_du_opcode         ,  // Instruction opcode from DU 
+   input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU     
+   input  logic [3:0]       i_du_alu_opcode     ,  // ALU opcode from DU    
+   input  logic [4:0]       i_du_rs0            ,  // rs0 (source register-0) address from DU
+   input  logic [4:0]       i_du_rs1            ,  // rs1 (source register-1) address from DU
+   input  logic [4:0]       i_du_rdt            ,  // rdt (destination register) address from DU     
+   input  logic             i_du_rdt_not_x0     ,  // rdt neq x0   
+   input  logic [2:0]       i_du_funct3         ,  // Funct3 from DU    
      
-   input  logic             i_du_is_r_type     ,  // R-type instruction flag from DU 
-   input  logic             i_du_is_i_type     ,  // I-type instruction flag from DU 
-   input  logic             i_du_is_s_type     ,  // S-type instruction flag from DU 
-   input  logic             i_du_is_b_type     ,  // B-type instruction flag from DU 
-   input  logic             i_du_is_u_type     ,  // U-type instruction flag from DU 
-   input  logic             i_du_is_j_type     ,  // J-type instruction flag from DU 
-   input  logic             i_du_is_risb       ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
-   input  logic             i_du_is_riuj       ,  // RIUJ flag from DU
-   input  logic             i_du_is_jalr       ,  // JALR flag from DU
-   input  logic             i_du_is_load       ,  // Load flag from DU
-   input  logic             i_du_is_lui        ,  // LUI flag from DU
-   input  logic [11:0]      i_du_i_type_imm    ,  // I-type immediate from DU
-   input  logic [11:0]      i_du_s_type_imm    ,  // S-type immediate from DU
-   input  logic [11:0]      i_du_b_type_imm    ,  // B-type immediate from DU
-   input  logic [19:0]      i_du_u_type_imm    ,  // U-type immediate from DU
-   input  logic [19:0]      i_du_j_type_imm    ,  // J-type immediate from DU
+   input  logic             i_du_is_r_type      ,  // R-type instruction flag from DU 
+   input  logic             i_du_is_i_type      ,  // I-type instruction flag from DU 
+   input  logic             i_du_is_s_type      ,  // S-type instruction flag from DU 
+   input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
+   input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU 
+   input  logic             i_du_is_j_type      ,  // J-type instruction flag from DU 
+   input  logic             i_du_is_risb        ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
+   input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
+   input  logic             i_du_is_jalr        ,  // JALR flag from DU
+   input  logic             i_du_is_jal_or_jalr ,  // J/JALR flag from DU
+   input  logic             i_du_is_load        ,  // Load flag from DU
+   input  logic             i_du_is_lui         ,  // LUI flag from DU
+   input  logic [11:0]      i_du_i_type_imm     ,  // I-type immediate from DU
+   input  logic [11:0]      i_du_s_type_imm     ,  // S-type immediate from DU
+   input  logic [11:0]      i_du_b_type_imm     ,  // B-type immediate from DU
+   input  logic [19:0]      i_du_u_type_imm     ,  // U-type immediate from DU
+   input  logic [19:0]      i_du_j_type_imm     ,  // J-type immediate from DU
 
    // Interface with Memory Access Unit (MACCU)
-   output logic [`XLEN-1:0] o_maccu_pc         ,  // PC to MACCU
-   output logic [`ILEN-1:0] o_maccu_instr      ,  // Executed instruction to MACCU
-   output logic             o_maccu_is_riuj    ,  // RIUJ flag to MACCU
-   output logic             o_maccu_bubble     ,  // Bubble to MACCU
-   input  logic             i_maccu_stall      ,  // Stall signal from MACCU
+   `ifdef DBG
+   output logic [`XLEN-1:0] o_maccu_pc          ,  // PC to MACCU
+   output logic [`ILEN-1:0] o_maccu_instr       ,  // Executed instruction to MACCU
+   `endif
+   output logic             o_maccu_is_riuj     ,  // RIUJ flag to MACCU
+   output logic [2:0]       o_maccu_funct3      ,  // Funct3 to MACCU
+   output logic             o_maccu_bubble      ,  // Bubble to MACCU
+   input  logic             i_maccu_stall       ,  // Stall signal from MACCU
 
-   output logic [4:0]       o_maccu_rdt_addr   ,  // Writeback address to MACCU
-   output logic [`XLEN-1:0] o_maccu_rdt_data   ,  // Writeback data to MACCU
-   output logic             o_maccu_rdt_not_x0 ,  // Write back address neq x0
-   output logic             o_maccu_is_macc_op ,  // Memory access operation flag to MACCU
-   output logic             o_maccu_macc_cmd   ,  // Memory access command to MACCU; '0'- Load, '1'- Store
-   output logic [`XLEN-1:0] o_maccu_macc_addr  ,  // Memory access address to MACCU
-   output logic [1:0]       o_maccu_macc_size  ,  // Memory access size to MACCU
-   output logic [`XLEN-1:0] o_maccu_macc_data     // Memory access data (for Store) to MACCU   
+   output logic [4:0]       o_maccu_rdt_addr    ,  // Writeback address to MACCU
+   output logic [`XLEN-1:0] o_maccu_rdt_data    ,  // Writeback data to MACCU
+   output logic             o_maccu_rdt_not_x0  ,  // Write back address neq x0
+   output logic             o_maccu_is_macc_op  ,  // Memory access operation flag to MACCU
+   output logic             o_maccu_macc_cmd    ,  // Memory access command to MACCU; '0'- Load, '1'- Store
+   output logic [`XLEN-1:0] o_maccu_macc_addr   ,  // Memory access address to MACCU
+   output logic [1:0]       o_maccu_macc_size   ,  // Memory access size to MACCU
+   output logic [`XLEN-1:0] o_maccu_macc_data      // Memory access data (for Store) to MACCU   
 );
 
 //===================================================================================================================================================
@@ -150,8 +154,11 @@ logic [`XLEN-1:0] lsu_mem_data       ;  // Memory data (for Store)
 logic             lsu_bubble         ;  // Bubble from LSU
 
 // Buffered packets from DU
+`ifdef DBG
 logic [`XLEN-1:0] exu_pc_rg          ;  // PC
 logic [`ILEN-1:0] exu_instr_rg       ;  // Instruction
+`endif
+logic [2:0]       exu_funct3_rg      ;  // Funct3
 logic             exu_is_riuj_rg     ;  // RIUJ flag
 logic [4:0]       exu_rdt_rg         ;  // rdt address
 logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
@@ -195,6 +202,7 @@ exu_branch_unit #(
    .i_is_j_type    (i_du_is_j_type)    ,    
    .i_is_b_type    (i_du_is_b_type)    ,  
    .i_is_jalr      (i_du_is_jalr)      ,
+   .i_is_j_or_jalr (i_du_is_jal_or_jalr),
    .i_funct3       (i_du_funct3)       ,    
    .i_immJ         (i_du_j_type_imm)   ,    
    .i_immI         (i_du_i_type_imm)   ,    
@@ -268,6 +276,7 @@ assign is_op_lui  = i_du_is_lui     ;
 assign immI       = {{(`XLEN-12){i_du_i_type_imm[11]}}, i_du_i_type_imm} ;  // Sign-extend
 assign immU       = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;                 // LSbs to fill 0s
 
+`ifdef DBG
 //===================================================================================================================================================
 // Synchronous logic to pipe PC
 //===================================================================================================================================================
@@ -275,7 +284,9 @@ always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_pc_rg <= PC_INIT  ; end
    else if (!stall)   begin exu_pc_rg <= i_du_pc  ; end  // Pipe forward...
 end
+`endif
 
+`ifdef DBG
 //===================================================================================================================================================
 // Synchronous logic to pipe instruction
 //===================================================================================================================================================
@@ -283,24 +294,21 @@ always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_instr_rg <= `INSTR_NOP ; end
    else if (!stall)   begin exu_instr_rg <= i_du_instr ; end  // Pipe forward... 
 end
+`endif
 
 //===================================================================================================================================================
-// Synchronous logic to pipe RIUJ flag
+// Synchronous logic to pipe other packets in DU Payload
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin exu_is_riuj_rg <= 1'b0         ; end
-   else if (!stall)   begin exu_is_riuj_rg <= i_du_is_riuj ; end  // Pipe forward... 
-end
-
-//===================================================================================================================================================
-// Synchronous logic to pipe rdt
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if (!aresetn) begin
+   if (!aresetn) begin 
+      exu_is_riuj_rg    <= 1'b0 ;
+      exu_funct3_rg     <= 3'h0 ;
       exu_rdt_rg        <= '0   ; 
       exu_rdt_not_x0_rg <= 1'b0 ;
    end
-   else if (!stall) begin // Pipe forward... 
+   else if (!stall) begin  // Pipe forward...
+      exu_is_riuj_rg    <= i_du_is_riuj    ; 
+      exu_funct3_rg     <= i_du_funct3     ;
       exu_rdt_rg        <= i_du_rdt        ;  
       exu_rdt_not_x0_rg <= i_du_rdt_not_x0 ;
    end 
@@ -373,8 +381,11 @@ assign o_exu_bu_flush = bu_flush     ;
 assign o_exu_bu_pc    = bu_branch_pc ;
 
 // Payload to MACCU
+`ifdef DBG
 assign o_maccu_pc         = exu_pc_rg         ;
 assign o_maccu_instr      = exu_instr_rg      ;
+`endif
+assign o_maccu_funct3     = exu_funct3_rg     ;
 assign o_maccu_is_riuj    = exu_is_riuj_rg    ;
 assign o_maccu_bubble     = exu_bubble | i_maccu_stall ; // Stall should invalidate instr to disable new memory access requests @maccu
                                                          // cz the stall may be fwded from WBU and DMEMIF@maccu may accept new requests otherwise.

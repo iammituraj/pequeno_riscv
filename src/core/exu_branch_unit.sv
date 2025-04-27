@@ -60,6 +60,7 @@ module exu_branch_unit #(
    input  logic             i_is_j_type      ,  // J-type instruction flag
    input  logic             i_is_b_type      ,  // B-type instruction flag
    input  logic             i_is_jalr        ,  // JALR flag
+   input  logic             i_is_j_or_jalr   ,  // J/JALR instruction flag
    input  logic [2:0]       i_funct3         ,  // funct3
    input  logic [19:0]      i_immJ           ,  // J-type immediate
    input  logic [11:0]      i_immI           ,  // I-type immediate
@@ -125,7 +126,7 @@ end
 // - Branch instructions: flush iff current branch status != status computed after execution .
 //===================================================================================================================================================
 always_comb begin
-   case ({(i_is_j_type | i_is_jalr), i_is_b_type})
+   case ({i_is_j_or_jalr, i_is_b_type})
       // JAL or JALR
       2'b10   : branch_taken = 1'b1 ;
       // Branch
@@ -163,9 +164,9 @@ assign is_branch_taken_diff = branch_taken ^ i_branch_taken     ;  // Compare cu
 assign flush                = is_branch_taken_diff & ~i_bubble  ;  // Generate flush if branch taken status differ after the resolution 
 
 // Bubble
-assign bubble     = (i_is_j_type || i_is_jalr)? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
-                                                                   // JAL/JALR instructions need to propagate fwd in pipeline for writeback
-                                                                   // Invalid/Branch instructions need not propagate fwd in pipeline 
+assign bubble     = i_is_j_or_jalr ? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
+                                                        // JAL/JALR instructions need to propagate fwd in pipeline for writeback
+                                                        // Invalid/Branch instructions need not propagate fwd in pipeline 
 
 // Decoded immediates
 assign immJ          = {{(`XLEN-20){i_immJ[19]}}, i_immJ[18:0], 1'b0} ;  // Sign-extend after x2

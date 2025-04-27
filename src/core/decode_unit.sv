@@ -90,7 +90,7 @@ module decode_unit #(
    output logic [4:0]       o_exu_rs1          ,  // rs1 (source register-1) address to EXU
    output logic [4:0]       o_exu_rdt          ,  // rdt (destination register) address to EXU
    output logic             o_exu_rdt_not_x0   ,  // rdt neq x0
-   output logic [2:0]       o_exu_funct3       ,  // funct3 to EXU
+   output logic [2:0]       o_exu_funct3       ,  // Funct3 to EXU
 
    output logic             o_exu_is_r_type    ,  // R-type instruction flag to EXU
    output logic             o_exu_is_i_type    ,  // I-type instruction flag to EXU
@@ -101,6 +101,7 @@ module decode_unit #(
    output logic             o_exu_is_risb      ,  // RISB flag to EXU
    output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
    output logic             o_exu_is_jalr      ,  // JALR flag to EXU
+   output logic             o_exu_is_j_or_jalr ,  // J/JALR flag to EXU
    output logic             o_exu_is_load      ,  // Load flag to EXU
    output logic             o_exu_is_lui       ,  // LUI flag to EXU
    output logic [11:0]      o_exu_i_type_imm   ,  // I-type immediate to EXU
@@ -117,13 +118,16 @@ module decode_unit #(
 logic [4:0]       rf_reg_src0         ;  // Source register-0 address to RF
 logic [4:0]       rf_reg_src1         ;  // Source register-1 address to RF
 logic [6:0]       fu_opcode           ;  // Opcode decoded from FU instr
-logic [2:0]       fu_funct3           ;  // funct3 decoded from FU instr
-logic [6:0]       fu_funct7           ;  // funct7 decoded from FU instr
+logic [2:0]       fu_funct3           ;  // Funct3 decoded from FU instr
+logic [6:0]       fu_funct7           ;  // Funct7 decoded from FU instr
 
 // Buffered flags after decoding --> Payload to EXU
 logic [5:0]       instr_type_rg       ;  // {R, I, S, B, U, J} type instruction flag (one-hot encoded)
+logic             is_jal              ;  // JAL flag
 logic             is_jalr             ;  // JALR flag
 logic             is_jalr_rg          ;  // JALR flag (registered)
+logic             is_j_or_jalr        ;  // J/JALR flag
+logic             is_j_or_jalr_rg     ;  // J/JALR flag (registered)
 logic             is_load             ;  // Load flag
 logic             is_load_rg          ;  // Load flag (registered)
 logic             is_alur             ;  // ALUR flag
@@ -134,7 +138,6 @@ logic             is_lui_rg           ;  // LUI flag (registered)
 logic             is_auipc            ;  // AUIPC flag
 logic             is_lui_or_auipc     ;  // LUI or AUIPC flag
 logic             is_sli_sri          ;  // SLLI/SRLI/SRAI flag
-logic             is_sli_sri_rg       ;  // SLLI/SRLI/SRAI flag (registered)
 logic             is_alu_op           ;  // ALU operation flag
 logic             is_alu_op_rg        ;  // ALU operation flag (registered)
 logic [3:0]       alu_opcode          ;  // ALU opcode
@@ -150,8 +153,8 @@ logic             is_j_type           ;  // J-type instruction flag
 logic [4:0]       reg_src0, reg_src1  ;  // Source register addresses
 logic [4:0]       reg_dest            ;  // Destination register address
 logic [6:0]       du_opcode           ;  // Opcode
-logic [2:0]       funct3              ;  // funct3
-logic [6:0]       funct7              ;  // funct7
+logic [2:0]       funct3              ;  // Funct3
+logic [6:0]       funct7              ;  // Funct7
 
 // Buffered packets from FU
 logic [`XLEN-1:0] du_pc_rg            ;  // PC
@@ -172,12 +175,12 @@ logic             flush               ;  // Flush from outside FU
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      instr_type_rg <= 6'b000000 ;    
-      is_jalr_rg    <= 1'b0 ;
-      is_load_rg    <= 1'b0 ;
-      is_lui_rg     <= 1'b0 ;
-      is_alui_rg    <= 1'b0 ;
-      is_sli_sri_rg <= 1'b0 ;
+      instr_type_rg   <= 6'b000000 ;    
+      is_jalr_rg      <= 1'b0 ;
+      is_j_or_jalr_rg <= 1'b0 ;
+      is_load_rg      <= 1'b0 ;
+      is_lui_rg       <= 1'b0 ;
+      is_alui_rg      <= 1'b0 ;
    end
    // Out of reset
    else begin 
@@ -199,15 +202,17 @@ always_ff @(posedge clk or negedge aresetn) begin
             default   : instr_type_rg <= 6'b000000 ;  // Invalid instruction type
          endcase
          // Flags
-         is_jalr_rg    <= is_jalr    ;
-         is_load_rg    <= is_load    ; 
-         is_alui_rg    <= is_alui    ; 
-         is_lui_rg     <= is_lui     ;
-         is_sli_sri_rg <= is_sli_sri ;  
+         is_jalr_rg      <= is_jalr      ;
+         is_j_or_jalr_rg <= is_j_or_jalr ;
+         is_load_rg      <= is_load      ; 
+         is_alui_rg      <= is_alui      ; 
+         is_lui_rg       <= is_lui       ;
       end                   
    end
 end
+assign is_jal          = (fu_opcode == OP_JAL)  ;
 assign is_jalr         = (fu_opcode == OP_JALR) ;
+assign is_j_or_jalr    = (is_jal || is_jalr)    ;
 assign is_load         = (fu_opcode == OP_LOAD) ;
 assign is_alur         = (fu_opcode == OP_ALU)  ;
 assign is_alui         = (fu_opcode == OP_ALUI) ;
@@ -329,35 +334,36 @@ assign o_rf_rs0     = rf_reg_src0       ;  // Combi routing to sync the read-dat
 assign o_rf_rs1     = rf_reg_src1       ;  // Combi routing to sync the read-data from RF with DU payload to EXU
 
 // Payload to Execution Unit (EXU)
-assign o_exu_pc         = du_pc_rg    ;
-assign o_exu_instr      = du_instr_rg ;
-assign o_exu_bubble     = flush | du_bubble_rg ;  // Flush should invalidate next instruction from going to EXU and executed  
-                                                  // This is to avoid control hazards on branching                                                        
-assign o_exu_opcode     = du_opcode     ;
-assign o_exu_is_alu_op  = is_alu_op_rg  ;
-assign o_exu_alu_opcode = alu_opcode_rg ;
-assign o_exu_rs0        = reg_src0      ;
-assign o_exu_rs1        = reg_src1      ;
-assign o_exu_rdt        = reg_dest      ;
-assign o_exu_rdt_not_x0 = |reg_dest     ;
-assign o_exu_funct3     = funct3        ;
-
-assign o_exu_is_r_type  = is_r_type  ;
-assign o_exu_is_i_type  = is_i_type  ;
-assign o_exu_is_s_type  = is_s_type  ;
-assign o_exu_is_b_type  = is_b_type  ;
-assign o_exu_is_u_type  = is_u_type  ;
-assign o_exu_is_j_type  = is_j_type  ;
-assign o_exu_is_risb    = is_r_type | is_i_type | is_s_type | is_b_type ;  // R/I/S/B-type instruction?
-assign o_exu_is_riuj    = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
-assign o_exu_is_jalr    = is_jalr_rg ;
-assign o_exu_is_load    = is_load_rg ;
-assign o_exu_is_lui     = is_lui_rg  ;
-assign o_exu_i_type_imm = {du_instr_rg[31:20]}                                                       ;
-assign o_exu_s_type_imm = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;
-assign o_exu_b_type_imm = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]}   ;
-assign o_exu_u_type_imm = {du_instr_rg[31:12]}                                                       ;
-assign o_exu_j_type_imm = {du_instr_rg[31], du_instr_rg[19:12], du_instr_rg[20], du_instr_rg[30:21]} ;
+assign o_exu_pc           = du_pc_rg    ;
+assign o_exu_instr        = du_instr_rg ;
+assign o_exu_bubble       = flush | du_bubble_rg ;  // Flush should invalidate next instruction from going to EXU and executed  
+                                                    // This is to avoid control hazards on branching                                                        
+assign o_exu_opcode       = du_opcode     ;
+assign o_exu_is_alu_op    = is_alu_op_rg  ;
+assign o_exu_alu_opcode   = alu_opcode_rg ;
+assign o_exu_rs0          = reg_src0      ;
+assign o_exu_rs1          = reg_src1      ;
+assign o_exu_rdt          = reg_dest      ;
+assign o_exu_rdt_not_x0   = |reg_dest     ;
+assign o_exu_funct3       = funct3        ;
+  
+assign o_exu_is_r_type    = is_r_type  ;
+assign o_exu_is_i_type    = is_i_type  ;
+assign o_exu_is_s_type    = is_s_type  ;
+assign o_exu_is_b_type    = is_b_type  ;
+assign o_exu_is_u_type    = is_u_type  ;
+assign o_exu_is_j_type    = is_j_type  ;
+assign o_exu_is_risb      = is_r_type | is_i_type | is_s_type | is_b_type ;  // R/I/S/B-type instruction?
+assign o_exu_is_riuj      = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
+assign o_exu_is_jalr      = is_jalr_rg ;
+assign o_exu_is_j_or_jalr = is_j_or_jalr_rg ;
+assign o_exu_is_load      = is_load_rg ;
+assign o_exu_is_lui       = is_lui_rg  ;
+assign o_exu_i_type_imm   = {du_instr_rg[31:20]}                                                       ;
+assign o_exu_s_type_imm   = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;
+assign o_exu_b_type_imm   = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]}   ;
+assign o_exu_u_type_imm   = {du_instr_rg[31:12]}                                                       ;
+assign o_exu_j_type_imm   = {du_instr_rg[31], du_instr_rg[19:12], du_instr_rg[20], du_instr_rg[30:21]} ;
 
 endmodule
 //###################################################################################################################################################
