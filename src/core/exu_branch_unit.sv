@@ -125,13 +125,11 @@ end
 // - Branch instructions: flush iff current branch status != status computed after execution .
 //===================================================================================================================================================
 always_comb begin
-   case ({i_is_j_type, i_is_jalr, i_is_b_type})
-      // JAL
-      3'b100  : branch_taken = 1'b1 ;
-      // JALR
-      3'b010  : branch_taken = 1'b1 ;
+   case ({(i_is_j_type | i_is_jalr), i_is_b_type})
+      // JAL or JALR
+      2'b10   : branch_taken = 1'b1 ;
       // Branch
-      3'b001  : begin
+      2'b01   : begin
                    // Which branch instruction?
                    case (i_funct3)
                       F3_BEQ  : branch_taken =  is_op0_eq_op1      ;                

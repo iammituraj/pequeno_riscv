@@ -162,6 +162,7 @@ logic             du_exu_bubble     ;  // Bubble from DU to EXU
 logic             exu_du_stall      ;  // Stall signal from EXU to DU
 
 logic [6:0]       du_exu_opcode     ;  // Opcode from DU to EXU
+logic             du_exu_is_alu_op  ;  // ALU operation flag from DU to EXU
 logic [3:0]       du_exu_alu_opcode ;  // ALU opcode from DU to EXU
 logic [4:0]       du_exu_rs0        ;  // rs0 from DU to EXU
 logic [4:0]       du_exu_rs1        ;  // rs1 from DU to EXU
@@ -313,6 +314,7 @@ decode_unit #(
    .i_exu_stall       (exu_du_stall)  ,
    
    .o_exu_opcode      (du_exu_opcode)     , 
+   .o_exu_is_alu_op   (du_exu_is_alu_op)  ,
    .o_exu_alu_opcode  (du_exu_alu_opcode) ,
    .o_exu_rs0         (du_exu_rs0)        ,
    .o_exu_rs1         (du_exu_rs1)        ,
@@ -418,6 +420,7 @@ execution_unit #(
    .o_du_stall         (exu_du_stall)    ,
 
    .i_du_opcode        (du_exu_opcode)     ,
+   .i_du_is_alu_op     (du_exu_is_alu_op)  ,
    .i_du_alu_opcode    (du_exu_alu_opcode) ,
    .i_du_rs0           (du_exu_rs0)        ,
    .i_du_rs1           (du_exu_rs1)        ,

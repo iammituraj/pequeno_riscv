@@ -84,6 +84,7 @@ module decode_unit #(
    input  logic             i_exu_stall        ,  // Stall signal from EXU
 
    output logic [6:0]       o_exu_opcode       ,  // Instruction opcode to EXU
+   output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
    output logic [4:0]       o_exu_rs1          ,  // rs1 (source register-1) address to EXU
@@ -117,14 +118,27 @@ logic [4:0]       rf_reg_src0         ;  // Source register-0 address to RF
 logic [4:0]       rf_reg_src1         ;  // Source register-1 address to RF
 logic [6:0]       fu_opcode           ;  // Opcode decoded from FU instr
 logic [2:0]       fu_funct3           ;  // funct3 decoded from FU instr
+logic [6:0]       fu_funct7           ;  // funct7 decoded from FU instr
 
 // Buffered flags after decoding --> Payload to EXU
 logic [5:0]       instr_type_rg       ;  // {R, I, S, B, U, J} type instruction flag (one-hot encoded)
-logic             is_jalr_rg          ;  // JALR flag
-logic             is_load_rg          ;  // Load flag
-logic             is_lui_rg           ;  // LUI flag
-logic             is_alui_rg          ;  // ALUI flag
-logic             is_sli_sri_rg       ;  // SLLI/SRLI/SRAI flag
+logic             is_jalr             ;  // JALR flag
+logic             is_jalr_rg          ;  // JALR flag (registered)
+logic             is_load             ;  // Load flag
+logic             is_load_rg          ;  // Load flag (registered)
+logic             is_alur             ;  // ALUR flag
+logic             is_alui             ;  // ALUI flag 
+logic             is_alui_rg          ;  // ALUI flag (registered)  //**CHECKME**// Used only when DBG is enabled...
+logic             is_lui              ;  // LUI flag
+logic             is_lui_rg           ;  // LUI flag (registered)
+logic             is_auipc            ;  // AUIPC flag
+logic             is_lui_or_auipc     ;  // LUI or AUIPC flag
+logic             is_sli_sri          ;  // SLLI/SRLI/SRAI flag
+logic             is_sli_sri_rg       ;  // SLLI/SRLI/SRAI flag (registered)
+logic             is_alu_op           ;  // ALU operation flag
+logic             is_alu_op_rg        ;  // ALU operation flag (registered)
+logic [3:0]       alu_opcode          ;  // ALU opcode
+logic [3:0]       alu_opcode_rg       ;  // ALU opcode (registered)
 
 // Decoded from buffered flags/instruction --> Payload to EXU
 logic             is_r_type           ;  // R-type instruction flag
@@ -138,7 +152,6 @@ logic [4:0]       reg_dest            ;  // Destination register address
 logic [6:0]       du_opcode           ;  // Opcode
 logic [2:0]       funct3              ;  // funct3
 logic [6:0]       funct7              ;  // funct7
-logic [3:0]       alu_opcode          ;  // ALU opcode
 
 // Buffered packets from FU
 logic [`XLEN-1:0] du_pc_rg            ;  // PC
@@ -186,14 +199,54 @@ always_ff @(posedge clk or negedge aresetn) begin
             default   : instr_type_rg <= 6'b000000 ;  // Invalid instruction type
          endcase
          // Flags
-         is_jalr_rg    <= (fu_opcode == OP_JALR);
-         is_load_rg    <= (fu_opcode == OP_LOAD); 
-         is_lui_rg     <= (fu_opcode == OP_LUI) ;
-         is_alui_rg    <= (fu_opcode == OP_ALUI); 
-         is_sli_sri_rg <= (fu_funct3 == F3_SLLX || fu_funct3 == F3_SRXX);   
+         is_jalr_rg    <= is_jalr    ;
+         is_load_rg    <= is_load    ; 
+         is_alui_rg    <= is_alui    ; 
+         is_lui_rg     <= is_lui     ;
+         is_sli_sri_rg <= is_sli_sri ;  
       end                   
    end
 end
+assign is_jalr         = (fu_opcode == OP_JALR) ;
+assign is_load         = (fu_opcode == OP_LOAD) ;
+assign is_alur         = (fu_opcode == OP_ALU)  ;
+assign is_alui         = (fu_opcode == OP_ALUI) ;
+assign is_lui          = (fu_opcode == OP_LUI)  ;
+assign is_auipc        = (fu_opcode == OP_AUIPC);
+assign is_lui_or_auipc = (is_lui || is_auipc)   ;
+assign is_sli_sri      = (fu_funct3 == F3_SLLX || fu_funct3 == F3_SRXX);
+
+//===================================================================================================================================================
+// Synchronous logic to decode ALU operation
+//===================================================================================================================================================
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      is_alu_op_rg  <= 1'b0 ;
+      alu_opcode_rg <= '0   ;
+   end
+   // Out of reset
+   else begin 
+      // If not stalled
+      if (!stall) begin
+         is_alu_op_rg  <= is_alu_op  ;
+         alu_opcode_rg <= alu_opcode ;
+      end 
+
+   end
+end
+assign is_alu_op  = (is_alur || is_alui || is_lui_or_auipc);
+
+// ALU opcode decoder
+always_comb begin
+   case ({is_lui_or_auipc, (is_alui && !is_sli_sri)})
+      2'b10   : alu_opcode = ALU_ADD ;                   // LUI/AUIPC requires ADD at ALU
+      2'b01   : alu_opcode = {fu_funct3, 1'b0} ;         // LSb = 0 if ALUI-I but not SLLI/SRLI/SRAI 
+      default : alu_opcode = {fu_funct3, fu_funct7[5]};  // This will cover ALU-R and ALU-I instructions: SLLI/SRLI/SRAI
+   endcase
+end
+// ALU operands decoder
+
 
 //===================================================================================================================================================
 // Synchronous logic to pipe PC
@@ -232,24 +285,6 @@ end
 assign o_exu_bu_br_taken = du_br_taken_rg ;
 
 //===================================================================================================================================================
-// ALU opcode decoding/encoding logic
-//===================================================================================================================================================
-always_comb begin
-   if (is_r_type) begin        // R-type instruction is always ALU instruction
-      alu_opcode = {funct3, funct7[5]} ;
-   end 
-   else if (is_alui_rg) begin  // I-type ALU instruction
-      alu_opcode = is_sli_sri_rg ? {funct3, funct7[5]} : {funct3, 1'b0} ;  // LSb = 0 except if SLLI/SRLI/SRAI 
-   end 
-   else if (is_u_type) begin   // U-type instruction is always ALU instruction: LUI/AUIPC requires ADD at ALU
-      alu_opcode = ALU_ADD ;   
-   end
-   else begin                  // Illegal ALU instruction
-      alu_opcode = ALU_ILLG ;
-   end
-end
-
-//===================================================================================================================================================
 //  Stall logic
 //===================================================================================================================================================
 assign stall        = i_exu_stall          ;  // Only EXU can stall DU from outside
@@ -272,6 +307,7 @@ assign o_du_dbg = {is_lui_rg, is_jalr_rg, is_load_rg, is_alui_rg, instr_type_rg}
 // Instruction decoded
 assign fu_opcode  = i_fu_instr[6:0]    ;
 assign fu_funct3  = i_fu_instr[14:12]  ;
+assign fu_funct7  = i_fu_instr[31:25]  ;
 assign reg_src0   = du_instr_rg[19:15] ;
 assign reg_src1   = du_instr_rg[24:20] ;
 assign reg_dest   = du_instr_rg[11:7]  ;
@@ -297,13 +333,14 @@ assign o_exu_pc         = du_pc_rg    ;
 assign o_exu_instr      = du_instr_rg ;
 assign o_exu_bubble     = flush | du_bubble_rg ;  // Flush should invalidate next instruction from going to EXU and executed  
                                                   // This is to avoid control hazards on branching                                                        
-assign o_exu_opcode     = du_opcode  ;
-assign o_exu_alu_opcode = alu_opcode ;
-assign o_exu_rs0        = reg_src0   ;
-assign o_exu_rs1        = reg_src1   ;
-assign o_exu_rdt        = reg_dest   ;
-assign o_exu_rdt_not_x0 = |reg_dest  ;
-assign o_exu_funct3     = funct3     ;
+assign o_exu_opcode     = du_opcode     ;
+assign o_exu_is_alu_op  = is_alu_op_rg  ;
+assign o_exu_alu_opcode = alu_opcode_rg ;
+assign o_exu_rs0        = reg_src0      ;
+assign o_exu_rs1        = reg_src1      ;
+assign o_exu_rdt        = reg_dest      ;
+assign o_exu_rdt_not_x0 = |reg_dest     ;
+assign o_exu_funct3     = funct3        ;
 
 assign o_exu_is_r_type  = is_r_type  ;
 assign o_exu_is_i_type  = is_i_type  ;

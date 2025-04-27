@@ -81,7 +81,8 @@ module execution_unit #(
    input  logic             i_du_bubble        ,  // Bubble from DU    
    output logic             o_du_stall         ,  // Stall signal to DU
 
-   input  logic [6:0]       i_du_opcode        ,  // Instruction opcode from DU       
+   input  logic [6:0]       i_du_opcode        ,  // Instruction opcode from DU 
+   input  logic             i_du_is_alu_op     ,  // ALU operation flag from DU     
    input  logic [3:0]       i_du_alu_opcode    ,  // ALU opcode from DU    
    input  logic [4:0]       i_du_rs0           ,  // rs0 (source register-0) address from DU
    input  logic [4:0]       i_du_rs1           ,  // rs1 (source register-1) address from DU
@@ -211,15 +212,16 @@ exu_branch_unit #(
 
 // ALU
 alu inst_alu (
-   .clk      (clk)         , 
-   .aresetn  (aresetn)     ,
-   .i_stall  (stall)       ,
-   .i_bubble (i_du_bubble | is_pipe_inlock),  // Pipeline interlock should insert bubble in all exec units
-   .i_op0    (alu_op0)     , 
-   .i_op1    (alu_op1)     , 
-   .i_opcode (alu_opcode)  ,
-   .o_result (alu_result)  ,
-   .o_bubble (alu_bubble)
+   .clk         (clk)     , 
+   .aresetn     (aresetn) ,
+   .i_stall     (stall)   ,
+   .i_bubble    (i_du_bubble | is_pipe_inlock),  // Pipeline interlock should insert bubble in all exec units
+   .i_is_alu_op (i_du_is_alu_op) ,  
+   .i_op0       (alu_op0)        , 
+   .i_op1       (alu_op1)        , 
+   .i_opcode    (alu_opcode)     ,
+   .o_result    (alu_result)     ,
+   .o_bubble    (alu_bubble)
 );
 
 // Load-Store Unit (LSU)
@@ -245,26 +247,19 @@ loadstore_unit inst_loadstore_unit (
 );
 
 //===================================================================================================================================================
-//  Pre-processing logic - to select inputs (operands and opcode) to ALU
+//  Pre-processing logic - to select operands op0, op1 to ALU
 //===================================================================================================================================================
 always_comb begin
-   case ({i_du_is_r_type, i_du_is_i_type, i_du_is_u_type}) 
-      3'b100  : begin  // R-type instruction
-                   alu_op0  = i_op0 ;
-                   alu_op1  = i_op1 ; 
-                end
-      3'b010  : begin  // I-type instruction
-                   alu_op0  = i_op0 ;
-                   alu_op1  = immI  ;
-                end
-      3'b001  : begin  // U-type instruction
-                   alu_op0  = is_op_lui? '0 : i_du_pc ;  // 0+immU for LUI, pc+immU for AUIPC
-                   alu_op1  = immU ;
-                end          
-      default : begin  // Illegal instruction
-                   alu_op0  = '0 ;
-                   alu_op1  = '0 ; 
-                end      	
+   // Operand-0
+   case ({i_du_is_u_type}) 
+      1'b1    : alu_op0  = is_op_lui? '0 : i_du_pc ;  // 0+immU for LUI, pc+immU for AUIPC 
+      default : alu_op0  = i_op0 ;                    // For all other instructions, forward op0 from Opfwd block to the ALU
+   endcase
+   // Operand-1
+   case ({i_du_is_i_type, i_du_is_u_type}) 
+      2'b10   : alu_op1  = immI  ;  // For I-type instruction, immI from DU should be forwarded to the ALU, not op1 from Opfwd block
+      2'b01   : alu_op1  = immU  ;  // For U-type instruction, immU from DU should be forwarded to the ALU, not op1 from Opfwd block  
+      default : alu_op1  = i_op1 ;  // For all other instructions, forward i_op0 from Opfwd block to the ALU      
    endcase  
 end
 

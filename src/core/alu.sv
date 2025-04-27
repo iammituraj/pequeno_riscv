@@ -44,15 +44,16 @@ import pqr5_core_pkg :: * ;
 
 // Module definition
 module alu (
-   input  logic             clk      ,  // Clock
-   input  logic             aresetn  ,  // Asynchronous Reset; active-low
-   input  logic             i_stall  ,  // Stall signal
-   input  logic             i_bubble ,  // Bubble in
-   input  logic [`XLEN-1:0] i_op0    ,  // Operand-0
-   input  logic [`XLEN-1:0] i_op1    ,  // Operand-1
-   input  logic [3:0]       i_opcode ,  // Opcode
-   output logic [`XLEN-1:0] o_result ,  // Result
-   output logic             o_bubble    // Bubble out
+   input  logic             clk         ,  // Clock
+   input  logic             aresetn     ,  // Asynchronous Reset; active-low
+   input  logic             i_stall     ,  // Stall signal
+   input  logic             i_bubble    ,  // Bubble in
+   input  logic             i_is_alu_op ,  // ALU operation flag
+   input  logic [`XLEN-1:0] i_op0       ,  // Operand-0
+   input  logic [`XLEN-1:0] i_op1       ,  // Operand-1
+   input  logic [3:0]       i_opcode    ,  // Opcode
+   output logic [`XLEN-1:0] o_result    ,  // Result
+   output logic             o_bubble       // Bubble out
 );
 
 //===================================================================================================================================================
@@ -62,7 +63,6 @@ logic [`XLEN-1:0] result ;  // ALU result
 logic             bubble ;  // Bubble
 
 always_comb begin
-   bubble = i_bubble ;
    case (i_opcode)
       // Legal ALU instructions
       ALU_ADD  : result = i_op0 + i_op1 ; 
@@ -75,9 +75,10 @@ always_comb begin
       ALU_SLL  : result = i_op0 << i_op1[4:0] ;
       ALU_SRL  : result = i_op0 >> i_op1[4:0] ;
       ALU_SRA  : result = (signed'(i_op0)) >>> i_op1[4:0] ;
-      default  : begin result = '0 ; bubble = 1'b1 ; end  // Insert bubble on illegal ALU instruction  	
+      default  : result = '0 ;//begin result = '0 ; bubble = 1'b1 ; end  // Insert bubble on illegal ALU instruction  	
    endcase
 end
+assign bubble = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
 
 //===================================================================================================================================================
 // Synchronous logic to register outputs
