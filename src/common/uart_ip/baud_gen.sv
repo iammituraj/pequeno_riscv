@@ -40,7 +40,7 @@
 //----%% Last modified on : Jan 2024
 //----%% Notes            : Timing verified up to 200 MHz core clock.
 //----%%
-//----%% Copyright        : Open-source license, see LICENSE.md
+//----%% Copyright        : Open-source license, see LICENSE
 //----%%                                                                                              
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -29,15 +29,16 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 | **Issue**                                  | One instruction per cycle                 |
 | **Pipeline depth**                         | 5                                         |
 |                                            | Fetch, Decode, Execution, Memory Access, Writeback |
+| **Execution model**                        | In-order
 | **Bus architecture**                       | Harvard, separate instruction/data bus    |
-| **Branch Prediction**                      | Yes, static                               |
+| **Branch prediction**                      | Yes, static                               |
 | **Cache**                                  | Not available, but can be integrated externally |
 | **OS capable**                             | No, privilege modes are not supported     |
 | **Interrupt/Exceptions capable**           | No                                        |
 
 ## Functional Block Diagram
 
-![This is an alt text.](doc/misc/pequeno_block_diagram.png "Block Diagram of PQR5")
+![Pequeno RISC-V CPU Block Diagram](doc/misc/pequeno_block_diagram.png "Block Diagram of PQR5")
 
 ## PQR5ASM, The tailor-made Assembler
    This RV32I assembler supports all 37 base instructions + 16 pseudo instructions 
@@ -52,25 +53,27 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 
   * _FPGA demo of Pequeno being flashed by peqFlash through serial interface (UART) and running Blinky LED program_: https://www.youtube.com/watch?v=cEEZbzSd6v0
 
+The validation was primarily done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
 
 ## FPGA Resource Utilization
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
+| **Core version** | pqr5 v1.0.1
 | **Target** | Artix-7, xc7a35tcpg236-1
-| **LUTs** | 2084
-| **Registers** | 1564
+| **LUTs** | 1424
+| **Registers** | 562
 | **Targetted clock freq** | 100 MHz
 
 ## CoreMark®
 | **Performance Validation**                 |                                           |
 |--------------------------------------------|-------------------------------------------|
+| **Core version** | pqr5 v1.0.1
 | **CoreMark score** | 0.7 CoreMark/MHz 
 | **Iterations** | 400
 | **Iterations per second** | 8
 | **Test clock freq** | 12 MHz
 | **Test platform** | FPGA
-| **Full Report** | [coremark/coremark_report_18Apr25.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report_18Apr25.html)
-
+| **Full Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
 
 
 ## Important
@@ -78,7 +81,7 @@ Please go through [readme_database.html](https://raw.githack.com/iammituraj/pequ
 
 # Disclaimer
 This CPU core is intended for educational purposes only.
-The users must review the accompanying license document (LICENSE) for detailed terms and conditions before the use.
+The users must review the accompanying license document ([LICENSE](LICENSE)) for detailed terms and conditions before the use.
 
 # Developer
 Mitu Raj, [Chipmunk Logic](https://chipmunklogic.com), chip@chipmunklogic.com

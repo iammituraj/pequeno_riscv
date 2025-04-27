@@ -19,7 +19,7 @@
 # Compatiblility   : Python 3.9 tested
 # Notes            : sudo setserial -g /dev/ttyUSB[01] - to list USB serial ports in Linux
 #
-# Copyright        : Open-source license
+# Copyright        : Open-source license, see LICENSE.
 #############################################################################################################
 # Import Libraries 
 # If "serial" is not installed: <pip install pyserial>

@@ -21,6 +21,7 @@
 #                    RISC-V GCC 14.2.0 tested (newlib)
 # Notes            : Items marked as [CONFIGURE] may need to be configured before invoking this Makefile.
 # 
+# Copyright        : Open-source license, see LICENSE.
 #################################################################################################################################
 
 # [CONFIGURE] Toolchain

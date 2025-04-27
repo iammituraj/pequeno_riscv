@@ -86,7 +86,7 @@
 #
 # User Manual      : https://github.com/iammituraj/pqr5asm/blob/main/pqr5asm_imanual.pdf
 #
-# Copyright        : Open-source license.
+# Copyright        : Open-source license, see LICENSE.
 #################################################################################################################################
 
 # Import Libraries

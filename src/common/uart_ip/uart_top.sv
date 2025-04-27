@@ -69,7 +69,7 @@
 //----%%
 //----%% IP User Guide    : https://chipmunklogic.com/wp-content/uploads/ip_cores/pdfs/uart_controller_v1_2_ug.pdf
 //----%%                  
-//----%% Copyright        : Open-source license, see LICENSE.md
+//----%% Copyright        : Open-source license, see LICENSE
 //----%%                                                                                             
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

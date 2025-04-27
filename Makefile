@@ -29,6 +29,7 @@
 #                    RISC-V GNU GCC 14.2.0 tested
 # Notes            : Items marked as [CONFIGURE] must be configured before invoking this Makefile.
 #
+# Copyright        : Open-source license, see LICENSE.
 #################################################################################################################################
 
 # Define shell
