@@ -240,7 +240,7 @@ function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarr
 endfunction
 
 // Function to display Register File
-function automatic void disp_regfile (logic [RSIZE-1:0] regarray []);
+function automatic void disp_regfile (logic [RSIZE-1:0] regarray [32]);
    int i = 0 ;
    $display("+================================================================+");
    $display("| REGFILE                                                        |");
