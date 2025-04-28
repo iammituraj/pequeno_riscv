@@ -176,6 +176,7 @@ logic             du_exu_is_s_type    ;  // S-type instruction flag from DU to E
 logic             du_exu_is_b_type    ;  // B-type instruction flag from DU to EXU
 logic             du_exu_is_u_type    ;  // U-type instruction flag from DU to EXU
 logic             du_exu_is_j_type    ;  // J-type instruction flag from DU to EXU
+logic             du_exu_is_rsb       ;  // RSB flag from DU to EXU
 logic             du_exu_is_risb      ;  // RISB flag from DU to EXU
 logic             du_exu_is_riuj      ;  // RIUJ flag from DU to EXU
 logic             du_exu_is_j_or_jalr ;  // J/JALR flag from DU to EXU
@@ -337,6 +338,7 @@ decode_unit #(
    .o_exu_is_b_type   (du_exu_is_b_type)  ,
    .o_exu_is_u_type   (du_exu_is_u_type)  ,
    .o_exu_is_j_type   (du_exu_is_j_type)  ,
+   .o_exu_is_rsb      (du_exu_is_rsb)     ,
    .o_exu_is_risb     (du_exu_is_risb)    ,
    .o_exu_is_riuj     (du_exu_is_riuj)    ,
    .o_exu_is_jalr     (du_exu_is_jalr)    ,
@@ -374,9 +376,16 @@ regfile inst_regfile (
 opfwd_control inst_opfwd_control (
    .i_rf_op0            (rf_exu_op0)           ,   
    .i_rf_op1            (rf_exu_op1)           ,
-
+   
+   .i_du_pc             (du_exu_pc)            ,
    .i_du_rs0            (du_exu_rs0)           ,
    .i_du_rs1            (du_exu_rs1)           , 
+   .i_du_is_i_type      (du_exu_is_i_type)     ,
+   .i_du_i_type_imm     (du_exu_i_type_imm)    ,
+   .i_du_is_u_type      (du_exu_is_u_type)     ,
+   .i_du_u_type_imm     (du_exu_u_type_imm)    ,
+   .i_du_is_lui         (du_exu_is_lui)        ,
+   .i_du_instr_rsb      (du_exu_is_rsb)        ,
    .i_du_instr_risb     (du_exu_is_risb)       ,
    .i_du_instr_valid    (~du_exu_bubble)       ,
 
@@ -444,6 +453,7 @@ execution_unit #(
    .i_du_is_b_type     (du_exu_is_b_type)  ,
    .i_du_is_u_type     (du_exu_is_u_type)  ,
    .i_du_is_j_type     (du_exu_is_j_type)  ,
+   .i_du_is_rsb        (du_exu_is_rsb)     ,
    .i_du_is_risb       (du_exu_is_risb)    ,
    .i_du_is_riuj       (du_exu_is_riuj)    ,
    .i_du_is_jal_or_jalr(du_exu_is_j_or_jalr),

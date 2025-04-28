@@ -96,6 +96,7 @@ module execution_unit #(
    input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
    input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU 
    input  logic             i_du_is_j_type      ,  // J-type instruction flag from DU 
+   input  logic             i_du_is_rsb         ,  // RSB flag from DU  //**CHECKME**// Unused here, but tapped by Operand Forward block
    input  logic             i_du_is_risb        ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
    input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
    input  logic             i_du_is_jalr        ,  // JALR flag from DU
@@ -257,20 +258,8 @@ loadstore_unit inst_loadstore_unit (
 //===================================================================================================================================================
 //  Pre-processing logic - to select operands op0, op1 to ALU
 //===================================================================================================================================================
-always_comb begin
-   // Operand-0
-   case ({i_du_is_u_type, is_op_lui}) 
-      2'b11   : alu_op0  = '0      ;  // 0+immU for LUI
-      2'b10   : alu_op0  = i_du_pc ;  // pc+immU for AUIPC 
-      default : alu_op0  = i_op0   ;  // For all other instructions, forward op0 from Opfwd block to the ALU
-   endcase
-   // Operand-1
-   case ({i_du_is_i_type, i_du_is_u_type}) 
-      2'b10   : alu_op1  = immI  ;  // For I-type instruction, immI from DU should be forwarded to the ALU, not op1 from Opfwd block
-      2'b01   : alu_op1  = immU  ;  // For U-type instruction, immU from DU should be forwarded to the ALU, not op1 from Opfwd block  
-      default : alu_op1  = i_op1 ;  // For all other instructions, forward i_op0 from Opfwd block to the ALU      
-   endcase  
-end
+assign alu_op1 = i_op1 ;
+assign alu_op0 = i_op0 ;
 
 assign alu_opcode = i_du_alu_opcode ;
 assign is_op_lui  = i_du_is_lui     ;

@@ -98,6 +98,7 @@ module decode_unit #(
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
    output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU
    output logic             o_exu_is_j_type    ,  // J-type instruction flag to EXU
+   output logic             o_exu_is_rsb       ,  // RSB flag to EXU
    output logic             o_exu_is_risb      ,  // RISB flag to EXU
    output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
    output logic             o_exu_is_jalr      ,  // JALR flag to EXU
@@ -123,6 +124,7 @@ logic [6:0]       fu_funct7           ;  // Funct7 decoded from FU instr
 
 // Buffered flags after decoding --> Payload to EXU
 logic [5:0]       instr_type_rg       ;  // {R, I, S, B, U, J} type instruction flag (one-hot encoded)
+logic             is_rsb_rg           ;  // RSB flag
 logic             is_risb_rg          ;  // RISB flag
 logic             is_jal              ;  // JAL flag
 logic             is_jalr             ;  // JALR flag
@@ -178,6 +180,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin
       instr_type_rg   <= 6'b000000 ;   
       is_risb_rg      <= 1'b0 ; 
+      is_rsb_rg       <= 1'b0 ;
       is_jalr_rg      <= 1'b0 ;
       is_j_or_jalr_rg <= 1'b0 ;
       is_load_rg      <= 1'b0 ;
@@ -190,18 +193,18 @@ always_ff @(posedge clk or negedge aresetn) begin
       if (!stall) begin
          // Instruction type
          case (fu_opcode)  
-            OP_ALU    : begin instr_type_rg <= 6'b100000 ; is_risb_rg <= 1'b1 ; end  // R-type
+            OP_ALU    : begin instr_type_rg <= 6'b100000 ; is_risb_rg <= 1'b1 ; is_rsb_rg <= 1'b1 ; end  // R-type
             //7'h73,  // ECALL/EBREAK/CSRR* 
             //7'h0F,  // FENCE
             OP_JALR,
             OP_LOAD,
-            OP_ALUI   : begin instr_type_rg <= 6'b010000 ; is_risb_rg <= 1'b1 ; end  // I-type
-            OP_STORE  : begin instr_type_rg <= 6'b001000 ; is_risb_rg <= 1'b1 ; end  // S-type
-            OP_BRANCH : begin instr_type_rg <= 6'b000100 ; is_risb_rg <= 1'b1 ; end  // B-type
+            OP_ALUI   : begin instr_type_rg <= 6'b010000 ; is_risb_rg <= 1'b1 ; is_rsb_rg <= 1'b0 ; end  // I-type
+            OP_STORE  : begin instr_type_rg <= 6'b001000 ; is_risb_rg <= 1'b1 ; is_rsb_rg <= 1'b1 ; end  // S-type
+            OP_BRANCH : begin instr_type_rg <= 6'b000100 ; is_risb_rg <= 1'b1 ; is_rsb_rg <= 1'b1 ; end  // B-type
             OP_LUI,
-            OP_AUIPC  : begin instr_type_rg <= 6'b000010 ; is_risb_rg <= 1'b0 ; end  // U-type
-            OP_JAL    : begin instr_type_rg <= 6'b000001 ; is_risb_rg <= 1'b0 ; end  // J-type
-            default   : begin instr_type_rg <= 6'b000000 ; is_risb_rg <= 1'b0 ; end  // Invalid instruction type
+            OP_AUIPC  : begin instr_type_rg <= 6'b000010 ; is_risb_rg <= 1'b0 ; is_rsb_rg <= 1'b0 ; end  // U-type
+            OP_JAL    : begin instr_type_rg <= 6'b000001 ; is_risb_rg <= 1'b0 ; is_rsb_rg <= 1'b0 ; end  // J-type
+            default   : begin instr_type_rg <= 6'b000000 ; is_risb_rg <= 1'b0 ; is_rsb_rg <= 1'b0 ; end  // Invalid instruction type
          endcase
          // Flags
          is_jalr_rg      <= is_jalr      ;
@@ -355,7 +358,8 @@ assign o_exu_is_s_type    = is_s_type  ;
 assign o_exu_is_b_type    = is_b_type  ;
 assign o_exu_is_u_type    = is_u_type  ;
 assign o_exu_is_j_type    = is_j_type  ;
-assign o_exu_is_risb      = is_risb_rg ;  // R/I/S/B-type instruction?
+assign o_exu_is_rsb       = is_rsb_rg  ;
+assign o_exu_is_risb      = is_risb_rg ; 
 assign o_exu_is_riuj      = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
 assign o_exu_is_jalr      = is_jalr_rg ;
 assign o_exu_is_j_or_jalr = is_j_or_jalr_rg ;
