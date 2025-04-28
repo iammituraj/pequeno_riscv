@@ -238,7 +238,7 @@ logic [`XLEN-1:0] wbu_pc_out           ;  // PC from WBU
 logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
 `endif
 logic             wbu_is_riuj_out      ;  // RIUJ flag from WBU
-logic             wbu_bubble_out       ;  // Bubble from WBU
+logic             wbu_pkt_valid_out    ;  // Packet valid from WBU
 logic [4:0]       wbu_rdt_addr_out     ;  // rdt address from WBU
 logic [`XLEN-1:0] wbu_rdt_data_out     ;  // rdt data from WBU
 logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
@@ -405,7 +405,7 @@ opfwd_control inst_opfwd_control (
    .i_wbu_rdt           (wbu_rdt_addr_out)     ,  
    .i_wbu_rdt_not_x0    (wbu_rdt_not_x0_out)   ,
    .i_wbu_instr_riuj    (wbu_is_riuj_out)      ,  
-   .i_wbu_instr_valid   (~wbu_bubble_out)      ,
+   .i_wbu_instr_valid   (wbu_pkt_valid_out)    ,
 
    .o_fwd_op0           (opfwd_exu_op0)        , 
    .o_fwd_op1           (opfwd_exu_op1) 
@@ -577,7 +577,7 @@ writeback_unit #(
    .o_instr            (wbu_instr_out)      ,  
    `endif
    .o_is_riuj          (wbu_is_riuj_out)    ,  
-   .o_bubble           (wbu_bubble_out)     ,
+   .o_pkt_valid        (wbu_pkt_valid_out)  ,
    .o_rdt_addr         (wbu_rdt_addr_out)   , 
    .o_rdt_data         (wbu_rdt_data_out)   , 
    .o_rdt_not_x0       (wbu_rdt_not_x0_out) , 
@@ -697,7 +697,7 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $write  ("       %0d      |", ~du_exu_bubble);
       $write  ("       %0d      |", ~exu_maccu_bubble);
       $write  ("       %0d      |", ~maccu_wbu_bubble);
-      $write  ("       %0d      |", ~wbu_bubble_out);
+      $write  ("       %0d      |", wbu_pkt_valid_out);
       $write  ("\n");
       $display("+----------+--------------+--------------+--------------+--------------+--------------+");      
       $write  ("| PC       |");
