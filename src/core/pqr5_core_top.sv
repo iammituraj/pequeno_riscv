@@ -341,7 +341,6 @@ decode_unit #(
    .o_exu_is_s_type   (du_exu_is_s_type)  ,
    .o_exu_is_b_type   (du_exu_is_b_type)  ,
    .o_exu_is_u_type   (du_exu_is_u_type)  ,
-   .o_exu_is_j_type   (du_exu_is_j_type)  ,
    .o_exu_is_rsb      (du_exu_is_rsb)     ,
    .o_exu_is_risb     (du_exu_is_risb)    ,
    .o_exu_is_riuj     (du_exu_is_riuj)    ,
@@ -352,8 +351,7 @@ decode_unit #(
    .o_exu_i_type_imm  (du_exu_i_type_imm) ,
    .o_exu_s_type_imm  (du_exu_s_type_imm) ,
    .o_exu_b_type_imm  (du_exu_b_type_imm) ,
-   .o_exu_u_type_imm  (du_exu_u_type_imm) ,
-   .o_exu_j_type_imm  (du_exu_j_type_imm)  
+   .o_exu_u_type_imm  (du_exu_u_type_imm) 
 );
 
 // Register File (RF)
@@ -457,9 +455,6 @@ execution_unit #(
    .i_du_is_s_type     (du_exu_is_s_type)  ,
    .i_du_is_b_type     (du_exu_is_b_type)  ,
    .i_du_is_u_type     (du_exu_is_u_type)  ,
-   .i_du_is_j_type     (du_exu_is_j_type)  ,
-   //.i_du_is_rsb        (du_exu_is_rsb)     ,
-   //.i_du_is_risb       (du_exu_is_risb)    ,
    .i_du_is_riuj       (du_exu_is_riuj)    ,
    .i_du_is_jal_or_jalr(du_exu_is_j_or_jalr),
    .i_du_is_jalr       (du_exu_is_jalr)    ,
@@ -469,7 +464,6 @@ execution_unit #(
    .i_du_s_type_imm    (du_exu_s_type_imm) ,
    .i_du_b_type_imm    (du_exu_b_type_imm) ,
    .i_du_u_type_imm    (du_exu_u_type_imm) ,
-   .i_du_j_type_imm    (du_exu_j_type_imm) ,  
    
    `ifdef DBG
    .o_maccu_pc         (exu_maccu_pc)         ,

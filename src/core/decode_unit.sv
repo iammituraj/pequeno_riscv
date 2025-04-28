@@ -98,7 +98,6 @@ module decode_unit #(
    output logic             o_exu_is_s_type    ,  // S-type instruction flag to EXU
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
    output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU
-   output logic             o_exu_is_j_type    ,  // J-type instruction flag to EXU
    output logic             o_exu_is_rsb       ,  // RSB flag to EXU
    output logic             o_exu_is_risb      ,  // RISB flag to EXU
    output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
@@ -109,8 +108,7 @@ module decode_unit #(
    output logic [11:0]      o_exu_i_type_imm   ,  // I-type immediate to EXU
    output logic [11:0]      o_exu_s_type_imm   ,  // S-type immediate to EXU
    output logic [11:0]      o_exu_b_type_imm   ,  // B-type immediate to EXU
-   output logic [19:0]      o_exu_u_type_imm   ,  // U-type immediate to EXU
-   output logic [19:0]      o_exu_j_type_imm      // J-type immediate to EXU
+   output logic [19:0]      o_exu_u_type_imm      // U-type immediate to EXU
 );
 
 //===================================================================================================================================================
@@ -257,8 +255,6 @@ always_comb begin
       default : alu_opcode = {fu_funct3, fu_funct7[5]};  // This will cover ALU-R and ALU-I instructions: SLLI/SRLI/SRAI
    endcase
 end
-// ALU operands decoder
-
 
 //===================================================================================================================================================
 // Synchronous logic to pipe PC
@@ -370,7 +366,6 @@ assign o_exu_is_i_type    = is_i_type  ;
 assign o_exu_is_s_type    = is_s_type  ;
 assign o_exu_is_b_type    = is_b_type  ;
 assign o_exu_is_u_type    = is_u_type  ;
-assign o_exu_is_j_type    = is_j_type  ;
 assign o_exu_is_rsb       = is_rsb_rg  ;
 assign o_exu_is_risb      = is_risb_rg ; 
 assign o_exu_is_riuj      = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
@@ -382,7 +377,6 @@ assign o_exu_i_type_imm   = {du_instr_rg[31:20]}                                
 assign o_exu_s_type_imm   = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;
 assign o_exu_b_type_imm   = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]}   ;
 assign o_exu_u_type_imm   = {du_instr_rg[31:12]}                                                       ;
-assign o_exu_j_type_imm   = {du_instr_rg[31], du_instr_rg[19:12], du_instr_rg[20], du_instr_rg[30:21]} ;
 
 endmodule
 //###################################################################################################################################################

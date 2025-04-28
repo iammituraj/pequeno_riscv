@@ -96,9 +96,6 @@ module execution_unit #(
    input  logic             i_du_is_s_type      ,  // S-type instruction flag from DU 
    input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
    input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU 
-   input  logic             i_du_is_j_type      ,  // J-type instruction flag from DU 
-   //input  logic             i_du_is_rsb         ,  // RSB flag from DU  //**CHECKME**// Unused here, but tapped by Operand Forward block
-   //input  logic             i_du_is_risb        ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
    input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
    input  logic             i_du_is_jalr        ,  // JALR flag from DU
    input  logic             i_du_is_jal_or_jalr ,  // J/JALR flag from DU
@@ -108,7 +105,6 @@ module execution_unit #(
    input  logic [11:0]      i_du_s_type_imm     ,  // S-type immediate from DU
    input  logic [11:0]      i_du_b_type_imm     ,  // B-type immediate from DU
    input  logic [19:0]      i_du_u_type_imm     ,  // U-type immediate from DU
-   input  logic [19:0]      i_du_j_type_imm     ,  // J-type immediate from DU
 
    // Interface with Memory Access Unit (MACCU)
    `ifdef DBG
@@ -209,12 +205,10 @@ exu_branch_unit #(
    .i_stall        (stall)             ,
    .i_pc           (i_du_pc)           ,    
    .i_bubble       (du_bubble)         ,  
-   .i_is_j_type    (i_du_is_j_type)    ,    
    .i_is_b_type    (i_du_is_b_type)    ,  
    .i_is_jalr      (i_du_is_jalr)      ,
    .i_is_j_or_jalr (i_du_is_jal_or_jalr),
    .i_funct3       (i_du_funct3)       ,    
-   .i_immJ         (i_du_j_type_imm)   ,    
    .i_immI         (i_du_i_type_imm)   ,    
    .i_immB         (i_du_b_type_imm)   ,    
    .i_op0          (i_op0)             ,    
@@ -298,7 +292,6 @@ end
 assign alu_op1    = i_op1 ;
 assign alu_op0    = i_op0 ;
 assign alu_opcode = i_du_alu_opcode ;
-assign immI       = {{(`XLEN-12){i_du_i_type_imm[11]}}, i_du_i_type_imm} ;  // Sign-extend
 assign immU       = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;                 // LSbs to fill 0s
 
 `ifdef DBG
@@ -352,7 +345,6 @@ end
 
 assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble ;             // JAL/JALR/ALU/LUI/AUIPC instructions require writeback
 assign is_exu_result_mem = ~lsu_bubble  ;                         // Load/Store instructions require memory access          
-//assign exu_bubble        = bu_bubble & alu_bubble & lsu_bubble ;  // If EXU-BU, ALU, and LSU assert bubble, invalidate the piped instruction
 
 //===================================================================================================================================================
 //  Pipeline Interlock logic
@@ -389,11 +381,11 @@ assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_du_instr_v
 //===================================================================================================================================================
 //  Stall logic
 //===================================================================================================================================================
-assign stall         = i_maccu_stall               ;  // Only MACCU can stall EXU from outside. 
-                                                      // NOT conditioned with valid cz the bubble maybe intentionally added by Pipeline Interlock.
-                                                      // So, the bubble shouldn't be bursted...!!
-assign exu_stall_ext = stall | is_pipe_inlock      ;  // If EXU is stalled or Pipeline interlock -> DU stall  
-assign o_du_stall    = exu_stall_ext               ;  // Stall signal to DU
+assign stall         = i_maccu_stall           ;  // Only MACCU can stall EXU from outside. 
+                                                  // NOT conditioned with valid cz the bubble maybe intentionally added by Pipeline Interlock.
+                                                  // So, the bubble shouldn't be bursted...!!
+assign exu_stall_ext = stall | is_pipe_inlock  ;  // If EXU is stalled or Pipeline interlock -> DU stall  
+assign o_du_stall    = exu_stall_ext           ;  // Stall signal to DU
 
 //===================================================================================================================================================
 // All other output signals from EXU

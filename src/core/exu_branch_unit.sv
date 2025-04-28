@@ -57,12 +57,10 @@ module exu_branch_unit #(
    input  logic             i_stall          ,  // Stall signal
    input  logic [`XLEN-1:0] i_pc             ,  // Incoming PC
    input  logic             i_bubble         ,  // Bubble in
-   input  logic             i_is_j_type      ,  // J-type instruction flag
    input  logic             i_is_b_type      ,  // B-type instruction flag
    input  logic             i_is_jalr        ,  // JALR flag
    input  logic             i_is_j_or_jalr   ,  // J/JALR instruction flag
    input  logic [2:0]       i_funct3         ,  // funct3
-   input  logic [19:0]      i_immJ           ,  // J-type immediate
    input  logic [11:0]      i_immI           ,  // I-type immediate
    input  logic [11:0]      i_immB           ,  // B-type immediate
    input  logic [`XLEN-1:0] i_op0            ,  // Operand-0 from register file
@@ -88,9 +86,9 @@ logic [`XLEN-1:0] branch_pc, branch_pc_rg       ;  // Branch PC
 logic             bubble, bubble_rg             ;  // Bubble
 logic             flush                         ;  // Flush
 
-logic [`XLEN-1:0] immJ, immI, immB              ;  // J/I/B-type immediates sign-extended                            
+logic [`XLEN-1:0] immI, immB                    ;  // J/I/B-type immediates sign-extended                            
 logic [`XLEN-1:0] pc_plus_4                     ;  // PC+4           
-logic [`XLEN-1:0] pc_plus_immJ, pc_plus_immB    ;  // PC+immJ and PC+immB        
+logic [`XLEN-1:0] pc_plus_immB                  ;  // PC+immJ and PC+immB  
 logic [`XLEN-1:0] op0_plus_immI                 ;  // op0+immI  
 
 logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Unsigned comparison flag 
@@ -124,7 +122,7 @@ end
 //===================================================================================================================================================
 // Combinatorial logic for branch decoding & resolution
 //===================================================================================================================================================
-// - JAL never generates flush because it is already handled by the Branch Predictor in FU correctly, and the branch is always taken.
+// - JAL never generates flush because it is already resolved by the Branch Predictor in FU correctly, and the branch is always taken.
 // - JALR always generates flush, cz the Branch predictor is static and hence can never resolve the branch address.
 //   The branch is always taken, while the Branch predictor always resolves it wrongly as not taken always.
 // - Branch instructions: flush iff current branch status != status computed after execution .
@@ -151,19 +149,18 @@ always_comb begin
    endcase
 end
 
-// Combinatorial logic for Branch PC resolution
-always_comb begin
-   casez ({i_is_j_type, i_is_jalr, i_is_b_type, branch_taken})
-      4'b100? : branch_pc = pc_plus_immJ ;
-      4'b010? : branch_pc = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
-      4'b0011 : branch_pc = pc_plus_immB ;
-      default : branch_pc = pc_plus_4 ;
-   endcase
-end
-
 assign is_op0_eq_op1        = (i_op0 == i_op1)                  ;  // Equality
 assign is_op0_lt_op1        = (i_op0 < i_op1)                   ;  // Unsigned comparison
 assign is_sign_op0_lt_op1   = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
+
+// Combinatorial logic for Branch PC resolution
+always_comb begin
+   case ({i_is_jalr, i_is_b_type})
+      2'b10   : branch_pc = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
+      2'b01   : branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
+      default : branch_pc = pc_plus_4 ;
+   endcase
+end
 
 // Flush generation logic
 assign is_branch_taken_diff = branch_taken_rg ^ bp_branch_taken_rg     ;  // Compare the predicted and resolved branch taken status and flag if different 
@@ -175,11 +172,9 @@ assign bubble = i_is_j_or_jalr ? i_bubble : 1'b1 ;  // Every instruction inserts
                                                     // Invalid/Branch instructions need not propagate fwd in pipeline 
 
 // Decoded immediates
-assign immJ          = {{(`XLEN-20){i_immJ[19]}}, i_immJ[18:0], 1'b0} ;  // Sign-extend after x2
 assign immI          = {{(`XLEN-12){i_immI[11]}}, i_immI}             ;  // Sign-extend
 assign immB          = {{(`XLEN-12){i_immB[11]}}, i_immB[10:0], 1'b0} ;  // Sign-extend after x2
 assign pc_plus_4     = i_pc  + `XLEN'(4) ;
-assign pc_plus_immJ  = i_pc  + immJ      ;
 assign op0_plus_immI = i_op0 + immI      ;
 assign pc_plus_immB  = i_pc  + immB      ;
 
