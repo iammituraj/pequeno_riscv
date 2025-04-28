@@ -79,6 +79,7 @@ module execution_unit #(
    input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU        
    input  logic [`ILEN-1:0] i_du_instr          ,  // Instruction decoded and sent from DU     
    input  logic             i_du_bubble         ,  // Bubble from DU    
+   input  logic             i_du_pkt_valid      ,  // Packet valid from DU
    output logic             o_du_stall          ,  // Stall signal to DU
 
    input  logic [6:0]       i_du_opcode         ,  // Instruction opcode from DU 
@@ -96,8 +97,8 @@ module execution_unit #(
    input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
    input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU 
    input  logic             i_du_is_j_type      ,  // J-type instruction flag from DU 
-   input  logic             i_du_is_rsb         ,  // RSB flag from DU  //**CHECKME**// Unused here, but tapped by Operand Forward block
-   input  logic             i_du_is_risb        ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
+   //input  logic             i_du_is_rsb         ,  // RSB flag from DU  //**CHECKME**// Unused here, but tapped by Operand Forward block
+   //input  logic             i_du_is_risb        ,  // RISB flag from DU //**CHECKME**// Unused here, but tapped by Operand Forward block
    input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
    input  logic             i_du_is_jalr        ,  // JALR flag from DU
    input  logic             i_du_is_jal_or_jalr ,  // J/JALR flag from DU
@@ -117,6 +118,7 @@ module execution_unit #(
    output logic             o_maccu_is_riuj     ,  // RIUJ flag to MACCU
    output logic [2:0]       o_maccu_funct3      ,  // Funct3 to MACCU
    output logic             o_maccu_bubble      ,  // Bubble to MACCU
+   output logic             o_maccu_pkt_valid   ,  // Packet valid to MACCU
    input  logic             i_maccu_stall       ,  // Stall signal from MACCU
 
    output logic [4:0]       o_maccu_rdt_addr    ,  // Writeback address to MACCU
@@ -168,7 +170,12 @@ logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
 
 // EXU results in the Payload to MACCU
 logic             exu_bubble         ;  // Bubble
+logic             exu_bubble_rg      ;  // Bubble (registered)
+logic             exu_pkt_valid_rg   ;  // Packet valid
 logic [`XLEN-1:0] exu_result         ;  // EXU result for writeback
+
+// Glue logic signals
+logic             bubble_insert      ;  // Bubble insertion signal
 
 // Pipeline Interlock logic specific
 logic             is_exu_instr_valid   ;  // Flags if EXU instr is valid
@@ -201,7 +208,7 @@ exu_branch_unit #(
 
    .i_stall        (stall)             ,
    .i_pc           (i_du_pc)           ,    
-   .i_bubble       (du_bubble)         ,    
+   .i_bubble       (du_bubble)         ,  
    .i_is_j_type    (i_du_is_j_type)    ,    
    .i_is_b_type    (i_du_is_b_type)    ,  
    .i_is_jalr      (i_du_is_jalr)      ,
@@ -259,7 +266,31 @@ loadstore_unit inst_loadstore_unit (
 
 // On Flush, the payload to EXU blocks should be invalidated immediately to avoid control hazards on branching.
 // On Pipeline interlock, bubble should be inserted to EXU func. blocks, DU will be stalled at this moment...
-assign du_bubble = i_du_bubble | bu_flush | is_pipe_inlock ;
+assign bubble_insert = bu_flush | is_pipe_inlock   ;
+assign du_bubble     = i_du_bubble | bubble_insert ;
+
+//===================================================================================================================================================
+//  Bubble/Packet valid propagation logic
+//===================================================================================================================================================
+always_comb begin
+   case ({i_du_is_jal_or_jalr, i_du_is_alu_op, i_du_is_s_type, i_du_is_load})
+      4'b1000,
+      4'b0100,
+      4'b0010,
+      4'b0001 : exu_bubble = du_bubble ;
+      default : exu_bubble = 1'b1      ;
+   endcase   
+end
+
+always_ff @(posedge clk or negedge aresetn) begin
+   if      (!aresetn) begin exu_bubble_rg <= 1'b1       ; end
+   else if (!stall)   begin exu_bubble_rg <= exu_bubble ; end 
+end
+
+always_ff @(posedge clk or negedge aresetn) begin
+   if      (!aresetn) begin exu_pkt_valid_rg <= 1'b1        ; end
+   else if (!stall)   begin exu_pkt_valid_rg <= ~exu_bubble ; end 
+end
 
 //===================================================================================================================================================
 //  Operands and Opcode to ALU
@@ -321,7 +352,7 @@ end
 
 assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble ;             // JAL/JALR/ALU/LUI/AUIPC instructions require writeback
 assign is_exu_result_mem = ~lsu_bubble  ;                         // Load/Store instructions require memory access          
-assign exu_bubble        = bu_bubble & alu_bubble & lsu_bubble ;  // If EXU-BU, ALU, and LSU assert bubble, invalidate the piped instruction
+//assign exu_bubble        = bu_bubble & alu_bubble & lsu_bubble ;  // If EXU-BU, ALU, and LSU assert bubble, invalidate the piped instruction
 
 //===================================================================================================================================================
 //  Pipeline Interlock logic
@@ -348,9 +379,9 @@ assign is_du_rs1_eq_exu_rdt = (i_du_rs1 == exu_rdt_rg) ;
 assign is_du_rsx_eq_exu_rdt = is_du_rs0_eq_exu_rdt | is_du_rs1_eq_exu_rdt ;
 assign is_exu_rdt_not_x0    = exu_rdt_not_x0_rg ;
 assign is_du_instr_risb     = {i_du_is_r_type, i_du_is_i_type, i_du_is_s_type, i_du_is_b_type} ;
-assign is_du_instr_valid    = ~i_du_bubble ;
-assign is_exu_instr_valid   = ~exu_bubble  ;
-assign is_exu_instr_load    = ~lsu_mem_cmd ;
+assign is_du_instr_valid    = i_du_pkt_valid ;
+assign is_exu_instr_valid   = ~exu_bubble   ;
+assign is_exu_instr_load    = ~lsu_mem_cmd  ;
 
 // Valid Load instruction and RAW access detected? => potential RAW hazard => pipeline interlock!
 assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_du_instr_valid && is_src_eq_dest) ;
@@ -383,7 +414,8 @@ assign o_maccu_instr      = exu_instr_rg      ;
 `endif
 assign o_maccu_funct3     = exu_funct3_rg     ;
 assign o_maccu_is_riuj    = exu_is_riuj_rg    ;
-assign o_maccu_bubble     = exu_bubble        ; 
+assign o_maccu_bubble     = exu_bubble_rg     ; 
+assign o_maccu_pkt_valid  = exu_pkt_valid_rg  ;
 
 assign o_maccu_rdt_addr   = exu_rdt_rg        ;
 assign o_maccu_rdt_data   = exu_result        ;

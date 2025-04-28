@@ -81,6 +81,7 @@ module decode_unit #(
    output logic [`XLEN-1:0] o_exu_pc           ,  // PC to EXU
    output logic [`ILEN-1:0] o_exu_instr        ,  // Instruction decoded and sent to EXU
    output logic             o_exu_bubble       ,  // Bubble to EXU
+   output logic             o_exu_pkt_valid    ,  // Packet valid to EXU
    input  logic             i_exu_stall        ,  // Stall signal from EXU
 
    output logic [6:0]       o_exu_opcode       ,  // Instruction opcode to EXU
@@ -163,6 +164,7 @@ logic [6:0]       funct7              ;  // Funct7
 logic [`XLEN-1:0] du_pc_rg            ;  // PC
 logic [`ILEN-1:0] du_instr_rg         ;  // Instruction
 logic             du_bubble_rg        ;  // Bubble
+logic             du_pkt_valid_rg     ;  // Packet valid
 logic             du_br_taken_rg      ;  // Branch taken status
 
 // Stall logic specific
@@ -285,6 +287,15 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 //===================================================================================================================================================
+// Synchronous logic to generate packet valid
+//===================================================================================================================================================
+always_ff @(posedge clk or negedge aresetn) begin
+   if      (!aresetn) begin du_pkt_valid_rg <= 1'b0 ;         end
+   else if (flush)    begin du_pkt_valid_rg <= 1'b0 ;         end  // Invalidate on flush
+   else if (!stall)   begin du_pkt_valid_rg <= ~i_fu_bubble ; end  // Register the status
+end
+
+//===================================================================================================================================================
 // Synchronous logic to pipe branch taken status
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
@@ -297,8 +308,8 @@ assign o_exu_bu_br_taken = du_br_taken_rg ;
 //===================================================================================================================================================
 //  Stall logic
 //===================================================================================================================================================
-assign stall        = i_exu_stall & ~du_bubble_rg ;  // Only EXU can stall DU from outside. 
-                                                     // Conditioned with valid to burst unwanted pipeline bubbles.
+assign stall        = i_exu_stall & du_pkt_valid_rg ;  // Only EXU can stall DU from outside. 
+                                                       // Conditioned with valid to burst unwanted pipeline bubbles.
 assign du_stall_ext = stall                       ; 
 assign o_fu_stall   = du_stall_ext                ;  // Stall signal to FU
 
@@ -340,9 +351,10 @@ assign o_rf_rs0     = rf_reg_src0       ;  // Combi routing to sync the read-dat
 assign o_rf_rs1     = rf_reg_src1       ;  // Combi routing to sync the read-data from RF with DU payload to EXU
 
 // Payload to Execution Unit (EXU)
-assign o_exu_pc           = du_pc_rg      ;
-assign o_exu_instr        = du_instr_rg   ;
-assign o_exu_bubble       = du_bubble_rg  ;
+assign o_exu_pc           = du_pc_rg        ;
+assign o_exu_instr        = du_instr_rg     ;
+assign o_exu_bubble       = du_bubble_rg    ;
+assign o_exu_pkt_valid    = du_pkt_valid_rg ;
                                                                                                 
 assign o_exu_opcode       = du_opcode     ;
 assign o_exu_is_alu_op    = is_alu_op_rg  ;

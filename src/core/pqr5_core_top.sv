@@ -159,6 +159,7 @@ logic [`XLEN-1:0] rf_exu_op1        ;  // Operand-1 from RF to EXU
 logic [`XLEN-1:0] du_exu_pc         ;  // PC from DU to EXU   
 logic [`ILEN-1:0] du_exu_instr      ;  // Instruction from DU to EXU
 logic             du_exu_bubble     ;  // Bubble from DU to EXU
+logic             du_exu_pkt_valid  ;  // Packet valid from DU to EXU
 logic             exu_du_stall      ;  // Stall signal from EXU to DU
 
 logic [6:0]       du_exu_opcode     ;  // Opcode from DU to EXU
@@ -197,6 +198,7 @@ logic [`ILEN-1:0] exu_maccu_instr      ;  // Instruction from EXU to MACCU
 logic             exu_maccu_is_riuj    ;  // RIUJ flag from EXU to MACCU
 logic [2:0]       exu_maccu_funct3     ;  // Funct3 from EXU to MACCU
 logic             exu_maccu_bubble     ;  // Bubble from EXU to MACCU
+logic             exu_maccu_pkt_valid  ;  // Packet valid from EXU to MACCU
 logic             maccu_exu_stall      ;  // Stall signal from MACCU to EXU
 
 logic [4:0]       exu_maccu_rdt_addr   ;  // Writeback register address from EXU to MACCU 
@@ -216,6 +218,7 @@ logic [`ILEN-1:0] maccu_wbu_instr      ;  // Instruction from MACCU to WBU
 logic             maccu_wbu_is_riuj    ;  // RIUJ flag from MACCU to WBU
 logic [2:0]       maccu_wbu_funct3     ;  // Funct3 from MACCU to WBU
 logic             maccu_wbu_bubble     ;  // Bubble from MACCU to WBU
+logic             maccu_wbu_pkt_valid  ;  // Packet valid from MACCU to WBU
 logic             wbu_maccu_stall      ;  // Stall signal from WBU to MACCU  
 logic [4:0]       maccu_wbu_rdt_addr   ;  // rdt address from MACCU to WBU
 logic [`XLEN-1:0] maccu_wbu_rdt_data   ;  // rdt data from MACCU to WBU
@@ -318,10 +321,11 @@ decode_unit #(
    .i_exu_bu_pc       (exu_bu_pc)       ,
    .o_exu_bu_br_taken (exu_bu_br_taken) ,
 
-   .o_exu_pc          (du_exu_pc)     ,  
-   .o_exu_instr       (du_exu_instr)  ,  
-   .o_exu_bubble      (du_exu_bubble) ,  
-   .i_exu_stall       (exu_du_stall)  ,
+   .o_exu_pc          (du_exu_pc)       ,  
+   .o_exu_instr       (du_exu_instr)    ,  
+   .o_exu_bubble      (du_exu_bubble)   ,  
+   .o_exu_pkt_valid   (du_exu_pkt_valid),
+   .i_exu_stall       (exu_du_stall)    ,
    
    .o_exu_opcode      (du_exu_opcode)     , 
    .o_exu_is_alu_op   (du_exu_is_alu_op)  ,
@@ -387,19 +391,19 @@ opfwd_control inst_opfwd_control (
    .i_du_is_lui         (du_exu_is_lui)        ,
    .i_du_instr_rsb      (du_exu_is_rsb)        ,
    .i_du_instr_risb     (du_exu_is_risb)       ,
-   .i_du_instr_valid    (~du_exu_bubble)       ,
+   .i_du_instr_valid    (du_exu_pkt_valid)     ,
 
    .i_exu_result        (exu_maccu_rdt_data)   ,  
    .i_exu_rdt           (exu_maccu_rdt_addr)   ,  
    .i_exu_rdt_not_x0    (exu_maccu_rdt_not_x0) ,
    .i_exu_instr_riuj    (exu_maccu_is_riuj)    ,  
-   .i_exu_instr_valid   (~exu_maccu_bubble)    ,
+   .i_exu_instr_valid   (exu_maccu_pkt_valid)  ,
 
    .i_maccu_result      (maccu_result)         ,
    .i_maccu_rdt         (maccu_wbu_rdt_addr)   ,
    .i_maccu_rdt_not_x0  (maccu_wbu_rdt_not_x0) ,
    .i_maccu_instr_riuj  (maccu_wbu_is_riuj)    ,
-   .i_maccu_instr_valid (~maccu_wbu_bubble)    ,  
+   .i_maccu_instr_valid (maccu_wbu_pkt_valid)  ,  
 
    .i_wbu_result        (wbu_rdt_data_out)     ,  
    .i_wbu_rdt           (wbu_rdt_addr_out)     ,  
@@ -436,6 +440,7 @@ execution_unit #(
    .i_du_pc            (du_exu_pc)       ,
    .i_du_instr         (du_exu_instr)    ,
    .i_du_bubble        (du_exu_bubble)   ,
+   .i_du_pkt_valid     (du_exu_pkt_valid),
    .o_du_stall         (exu_du_stall)    ,
 
    .i_du_opcode        (du_exu_opcode)     ,
@@ -453,8 +458,8 @@ execution_unit #(
    .i_du_is_b_type     (du_exu_is_b_type)  ,
    .i_du_is_u_type     (du_exu_is_u_type)  ,
    .i_du_is_j_type     (du_exu_is_j_type)  ,
-   .i_du_is_rsb        (du_exu_is_rsb)     ,
-   .i_du_is_risb       (du_exu_is_risb)    ,
+   //.i_du_is_rsb        (du_exu_is_rsb)     ,
+   //.i_du_is_risb       (du_exu_is_risb)    ,
    .i_du_is_riuj       (du_exu_is_riuj)    ,
    .i_du_is_jal_or_jalr(du_exu_is_j_or_jalr),
    .i_du_is_jalr       (du_exu_is_jalr)    ,
@@ -473,6 +478,7 @@ execution_unit #(
    .o_maccu_is_riuj    (exu_maccu_is_riuj)    ,
    .o_maccu_funct3     (exu_maccu_funct3)     ,
    .o_maccu_bubble     (exu_maccu_bubble)     ,
+   .o_maccu_pkt_valid  (exu_maccu_pkt_valid)  ,
    .i_maccu_stall      (maccu_exu_stall)      ,
 
    .o_maccu_rdt_addr   (exu_maccu_rdt_addr)   ,
@@ -499,6 +505,7 @@ memory_access_unit #(
    .i_exu_is_riuj    (exu_maccu_is_riuj)    ,
    .i_exu_funct3     (exu_maccu_funct3)     ,
    .i_exu_bubble     (exu_maccu_bubble)     ,
+   .i_exu_pkt_valid  (exu_maccu_pkt_valid)  ,
    .o_exu_stall      (maccu_exu_stall)      ,
 
    .i_exu_rdt_addr   (exu_maccu_rdt_addr)   ,
@@ -525,6 +532,7 @@ memory_access_unit #(
    .o_wbu_is_riuj    (maccu_wbu_is_riuj)    ,
    .o_wbu_funct3     (maccu_wbu_funct3)     ,
    .o_wbu_bubble     (maccu_wbu_bubble)     ,
+   .o_wbu_pkt_valid  (maccu_wbu_pkt_valid)  ,
    .i_wbu_stall      (wbu_maccu_stall)      ,
    .o_wbu_rdt_addr   (maccu_wbu_rdt_addr)   ,
    .o_wbu_rdt_data   (maccu_wbu_rdt_data)   ,
@@ -559,6 +567,7 @@ writeback_unit #(
    .i_maccu_is_riuj    (maccu_wbu_is_riuj)    ,
    .i_maccu_funct3     (maccu_wbu_funct3)     ,
    .i_maccu_bubble     (maccu_wbu_bubble)     ,
+   .i_maccu_pkt_valid  (maccu_wbu_pkt_valid)  ,
    .o_maccu_stall      (wbu_maccu_stall)      ,
    .i_maccu_rdt_addr   (maccu_wbu_rdt_addr)   ,
    .i_maccu_rdt_data   (maccu_wbu_rdt_data)   ,
