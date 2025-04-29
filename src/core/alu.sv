@@ -75,7 +75,7 @@ always_comb begin
       ALU_SLL  : result = i_op0 << i_op1[4:0] ;
       ALU_SRL  : result = i_op0 >> i_op1[4:0] ;
       ALU_SRA  : result = (signed'(i_op0)) >>> i_op1[4:0] ;
-      default  : result = '0 ;  // Insert bubble on illegal ALU instruction  	
+      default  : result = '0 ;  // Illegal ALU instruction. Currently bubble is not generated, allows to go fwd in pipeline as it's non-critical...  	
    endcase
 end
 assign bubble = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
