@@ -325,7 +325,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       exu_rdt_not_x0_rg <= 1'b0 ;
    end
    else if (!stall) begin  // Pipe forward...
-      exu_is_riuj_rg    <= i_du_is_riuj    ; 
+      exu_is_riuj_rg    <= i_du_is_riuj & ~exu_bubble ; 
       exu_funct3_rg     <= i_du_funct3     ;
       exu_rdt_rg        <= i_du_rdt        ;  
       exu_rdt_not_x0_rg <= i_du_rdt_not_x0 ;
@@ -384,7 +384,7 @@ assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_du_instr_v
 assign stall         = i_maccu_stall           ;  // Only MACCU can stall EXU from outside. 
                                                   // NOT conditioned with valid cz the bubble maybe intentionally added by Pipeline Interlock.
                                                   // So, the bubble shouldn't be bursted...!!
-assign exu_stall_ext = stall | is_pipe_inlock  ;  // If EXU is stalled or Pipeline interlock -> DU stall  
+assign exu_stall_ext = stall | is_pipe_inlock  ;  // Pipeline interlock should stall the upstream pipeline...
 assign o_du_stall    = exu_stall_ext           ;  // Stall signal to DU
 
 //===================================================================================================================================================
