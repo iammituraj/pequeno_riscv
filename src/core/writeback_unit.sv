@@ -165,7 +165,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       wbu_pc_rg        <= i_maccu_pc        ;
       wbu_instr_rg     <= i_maccu_instr     ;
       `endif
-      wbu_is_riuj_rg   <= i_maccu_is_riuj   ;
+      wbu_is_riuj_rg   <= i_maccu_is_riuj & ~i_maccu_bubble ;
       wbu_pkt_valid_rg <= i_maccu_pkt_valid ;      
    end
 end

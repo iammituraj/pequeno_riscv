@@ -171,7 +171,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       maccu_pc_rg         <= i_exu_pc         ;
       maccu_instr_rg      <= i_exu_instr      ;
       `endif
-      maccu_is_riuj_rg    <= i_exu_is_riuj    ;
+      maccu_is_riuj_rg    <= i_exu_is_riuj & ~exu_bubble ;
       maccu_funct3_rg     <= i_exu_funct3     ;
       maccu_bubble_rg     <= exu_bubble       ;
       maccu_pkt_valid_rg  <= i_exu_pkt_valid  ;
