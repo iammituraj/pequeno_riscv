@@ -156,42 +156,36 @@ assign immU = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;  // LSbs to fill 0s
 //===================================================================================================================================================
 // Combinatorial logic to forward EXU result
 //===================================================================================================================================================
-assign exu_and_du_instr_valid = i_exu_instr_valid && i_du_instr_valid;
+//assign exu_and_du_instr_valid = i_exu_instr_valid ;
 
 // Operand-0 forwarding
-assign is_du_exu_op0_raw = (is_exu_instr_riuj && is_du_instr_risb && exu_and_du_instr_valid &&
-                            (i_du_rs0 == i_exu_rdt) && is_exu_rdt_not_x0);
+assign is_du_exu_op0_raw = (is_exu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_exu_rdt) && is_exu_rdt_not_x0);
 
 // Operand-1 forwarding
-assign is_du_exu_op1_raw = (is_exu_instr_riuj && is_du_instr_rsb && exu_and_du_instr_valid &&
-                            (i_du_rs1 == i_exu_rdt) && is_exu_rdt_not_x0);
+assign is_du_exu_op1_raw = (is_exu_instr_riuj && is_du_instr_rsb  && (i_du_rs1 == i_exu_rdt) && is_exu_rdt_not_x0);
 
 
 //===================================================================================================================================================
 // Combinatorial logic to forward MACCU result
 //===================================================================================================================================================
-assign maccu_and_du_instr_valid = i_maccu_instr_valid && i_du_instr_valid;
+//assign maccu_and_du_instr_valid = i_maccu_instr_valid ;
 
 // Operand-0 forwarding
-assign is_du_maccu_op0_raw = (is_maccu_instr_riuj && is_du_instr_risb && maccu_and_du_instr_valid &&
-                              (i_du_rs0 == i_maccu_rdt) && is_maccu_rdt_not_x0);
+assign is_du_maccu_op0_raw = (is_maccu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_maccu_rdt) && is_maccu_rdt_not_x0);
 
 // Operand-1 forwarding
-assign is_du_maccu_op1_raw = (is_maccu_instr_riuj && is_du_instr_rsb && maccu_and_du_instr_valid &&
-                              (i_du_rs1 == i_maccu_rdt) && is_maccu_rdt_not_x0);
+assign is_du_maccu_op1_raw = (is_maccu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1 == i_maccu_rdt) && is_maccu_rdt_not_x0);
 
 //===================================================================================================================================================
 // Combinatorial logic to forward WBU result
 //===================================================================================================================================================
-assign wbu_and_du_instr_valid = i_wbu_instr_valid && i_du_instr_valid;
+//assign wbu_and_du_instr_valid = i_wbu_instr_valid ;
 
 // Operand-0 forwarding
-assign is_du_wbu_op0_raw = (is_wbu_instr_riuj && is_du_instr_risb && wbu_and_du_instr_valid &&
-                            (i_du_rs0 == i_wbu_rdt) && is_wbu_rdt_not_x0);
+assign is_du_wbu_op0_raw = (is_wbu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_wbu_rdt) && is_wbu_rdt_not_x0);
 
 // Operand-1 forwarding
-assign is_du_wbu_op1_raw = (is_wbu_instr_riuj && is_du_instr_rsb && wbu_and_du_instr_valid &&
-                            (i_du_rs1 == i_wbu_rdt) && is_wbu_rdt_not_x0);
+assign is_du_wbu_op1_raw = (is_wbu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1 == i_wbu_rdt) && is_wbu_rdt_not_x0);
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-0 to output
