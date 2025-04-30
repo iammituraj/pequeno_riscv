@@ -75,16 +75,16 @@ module decode_unit #(
    
    // Interface with Execution Unit (EXU)
    input  logic             i_exu_bu_flush     ,  // Flush signal from EXU-BU
-   input  logic [`XLEN-1:0] i_exu_bu_pc        ,  // Branch PC from EXU-BU
    output logic             o_exu_bu_br_taken  ,  // Branch taken status to EXU-BU
 
    output logic [`XLEN-1:0] o_exu_pc           ,  // PC to EXU
+   `ifdef DBG
    output logic [`ILEN-1:0] o_exu_instr        ,  // Instruction decoded and sent to EXU
+   `endif
    output logic             o_exu_bubble       ,  // Bubble to EXU
    output logic             o_exu_pkt_valid    ,  // Packet valid to EXU
    input  logic             i_exu_stall        ,  // Stall signal from EXU
 
-   output logic [6:0]       o_exu_opcode       ,  // Instruction opcode to EXU
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
@@ -97,18 +97,18 @@ module decode_unit #(
    output logic             o_exu_is_i_type    ,  // I-type instruction flag to EXU
    output logic             o_exu_is_s_type    ,  // S-type instruction flag to EXU
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
-   output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU
+   output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU; Tapped by opfwd block...
    output logic             o_exu_is_rsb       ,  // RSB flag to EXU
    output logic             o_exu_is_risb      ,  // RISB flag to EXU
    output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
    output logic             o_exu_is_jalr      ,  // JALR flag to EXU
    output logic             o_exu_is_j_or_jalr ,  // J/JALR flag to EXU
    output logic             o_exu_is_load      ,  // Load flag to EXU
-   output logic             o_exu_is_lui       ,  // LUI flag to EXU
+   output logic             o_exu_is_lui       ,  // LUI flag to EXU; Tapped by opfwd block...
    output logic [11:0]      o_exu_i_type_imm   ,  // I-type immediate to EXU
    output logic [11:0]      o_exu_s_type_imm   ,  // S-type immediate to EXU
    output logic [11:0]      o_exu_b_type_imm   ,  // B-type immediate to EXU
-   output logic [19:0]      o_exu_u_type_imm      // U-type immediate to EXU
+   output logic [19:0]      o_exu_u_type_imm      // U-type immediate to EXU; Tapped by opfwd block...
 );
 
 //===================================================================================================================================================
@@ -393,11 +393,12 @@ assign o_rf_rs1     = rf_reg_src1       ;  // Combi routing to sync the read-dat
 
 // Payload to Execution Unit (EXU)
 assign o_exu_pc           = du_pc_rg        ;
+`ifdef DBG
 assign o_exu_instr        = du_instr_rg     ;
+`endif
 assign o_exu_bubble       = du_bubble_rg    ;
 assign o_exu_pkt_valid    = du_pkt_valid_rg ;
                                                                                                 
-assign o_exu_opcode       = du_opcode     ;
 assign o_exu_is_alu_op    = is_alu_op_rg  ;
 assign o_exu_alu_opcode   = alu_opcode_rg ;
 assign o_exu_rs0          = reg_src0      ;

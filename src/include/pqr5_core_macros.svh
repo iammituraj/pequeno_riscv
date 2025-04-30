@@ -42,14 +42,14 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Generic constants - DO NOT MODIFY
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-`define CPU           "Pequeno RISC-V"
-`define VERS          "v1.0"
+`define CPU           "Pequeno RISC-V (PQR5)"
+`define VERS          "v1.1"
 `define ISA           "RV32I"
 
 `define XLEN          32                   // Size of register
 `define ILEN          32                   // Size of instruction
 
-`define XLSB          $clog2(`XLEN/8)-1:0  // Least significant addressing bits in XLEN addressing space
+`define XLSB          $clog2(`XLEN/8)      // Least significant addressing bits in XLEN addressing space
 
 // Instructions
 `define INSTR_NOP     32'h0000_0013        // NOP pseudo-instruction

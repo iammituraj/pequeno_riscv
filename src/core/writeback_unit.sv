@@ -53,56 +53,56 @@ module writeback_unit #(
 )
 (
    // Clock and Reset
-   input  logic             clk                ,  // Clock
-   input  logic             aresetn            ,  // Asynchronous Reset; active-low   
+   input  logic             clk                   ,  // Clock
+   input  logic             aresetn               ,  // Asynchronous Reset; active-low   
    
    `ifdef DBG
    // Debug Interface  	
-   output logic [4:0]       o_wbu_dbg          ,  // Debug signal
+   output logic [4:0]       o_wbu_dbg             ,  // Debug signal
    `endif
 
    // Data Memory/Cache Acknowledge Interface (DMEMIF) 
-   input  logic [`XLEN-1:0] i_dmem_rdata       ,  // Read-data from DMEMIF
-   input  logic             i_dmem_ack         ,  // Acknowledge from DMEMIF
-   output logic             o_dmem_stall       ,  // Stall signal to DMEMIF
+   input  logic [`XLEN-1:0] i_dmem_rdata          ,  // Read-data from DMEMIF
+   input  logic             i_dmem_ack            ,  // Acknowledge from DMEMIF
+   output logic             o_dmem_stall          ,  // Stall signal to DMEMIF
 
    // Operand Forward Interface
-   output logic [`XLEN-1:0] o_load_data        ,  // Load data from DMEM access 
+   output logic [`XLEN-1:0] o_load_data           ,  // Load data from DMEM access 
 
    // Interface with Memory Access Unit (MACCU)
    `ifdef DBG
-   input  logic [`XLEN-1:0] i_maccu_pc         ,  // PC from MACCU
-   input  logic [`ILEN-1:0] i_maccu_instr      ,  // Instruction from MACCU
+   input  logic [`XLEN-1:0] i_maccu_pc            ,  // PC from MACCU
+   input  logic [`ILEN-1:0] i_maccu_instr         ,  // Instruction from MACCU
    `endif
-   input  logic             i_maccu_is_riuj    ,  // RIUJ flag from MACCU
-   input  logic [2:0]       i_maccu_funct3     ,  // Funct3 from MACCU
-   input  logic             i_maccu_bubble     ,  // Bubble from MACCU
-   input  logic             i_maccu_pkt_valid  ,  // Packet valid from MACCU
-   output logic             o_maccu_stall      ,  // Stall signal to MACCU   
-   input  logic [4:0]       i_maccu_rdt_addr   ,  // rdt address from MACCU
-   input  logic [`XLEN-1:0] i_maccu_rdt_data   ,  // rdt data from MACCU
-   input  logic             i_maccu_rdt_not_x0 ,  // rdt neq x0
-   input  logic             i_maccu_is_macc    ,  // Memory access flag from MACCU
-   input  logic             i_maccu_is_load    ,  // Load operation flag from MACCU
-   input  logic             i_maccu_is_dwback  ,  // Direct writeback operation flag from MACCU
-   input  logic [`XLEN-1:0] i_maccu_macc_addr  ,  // Memory access address from MACCU //**CHECKME**// only LSbs used as of now
+   input  logic             i_maccu_is_riuj       ,  // RIUJ flag from MACCU
+   input  logic [2:0]       i_maccu_funct3        ,  // Funct3 from MACCU
+   input  logic             i_maccu_bubble        ,  // Bubble from MACCU
+   input  logic             i_maccu_pkt_valid     ,  // Packet valid from MACCU
+   output logic             o_maccu_stall         ,  // Stall signal to MACCU   
+   input  logic [4:0]       i_maccu_rdt_addr      ,  // rdt address from MACCU
+   input  logic [`XLEN-1:0] i_maccu_rdt_data      ,  // rdt data from MACCU
+   input  logic             i_maccu_rdt_not_x0    ,  // rdt neq x0
+   input  logic             i_maccu_is_macc       ,  // Memory access flag from MACCU
+   input  logic             i_maccu_is_load       ,  // Load operation flag from MACCU
+   input  logic             i_maccu_is_dwback     ,  // Direct writeback operation flag from MACCU
+   input  logic [`XLSB-1:0] i_maccu_macc_addr_lsb ,  // Memory access address from MACCU (LSbs)
 
    // Interface with Register File (RF)
-   output logic             o_rf_wren          ,  // Write Enable to RF
-   output logic [4:0]       o_rf_rdt_addr      ,  // rdt address to RF
-   output logic [`XLEN-1:0] o_rf_rdt_data      ,  // rdt data to RF
+   output logic             o_rf_wren             ,  // Write Enable to RF
+   output logic [4:0]       o_rf_rdt_addr         ,  // rdt address to RF
+   output logic [`XLEN-1:0] o_rf_rdt_data         ,  // rdt data to RF
 
    // Instruction Interface
    `ifdef DBG
-   output logic [`XLEN-1:0] o_pc               ,  // PC from WBU
-   output logic [`ILEN-1:0] o_instr            ,  // Instruction from WBU
+   output logic [`XLEN-1:0] o_pc                  ,  // PC from WBU
+   output logic [`ILEN-1:0] o_instr               ,  // Instruction from WBU
    `endif
-   output logic             o_is_riuj          ,  // RIUJ flag from WBU
-   output logic [4:0]       o_rdt_addr         ,  // rdt address from WBU
-   output logic [`XLEN-1:0] o_rdt_data         ,  // rdt data from WBU
-   output logic             o_rdt_not_x0       ,  // rdt neq x0
-   output logic             o_pkt_valid        ,  // Packet valid from WBU
-   input  logic             i_stall               // Stall to WBU
+   output logic             o_is_riuj             ,  // RIUJ flag from WBU
+   output logic [4:0]       o_rdt_addr            ,  // rdt address from WBU
+   output logic [`XLEN-1:0] o_rdt_data            ,  // rdt data from WBU
+   output logic             o_rdt_not_x0          ,  // rdt neq x0
+   output logic             o_pkt_valid           ,  // Packet valid from WBU
+   input  logic             i_stall                  // Stall to WBU
 );
 
 //===================================================================================================================================================
@@ -121,7 +121,7 @@ logic             is_dmem_acc      ;  // Flags if memory access required
 logic             is_dmem_acc_load ;  // Flags if Load operation
 logic             is_dir_writeback ;  // Flags if direct writeback operation w/o any memory access
 logic             is_usig_macc     ;  // Flags if unsigned memory access
-logic [`XLEN-1:0] maddr            ;  // Memory access address
+logic [`XLSB-1:0] maddr_lsb        ;  // Memory access address (LSbs)
 logic [1:0]       msize            ;  // Memory access size
 logic [7:0]       load_byte        ;  // Load byte
 logic [15:0]      load_hword       ;  // Load half-word
@@ -210,12 +210,12 @@ always_comb begin
    endcase      
 end
 
-assign is_usig_macc = i_maccu_funct3[2]    ;
-assign maddr        = i_maccu_macc_addr    ;
-assign msize        = i_maccu_funct3[1:0]  ;
+assign is_usig_macc = i_maccu_funct3[2]     ;
+assign maddr_lsb    = i_maccu_macc_addr_lsb ;
+assign msize        = i_maccu_funct3[1:0]   ;
 
-assign load_byte    = i_dmem_rdata >> (8 * maddr[`XLSB]) ;
-assign load_hword   = i_dmem_rdata >> (8 * maddr[`XLSB]) ;
+assign load_byte    = i_dmem_rdata >> (8 * maddr_lsb) ;
+assign load_hword   = i_dmem_rdata >> (8 * maddr_lsb) ;
 assign load_word    = i_dmem_rdata ;
 
 assign o_load_data  = load_data ;

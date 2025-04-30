@@ -76,13 +76,14 @@ module execution_unit #(
    input  logic             i_exu_bu_br_taken   ,  // Branch taken status from upstream pipeline
    
    // Interface with Decode Unit (DU)   
-   input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU        
-   input  logic [`ILEN-1:0] i_du_instr          ,  // Instruction decoded and sent from DU     
+   input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU 
+   `ifdef DBG       
+   input  logic [`ILEN-1:0] i_du_instr          ,  // Instruction decoded and sent from DU  
+   `endif
    input  logic             i_du_bubble         ,  // Bubble from DU    
    input  logic             i_du_pkt_valid      ,  // Packet valid from DU
    output logic             o_du_stall          ,  // Stall signal to DU
 
-   input  logic [6:0]       i_du_opcode         ,  // Instruction opcode from DU 
    input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU     
    input  logic [3:0]       i_du_alu_opcode     ,  // ALU opcode from DU    
    input  logic [4:0]       i_du_rs0            ,  // rs0 (source register-0) address from DU
@@ -99,7 +100,6 @@ module execution_unit #(
    input  logic             i_du_is_jalr        ,  // JALR flag from DU
    input  logic             i_du_is_jal_or_jalr ,  // J/JALR flag from DU
    input  logic             i_du_is_load        ,  // Load flag from DU
-   input  logic             i_du_is_lui         ,  // LUI flag from DU  //**CHECKME**// Unused here, but tapped by Operand Forward block
    input  logic [11:0]      i_du_i_type_imm     ,  // I-type immediate from DU
    input  logic [11:0]      i_du_s_type_imm     ,  // S-type immediate from DU
    input  logic [11:0]      i_du_b_type_imm     ,  // B-type immediate from DU
