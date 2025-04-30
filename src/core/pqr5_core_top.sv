@@ -389,25 +389,21 @@ opfwd_control inst_opfwd_control (
    .i_du_is_lui         (du_exu_is_lui)        ,
    .i_du_instr_rsb      (du_exu_is_rsb)        ,
    .i_du_instr_risb     (du_exu_is_risb)       ,
-   .i_du_instr_valid    (du_exu_pkt_valid)     ,
 
    .i_exu_result        (exu_maccu_rdt_data)   ,  
    .i_exu_rdt           (exu_maccu_rdt_addr)   ,  
    .i_exu_rdt_not_x0    (exu_maccu_rdt_not_x0) ,
    .i_exu_instr_riuj    (exu_maccu_is_riuj)    ,  
-   .i_exu_instr_valid   (exu_maccu_pkt_valid)  ,
 
    .i_maccu_result      (maccu_result)         ,
    .i_maccu_rdt         (maccu_wbu_rdt_addr)   ,
    .i_maccu_rdt_not_x0  (maccu_wbu_rdt_not_x0) ,
    .i_maccu_instr_riuj  (maccu_wbu_is_riuj)    ,
-   .i_maccu_instr_valid (maccu_wbu_pkt_valid)  ,  
 
    .i_wbu_result        (wbu_rdt_data_out)     ,  
    .i_wbu_rdt           (wbu_rdt_addr_out)     ,  
    .i_wbu_rdt_not_x0    (wbu_rdt_not_x0_out)   ,
    .i_wbu_instr_riuj    (wbu_is_riuj_out)      ,  
-   .i_wbu_instr_valid   (wbu_pkt_valid_out)    ,
 
    .o_fwd_op0           (opfwd_exu_op0)        , 
    .o_fwd_op1           (opfwd_exu_op1) 
@@ -454,7 +450,6 @@ execution_unit #(
    .i_du_is_i_type     (du_exu_is_i_type)  ,
    .i_du_is_s_type     (du_exu_is_s_type)  ,
    .i_du_is_b_type     (du_exu_is_b_type)  ,
-   .i_du_is_u_type     (du_exu_is_u_type)  ,
    .i_du_is_riuj       (du_exu_is_riuj)    ,
    .i_du_is_jal_or_jalr(du_exu_is_j_or_jalr),
    .i_du_is_jalr       (du_exu_is_jalr)    ,
@@ -463,7 +458,6 @@ execution_unit #(
    .i_du_i_type_imm    (du_exu_i_type_imm) ,
    .i_du_s_type_imm    (du_exu_s_type_imm) ,
    .i_du_b_type_imm    (du_exu_b_type_imm) ,
-   .i_du_u_type_imm    (du_exu_u_type_imm) ,
    
    `ifdef DBG
    .o_maccu_pc         (exu_maccu_pc)         ,

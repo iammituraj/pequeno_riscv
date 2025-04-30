@@ -67,28 +67,24 @@ module opfwd_control (
    input  logic             i_du_is_lui         ,  // LUI flag from DU
    input  logic             i_du_instr_rsb      ,  // RSB flag from DU
    input  logic             i_du_instr_risb     ,  // RISB instruction flag from DU
-   input  logic             i_du_instr_valid    ,  // Instruction valid from DU 
   
    // Interface with Execution Unit (EXU)
    input  logic [`XLEN-1:0] i_exu_result        ,  // Result from EXU
    input  logic [4:0]       i_exu_rdt           ,  // rdt from EXU
    input  logic             i_exu_rdt_not_x0    ,  // rdt neq x0
    input  logic             i_exu_instr_riuj    ,  // RIUJ instruction flag from EXU
-   input  logic             i_exu_instr_valid   ,  // Instruction valid from EXU 
 
    // Interface with Memory Access Unit (MACCU)
    input  logic [`XLEN-1:0] i_maccu_result      ,  // Result from MACCU
    input  logic [4:0]       i_maccu_rdt         ,  // rdt from MACCU
    input  logic             i_maccu_rdt_not_x0  ,  // rdt neq x0
    input  logic             i_maccu_instr_riuj  ,  // RIUJ instruction flag from MACCU
-   input  logic             i_maccu_instr_valid ,  // Instruction valid from MACCU 
 
    // Interface with Write Back Unit (WBU)
    input  logic [`XLEN-1:0] i_wbu_result        ,  // Result from WBU
    input  logic [4:0]       i_wbu_rdt           ,  // rdt from WBU
    input  logic             i_wbu_rdt_not_x0    ,  // rdt neq x0
    input  logic             i_wbu_instr_riuj    ,  // RIUJ instruction flag from WBU
-   input  logic             i_wbu_instr_valid   ,  // Instruction valid from WBU
 
    // Forwarded Operands
    output logic [`XLEN-1:0] o_fwd_op0           ,  // Forwarded Operand-0
@@ -156,8 +152,6 @@ assign immU = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;  // LSbs to fill 0s
 //===================================================================================================================================================
 // Combinatorial logic to forward EXU result
 //===================================================================================================================================================
-//assign exu_and_du_instr_valid = i_exu_instr_valid ;
-
 // Operand-0 forwarding
 assign is_du_exu_op0_raw = (is_exu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_exu_rdt) && is_exu_rdt_not_x0);
 
@@ -168,8 +162,6 @@ assign is_du_exu_op1_raw = (is_exu_instr_riuj && is_du_instr_rsb  && (i_du_rs1 =
 //===================================================================================================================================================
 // Combinatorial logic to forward MACCU result
 //===================================================================================================================================================
-//assign maccu_and_du_instr_valid = i_maccu_instr_valid ;
-
 // Operand-0 forwarding
 assign is_du_maccu_op0_raw = (is_maccu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_maccu_rdt) && is_maccu_rdt_not_x0);
 
@@ -179,8 +171,6 @@ assign is_du_maccu_op1_raw = (is_maccu_instr_riuj && is_du_instr_rsb &&  (i_du_r
 //===================================================================================================================================================
 // Combinatorial logic to forward WBU result
 //===================================================================================================================================================
-//assign wbu_and_du_instr_valid = i_wbu_instr_valid ;
-
 // Operand-0 forwarding
 assign is_du_wbu_op0_raw = (is_wbu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_wbu_rdt) && is_wbu_rdt_not_x0);
 

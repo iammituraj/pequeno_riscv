@@ -95,7 +95,6 @@ module execution_unit #(
    input  logic             i_du_is_i_type      ,  // I-type instruction flag from DU 
    input  logic             i_du_is_s_type      ,  // S-type instruction flag from DU 
    input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
-   input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU 
    input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
    input  logic             i_du_is_jalr        ,  // JALR flag from DU
    input  logic             i_du_is_jal_or_jalr ,  // J/JALR flag from DU
@@ -104,7 +103,6 @@ module execution_unit #(
    input  logic [11:0]      i_du_i_type_imm     ,  // I-type immediate from DU
    input  logic [11:0]      i_du_s_type_imm     ,  // S-type immediate from DU
    input  logic [11:0]      i_du_b_type_imm     ,  // B-type immediate from DU
-   input  logic [19:0]      i_du_u_type_imm     ,  // U-type immediate from DU
 
    // Interface with Memory Access Unit (MACCU)
    `ifdef DBG
@@ -138,7 +136,6 @@ logic [`XLEN-1:0] bu_branch_pc       ;  // Branch PC
 logic             bu_flush           ;  // Flush
 
 // ALU and Pre-processing related
-logic [`XLEN-1:0] immI, immU         ;  // Sign-extended I/U-type immediates
 logic [3:0]       alu_opcode         ;  // ALU opcode
 logic [`XLEN-1:0] alu_op0, alu_op1   ;  // ALU operands
 logic [`XLEN-1:0] alu_result         ;  // ALU result
@@ -292,7 +289,6 @@ end
 assign alu_op1    = i_op1 ;
 assign alu_op0    = i_op0 ;
 assign alu_opcode = i_du_alu_opcode ;
-assign immU       = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;                 // LSbs to fill 0s
 
 `ifdef DBG
 //===================================================================================================================================================
