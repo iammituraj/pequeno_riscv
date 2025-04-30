@@ -192,7 +192,7 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 // Writeback to RF: combi routing to sync RF write with WBU pipe outputs
-assign rdt_wren = pipe_stall ? 1'b0 : (is_dmem_acc_load | is_dir_writeback);
+assign rdt_wren = pipe_stall ? 1'b0 : ((is_dmem_acc_load | is_dir_writeback) && i_maccu_rdt_not_x0);
 assign rdt_addr = i_maccu_rdt_addr ;
 assign rdt_data = is_dmem_acc_load ? load_data : i_maccu_rdt_data ;  // Writeback data selected from memory (Load data) or MACCU (Direct writeback)
 

@@ -30,7 +30,7 @@
 //----%%                    # Supports debugging/dumping register space during simulation.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Jan-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : The register array is expected to map to BRAMs. Doesn't support reset as FPGA BRAMs don't support resetting the array. 
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -82,56 +82,112 @@ module regfile (
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-logic [`XLEN-1:0] reg_file [1:31] ;  // Register file
-logic             wren            ;  // Write enable to RF
-logic [`XLEN-1:0] rs0_data_rg     ;  // Read-data Port-0
-logic [`XLEN-1:0] rs1_data_rg     ;  // Read-data Port-1
+logic wren ;                         // Write enable to Register array
+logic rden ;                         // Read enable to Register array
+logic [`XLEN-1:0] reg_file [1:31] ;  // Register file: x1-x31, x0 is implicitly 0...
 
 //===================================================================================================================================================
-// Synchronous logic to write to register file
+// Register Array of RF
 //===================================================================================================================================================
+`ifdef RF_IN_BRAM
+////////////////////////////////////////////// BRAM based RF /////////////////////////////////////////////////////
+logic [`XLEN-1:0] rdata0, rdata1 ;  // Read data from the Register array
+`ifdef DBG
+logic [`XLEN-1:0] bram_marray[0:31]   ;  // Memory array of BRAM
+`endif
+
+// BRAM instance
+bram_dp_r2w1 #(
+   .DTW (`XLEN),
+   .DPT (32)
+)  inst_bram_regfile (
+   .clk      (clk),
+
+   .i_wren   (wren),
+   .i_waddr  (i_rdt_addr),
+   .i_wdata  (i_rdt_data),
+
+   `ifdef DBG
+   .o_marray (bram_marray),
+   `endif
+
+   .i_rden   (rden),      
+   .i_raddr0 (i_rs0_addr),
+   .o_rdata0 (rdata0),
+   .i_raddr1 (i_rs1_addr),
+   .o_rdata1 (rdata1)
+);
+
+// Write & Read enable conditioned...
+assign wren = i_wren ;  // If target is x0, WBU never generates write enable... So no need to condition with |i_rdt_addr
+assign rden = i_rden ;
+
+//-------------------------------------------------------------------
+// Glue Logic to condition the read data if x0 is accessed
+//-------------------------------------------------------------------
+// Flag the x0 access concurrent to read access
+logic is_rs0_not_x0_rg ;
+always_ff @(posedge clk) begin
+   if (rden) begin      
+      is_rs0_not_x0_rg <= |i_rs0_addr ;
+   end
+end
+assign o_rs0_data = is_rs0_not_x0_rg? rdata0 : '0 ;  // x0 always read as 0...
+
+// Flag the x0 access concurrent to read access
+logic is_rs1_not_x0_rg ;
+always_ff @(posedge clk) begin
+   if (rden) begin      
+      is_rs1_not_x0_rg <= |i_rs1_addr ;
+   end
+end
+assign o_rs1_data = is_rs1_not_x0_rg? rdata1 : '0 ;  // x0 always read as 0...
+
+`ifdef DBG
+assign reg_file = bram_marray[1:31];
+`endif
+
+`else
+////////////////////////////////////////////// Flops based RF ////////////////////////////////////////////////////
+logic [`XLEN-1:0] rs0_data_rg   ;  // Read data from port-0
+logic [`XLEN-1:0] rs1_data_rg   ;  // Read data from port-1
+
+// Write & Read enable conditioned...
+assign wren = i_wren ;  // If target is x0, WBU will not generate write enable... So no need to condition with |i_rdt_addr
+assign rden = i_rden ;
+
+//-------------------------------------------------------------------
+// Synchronous logic to write to register file
+//-------------------------------------------------------------------
 always_ff @(posedge clk) begin
    if (wren) begin
       reg_file[i_rdt_addr] <= i_rdt_data ;
    end
 end
-assign wren = i_wren && (|i_rdt_addr);  // r0 is hardwired to 0, so no need to enable writes
 
-//===================================================================================================================================================
-// Synchronous logic to read from register bank (Read Port-0)
-//===================================================================================================================================================
+//-------------------------------------------------------------------
+// Synchronous logic to read from register file (Read port-0)
+//-------------------------------------------------------------------
 always_ff @(posedge clk) begin
-   if (i_rden) begin      
-      rs0_data_rg <= reg_file[i_rs0_addr];
+   if (rden) begin      
+      if (~|i_rs0_addr) begin rs0_data_rg <= '0                   ; end  // x0 is hard-wired & read as 0
+      else              begin rs0_data_rg <= reg_file[i_rs0_addr] ; end
    end
 end
+assign o_rs0_data = rs0_data_rg ;
 
-// Register the address on reads
-logic is_rs0_not_x0_rg ;
+//-------------------------------------------------------------------
+// Synchronous logic to read from register file (Read port-1)
+//-------------------------------------------------------------------
 always_ff @(posedge clk) begin
-   if (i_rden) begin      
-      is_rs0_not_x0_rg <= |i_rs0_addr ;
+   if (rden) begin
+      if (~|i_rs1_addr) begin rs1_data_rg <= '0                   ; end  // x0 is hard-wired & read as 0
+      else              begin rs1_data_rg <= reg_file[i_rs1_addr] ; end
    end
 end
-assign o_rs0_data = is_rs0_not_x0_rg? rs0_data_rg : '0 ;  // r0 always read as 0
+assign o_rs1_data = rs1_data_rg ;
 
-//===================================================================================================================================================
-// Synchronous logic to read from register bank (Read Port-1)
-//===================================================================================================================================================
-always_ff @(posedge clk) begin
-   if (i_rden) begin      
-      rs1_data_rg <= reg_file[i_rs1_addr];
-   end
-end
-
-// Register the address on reads
-logic is_rs1_not_x0_rg ;
-always_ff @(posedge clk) begin
-   if (i_rden) begin      
-      is_rs1_not_x0_rg <= |i_rs1_addr ;
-   end
-end
-assign o_rs1_data = is_rs1_not_x0_rg? rs1_data_rg : '0 ;  // r0 always read as 0
+`endif  //RF_IN_BRAM
 
 `ifdef TEST_PORTS
 // Test Ports

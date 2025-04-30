@@ -75,14 +75,14 @@
 //`define SUBSYS_SYNTH                         // Define this macro to configure the subsystem for SYNTHESIS
 
 // Simulation control; all macros are qualified by global macro SUBSYS_DBG
-`define SUBSYS_DBG                     // Define this macro to generate TB clock & reset internally for simulation; UNDEFINE FOR SYNTHESIS
+`define SUBSYS_DBG                     // Define this macro to generate TB clock & reset internally for simulation; OVERRIDEN FOR SYNTHESIS
 `define SYSCLK_PERIOD        `TCLK     // TB clock period in ns
 `define SYSRST_LEN           20        // TB reset length in clock cycles
 `define SIMLIMIT                       // Define this macro if subsystem simulation should be cycles limited
 `define SIMCYCLES            30000     // If SIMLIMIT is enabled: Max. no. of clock cycles of simulation 
 
 // Memory Dump during simulation
-`define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; UNDEFINE FOR SYNTHESIS
+`define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; OVERRIDEN FOR SYNTHESIS
 `define IMEM_DUMP            1       // If MEM_DBG: '1'- Dump IMEM content @end of simulation, '0'- Do not dump
 `define DMEM_DUMP            1       // If MEM_DBG: '1'- Dump DMEM content @end of simulation, '0'- Do not dump
 
