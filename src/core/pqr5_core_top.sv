@@ -227,7 +227,6 @@ logic             maccu_wbu_is_macc    ;  // Memory access flag from MACCU to WB
 logic             maccu_wbu_is_load    ;  // Load operation flag from MACCU to WBU
 logic             maccu_wbu_is_dwback  ;  // Direct writeback operation flag from MACCU to WBU
 logic [`XLEN-1:0] maccu_wbu_macc_addr  ;  // Memory access address from MACCU to WBU
-logic [`XLEN-1:0] maccu_result         ;  // Memory access result to be sent to Operand Forward block
 logic [`XLEN-1:0] dmem_load_data       ;  // Load data from memory access
 
 // WBU-RF Interface
@@ -394,8 +393,10 @@ opfwd_control inst_opfwd_control (
    .i_exu_rdt           (exu_maccu_rdt_addr)   ,  
    .i_exu_rdt_not_x0    (exu_maccu_rdt_not_x0) ,
    .i_exu_instr_riuj    (exu_maccu_is_riuj)    ,  
-
-   .i_maccu_result      (maccu_result)         ,
+   
+   .i_dmem_load_data    (dmem_load_data)       ,
+   .i_maccu_wbdata      (maccu_wbu_rdt_data)   ,
+   .i_is_load           (maccu_wbu_is_load)    ,
    .i_maccu_rdt         (maccu_wbu_rdt_addr)   ,
    .i_maccu_rdt_not_x0  (maccu_wbu_rdt_not_x0) ,
    .i_maccu_instr_riuj  (maccu_wbu_is_riuj)    ,
