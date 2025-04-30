@@ -107,13 +107,13 @@ always_ff @(posedge clk) begin
 end
 
 // Register the address on reads
-logic [4:0] rs0_addr_rg ;
+logic is_rs0_not_x0_rg ;
 always_ff @(posedge clk) begin
    if (i_rden) begin      
-      rs0_addr_rg <= i_rs0_addr ;
+      is_rs0_not_x0_rg <= |i_rs0_addr ;
    end
 end
-assign o_rs0_data = (|rs0_addr_rg)? rs0_data_rg : '0 ;  // r0 always read as 0
+assign o_rs0_data = is_rs0_not_x0_rg? rs0_data_rg : '0 ;  // r0 always read as 0
 
 //===================================================================================================================================================
 // Synchronous logic to read from register bank (Read Port-1)
@@ -125,13 +125,13 @@ always_ff @(posedge clk) begin
 end
 
 // Register the address on reads
-logic [4:0] rs1_addr_rg ;
+logic is_rs1_not_x0_rg ;
 always_ff @(posedge clk) begin
    if (i_rden) begin      
-      rs1_addr_rg <= i_rs1_addr ;
+      is_rs1_not_x0_rg <= |i_rs1_addr ;
    end
 end
-assign o_rs1_data = (|rs1_addr_rg)? rs1_data_rg : '0 ;  // r0 always read as 0
+assign o_rs1_data = is_rs1_not_x0_rg? rs1_data_rg : '0 ;  // r0 always read as 0
 
 `ifdef TEST_PORTS
 // Test Ports
