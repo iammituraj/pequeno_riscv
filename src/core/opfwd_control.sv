@@ -158,7 +158,6 @@ assign is_du_exu_op0_raw = (is_exu_instr_riuj && is_du_instr_risb && (i_du_rs0 =
 // Operand-1 forwarding
 assign is_du_exu_op1_raw = (is_exu_instr_riuj && is_du_instr_rsb  && (i_du_rs1 == i_exu_rdt) && is_exu_rdt_not_x0);
 
-
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access b/w DU and MACCU
 //===================================================================================================================================================
@@ -184,26 +183,38 @@ assign is_du_wbu_op1_raw = (is_wbu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1 =
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-0 to output
 //===================================================================================================================================================
+logic [`XLEN-1:0] fwd_op0_pre ;
+// First-level Mux - 8:1 Mux
 always_comb begin 
    casez (is_op0_raw)
-      3'b1??  : begin o_fwd_op0 = i_exu_result  ; end  // EXU fwd, highest priority
-      3'b01?  : begin o_fwd_op0 = maccu_result  ; end  // MACCU fwd
-      3'b001  : begin o_fwd_op0 = i_wbu_result  ; end  // WBU fwd      
-      default : begin o_fwd_op0 = rf_bypass_op0 ; end  // Bypass  
+      3'b1??  : begin fwd_op0_pre = i_exu_result  ; end  // EXU fwd, highest priority
+      3'b01?  : begin fwd_op0_pre = maccu_result  ; end  // MACCU fwd
+      default : begin fwd_op0_pre = i_wbu_result  ; end  // Bypass  
    endcase
+end
+// Second level Mux - 2:1 Mux to relax timing at rf_bypass_op0
+always_comb begin
+   if (is_op0_raw == 3'b000) o_fwd_op0 = rf_bypass_op0 ;
+   else                      o_fwd_op0 = fwd_op0_pre   ;
 end
 assign is_op0_raw = {is_du_exu_op0_raw, is_du_maccu_op0_raw, is_du_wbu_op0_raw} ;
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-1 to output
 //===================================================================================================================================================
+logic [`XLEN-1:0] fwd_op1_pre ;
+// First-level Mux - 8:1 Mux
 always_comb begin 
    casez (is_op1_raw)
-      3'b1??  : begin o_fwd_op1 = i_exu_result  ; end  // EXU fwd, highest priority
-      3'b01?  : begin o_fwd_op1 = maccu_result  ; end  // MACCU fwd
-      3'b001  : begin o_fwd_op1 = i_wbu_result  ; end  // WBU fwd      
-      default : begin o_fwd_op1 = rf_bypass_op1 ; end  // Bypass  
+      3'b1??  : begin fwd_op1_pre = i_exu_result  ; end  // EXU fwd, highest priority
+      3'b01?  : begin fwd_op1_pre = maccu_result  ; end  // MACCU fwd
+      default : begin fwd_op1_pre = i_wbu_result  ; end  // Bypass  
    endcase
+end
+// Second level Mux - 2:1 Mux to relax timing at rf_bypass_op1
+always_comb begin
+   if (is_op1_raw == 3'b000) o_fwd_op1 = rf_bypass_op1 ;
+   else                      o_fwd_op1 = fwd_op1_pre   ;
 end
 assign is_op1_raw = {is_du_exu_op1_raw, is_du_maccu_op1_raw, is_du_wbu_op1_raw} ;
 
