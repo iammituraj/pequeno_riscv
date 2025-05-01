@@ -88,7 +88,9 @@ module decode_unit #(
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
+   output logic [4:0]       o_exu_rs0_cpy_ff   ,  // rs0 copy; Tapped by opfwd block...
    output logic [4:0]       o_exu_rs1          ,  // rs1 (source register-1) address to EXU
+   output logic [4:0]       o_exu_rs1_cpy_ff   ,  // rs1 copy; Tapped by opfwd block...
    output logic [4:0]       o_exu_rdt          ,  // rdt (destination register) address to EXU
    output logic             o_exu_rdt_not_x0   ,  // rdt neq x0
    output logic [2:0]       o_exu_funct3       ,  // Funct3 to EXU
@@ -314,7 +316,6 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_instr_rg <= `INSTR_NOP ; end
-   else if (flush)    begin du_instr_rg <= `INSTR_NOP ; end  // Pipe in NOP instruction on flush
    else if (!stall)   begin du_instr_rg <= i_fu_instr ; end  // Pipe forward... 
 end
 
@@ -345,6 +346,20 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 assign o_exu_bu_br_taken = du_br_taken_rg ;
+
+//===================================================================================================================================================
+// Synchronous logic to generate rs0/rs1 copies to relax fanout & timing at opfwd block
+//===================================================================================================================================================
+always_ff @(posedge clk or negedge aresetn) begin
+   if (!aresetn) begin 
+      o_exu_rs0_cpy_ff <= '0; 
+      o_exu_rs1_cpy_ff <= '0;
+   end 
+   else if (!stall)   begin
+      o_exu_rs0_cpy_ff <= i_fu_instr[19:15]; 
+      o_exu_rs1_cpy_ff <= i_fu_instr[24:20]; 
+   end
+end
 
 //===================================================================================================================================================
 //  Stall logic

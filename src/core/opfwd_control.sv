@@ -59,7 +59,9 @@ module opfwd_control (
    // Interface with Decode Unit (DU) 
    input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU
    input  logic [4:0]       i_du_rs0            ,  // rs0 from DU
+   input  logic [4:0]       i_du_rs0_cpy        ,  // rs0 copy from DU
    input  logic [4:0]       i_du_rs1            ,  // rs1 from DU 
+   input  logic [4:0]       i_du_rs1_cpy        ,  // rs1 copy from DU
    input  logic             i_du_is_i_type      ,  // I-type instruction flag from DU
    input  logic [11:0]      i_du_i_type_imm     ,  // I-type immediate from DU   
    input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU
@@ -125,13 +127,12 @@ logic [`XLEN-1:0] immI, immU ;                    // Sign-extended I/U-type imme
 // Operand-0 from RF is bypassed with value from DU in case of U-type instruction at DU.
 // U-type instruction at DU never causes hazard at operand-0, so the bypassed operand is guaranteed to reach EXU through operand forward logic.
 //===================================================================================================================================================
-always_comb begin 
-   case ({i_du_is_u_type, i_du_is_lui}) 
-      2'b11   : rf_bypass_op0  = '0       ;  // LUI  : Bypass value = 0 to compute 0+immU for LUI at EXU
-      2'b10   : rf_bypass_op0  = i_du_pc  ;  // AUIPC: Bypass value = PC to compute pc+immU for AUIPC at EXU
-      default : rf_bypass_op0  = i_rf_op0 ;  // For all other instructions, forward op0 from RF, don't bypass...
-   endcase
-end
+logic [`XLEN-1:0] DU_imm_op0 ;
+logic             is_du_req_op0_bypass ;
+
+assign is_du_req_op0_bypass = i_du_is_u_type;
+assign DU_imm_op0           = i_du_is_lui? '0 : i_du_pc ;
+assign rf_bypass_op0        = is_du_req_op0_bypass? DU_imm_op0 : i_rf_op0 ;
 
 //===================================================================================================================================================
 // Bypass logic for operand-1 from RF
@@ -139,13 +140,13 @@ end
 // Operand-1 from RF is bypassed with value from DU in case of U-type instruction at DU.
 // U-type instruction at DU never causes hazard at operand-0, so the bypassed operand is guaranteed to reach EXU through operand forward logic.
 //===================================================================================================================================================
-always_comb begin 
-   case ({i_du_is_i_type, i_du_is_u_type}) 
-      2'b10   : rf_bypass_op1  = immI     ;  // I-type instruction: Bypass value = immI to compute op0+immI at EXU
-      2'b01   : rf_bypass_op1  = immU     ;  // U-type instruction: Bypass value = immU to compute op0+immU at EXU
-      default : rf_bypass_op1  = i_rf_op1 ;  // For all other instructions, forward op1 from RF, don't bypass...
-   endcase
-end
+logic [`XLEN-1:0] DU_imm_op1 ;
+logic             is_du_req_op1_bypass ;
+
+assign is_du_req_op1_bypass = i_du_is_i_type | i_du_is_u_type ;
+assign DU_imm_op1           = i_du_is_i_type? immI : immU ;
+assign rf_bypass_op1        = is_du_req_op1_bypass? DU_imm_op1 : i_rf_op1 ;
+
 assign immI = {{(`XLEN-12){i_du_i_type_imm[11]}}, i_du_i_type_imm} ;  // Sign-extend
 assign immU = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;  // LSbs to fill 0s
 
@@ -166,19 +167,19 @@ assign is_du_exu_op1_raw = (is_exu_instr_riuj && is_du_instr_rsb  && (i_du_rs1 =
 assign maccu_result  = (i_is_load)? i_dmem_load_data : i_maccu_wbdata ;  
 
 // Operand-0 forwarding
-assign is_du_maccu_op0_raw = (is_maccu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_maccu_rdt) && is_maccu_rdt_not_x0);
+assign is_du_maccu_op0_raw = (is_maccu_instr_riuj && is_du_instr_risb && (i_du_rs0_cpy == i_maccu_rdt) && is_maccu_rdt_not_x0);
 
 // Operand-1 forwarding
-assign is_du_maccu_op1_raw = (is_maccu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1 == i_maccu_rdt) && is_maccu_rdt_not_x0);
+assign is_du_maccu_op1_raw = (is_maccu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1_cpy == i_maccu_rdt) && is_maccu_rdt_not_x0);
 
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access b/w DU and WBU
 //===================================================================================================================================================
 // Operand-0 forwarding
-assign is_du_wbu_op0_raw = (is_wbu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_wbu_rdt) && is_wbu_rdt_not_x0);
+assign is_du_wbu_op0_raw = (is_wbu_instr_riuj && is_du_instr_risb && (i_du_rs0_cpy == i_wbu_rdt) && is_wbu_rdt_not_x0);
 
 // Operand-1 forwarding
-assign is_du_wbu_op1_raw = (is_wbu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1 == i_wbu_rdt) && is_wbu_rdt_not_x0);
+assign is_du_wbu_op1_raw = (is_wbu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1_cpy == i_wbu_rdt) && is_wbu_rdt_not_x0);
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-0 to output
