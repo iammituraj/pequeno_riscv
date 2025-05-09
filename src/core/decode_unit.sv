@@ -307,8 +307,8 @@ end
 // Synchronous logic to pipe PC
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn)       begin du_pc_rg <= PC_INIT     ; end
-   else if (!stall)         begin du_pc_rg <= i_fu_pc     ; end  // Pipe forward...
+   if      (!aresetn) begin du_pc_rg <= PC_INIT ; end
+   else if (!stall)   begin du_pc_rg <= i_fu_pc ; end  // Pipe forward...
 end
 
 //===================================================================================================================================================
@@ -316,7 +316,7 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_instr_rg <= `INSTR_NOP ; end
-   else if (!stall)   begin du_instr_rg <= i_fu_instr ; end  // Pipe forward... 
+   else if (!stall)   begin du_instr_rg <= i_fu_instr ; end  // Pipe forward...
 end
 
 //===================================================================================================================================================

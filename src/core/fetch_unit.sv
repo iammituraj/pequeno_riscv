@@ -168,9 +168,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else begin 
       // Instruction Buffer-1 
-      if      (flush)                  begin instr_rg[0] <= `INSTR_NOP ; end                                  // Pipe in NOP instruction on flush
-      else if (branch_taken && !stall) begin instr_rg[0] <= `INSTR_NOP ; end                                  // Pipe in NOP instruction if branch taken
-      else if (!stall)                 begin instr_rg[0] <= i_imem_pkt_valid ? i_imem_pkt : `INSTR_NOP ; end  // Pipe in NOP instruction if invalid packet   
+      if (!stall) begin instr_rg[0] <= i_imem_pkt ; end  // Pipe forward...
       
       // Instruction Buffer-1 valid
       if      (flush)                  begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on flush
@@ -197,8 +195,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else begin 
       // Instruction Buffer-2
-      if      (flush)  begin instr_rg[1] <= `INSTR_NOP  ; end  // Pipe in NOP instruction on flush  
-      else if (!stall) begin instr_rg[1] <= instr_rg[0] ; end  // Pipe forward...  
+      if (!stall) begin instr_rg[1] <= instr_rg[0] ; end  // Pipe forward...  
       
       // Instruction Buffer-2 valid
       if      (flush)  begin instr_valid_rg[1] <= 1'b0              ; end  // Invalidate on flush
