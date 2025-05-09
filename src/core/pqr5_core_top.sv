@@ -600,7 +600,7 @@ writeback_unit #(
 initial begin
    forever begin 
        @(posedge clk);
-       if (wbu_instr_out == `INSTR_END) begin   // END simulation command: mvi x0, 0xEEE ??  
+       if (wbu_instr_out == `INSTR_END && wbu_pkt_valid_out) begin   // END simulation command: mvi x0, 0xEEE ??  
           $display("| PQR5_SIM_CORE: [INFO ] Simulation exit triggered by END command @t = %0t ns", $time);        
           $finish;  // Finish simulation
       end
