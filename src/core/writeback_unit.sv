@@ -214,10 +214,18 @@ assign is_usig_macc = i_maccu_funct3[2]     ;
 assign maddr_lsb    = i_maccu_macc_addr_lsb ;
 assign msize        = i_maccu_funct3[1:0]   ;
 
-assign load_byte    = i_dmem_rdata >> (8 * maddr_lsb) ;
-assign load_hword   = i_dmem_rdata >> (8 * maddr_lsb) ;
+always_comb begin
+   case (maddr_lsb)   
+      2'b00   : load_hword = i_dmem_rdata[15:0] ;
+      2'b01   : load_hword = i_dmem_rdata[23:8] ;
+      2'b10   : load_hword = i_dmem_rdata[31:16];
+      default : load_hword = {8'h00, i_dmem_rdata[31:24]};        
+   endcase
+end
+assign load_byte    = load_hword[7:0];
 assign load_word    = i_dmem_rdata ;
 
+// Load data out
 assign o_load_data  = load_data ;
 
 //===================================================================================================================================================

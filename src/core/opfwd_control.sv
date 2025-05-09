@@ -131,14 +131,14 @@ logic [`XLEN-1:0] DU_imm_op0 ;
 logic             is_du_req_op0_bypass ;
 
 assign is_du_req_op0_bypass = i_du_is_u_type;
-assign DU_imm_op0           = i_du_is_lui? '0 : i_du_pc ;
+assign DU_imm_op0           = i_du_is_lui? '0 : i_du_pc ;  // For LUI, 0 + immU.. For AUIPC: PC + immU
 assign rf_bypass_op0        = is_du_req_op0_bypass? DU_imm_op0 : i_rf_op0 ;
 
 //===================================================================================================================================================
 // Bypass logic for operand-1 from RF
 // ----------------------------------
-// Operand-1 from RF is bypassed with value from DU in case of U-type instruction at DU.
-// U-type instruction at DU never causes hazard at operand-0, so the bypassed operand is guaranteed to reach EXU through operand forward logic.
+// Operand-1 from RF is bypassed with value from DU in case of I/U-type instruction at DU.
+// I/U-type instruction at DU never causes hazard at operand-1, so the bypassed operand is guaranteed to reach EXU through operand forward logic.
 //===================================================================================================================================================
 logic [`XLEN-1:0] DU_imm_op1 ;
 logic             is_du_req_op1_bypass ;
