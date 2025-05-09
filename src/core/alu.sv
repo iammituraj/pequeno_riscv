@@ -67,7 +67,7 @@ logic             is_sign_op0_lt_op1 ;  // Signed comparison flag
 logic             bubble             ;  // Bubble
 
 always_comb begin
-   case (i_opcode)
+   casez (i_opcode)
       // Legal ALU instructions
       ALU_ADD  : result = i_op0 + i_op1 ; 
       ALU_SUB  : result = i_op0 - i_op1 ;
