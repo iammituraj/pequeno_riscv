@@ -44,31 +44,35 @@ import pqr5_core_pkg :: * ;
 
 // Module definition
 module alu (
-   input  logic             clk         ,  // Clock
-   input  logic             aresetn     ,  // Asynchronous Reset; active-low
-   input  logic             i_stall     ,  // Stall signal
-   input  logic             i_bubble    ,  // Bubble in
-   input  logic             i_is_alu_op ,  // ALU operation flag
-   input  logic [`XLEN-1:0] i_op0       ,  // Operand-0
-   input  logic [`XLEN-1:0] i_op1       ,  // Operand-1
-   input  logic [3:0]       i_opcode    ,  // Opcode
-   output logic [`XLEN-1:0] o_result    ,  // Result
-   output logic             o_bubble       // Bubble out
+   input  logic             clk                 ,  // Clock
+   input  logic             aresetn             ,  // Asynchronous Reset; active-low
+   input  logic             i_stall             ,  // Stall signal
+   input  logic             i_bubble            ,  // Bubble in
+   input  logic             i_is_alu_op         ,  // ALU operation flag
+   input  logic [`XLEN-1:0] i_op0               ,  // Operand-0
+   input  logic [`XLEN-1:0] i_op1               ,  // Operand-1
+   input  logic [3:0]       i_opcode            ,  // Opcode
+   output logic [`XLEN-1:0] o_result            ,  // Result
+   output logic             o_op0_lt_op1        ,  // op0 < op1  ?
+   output logic             o_sign_op0_lt_op1   ,  // signed (op0) < signed(op1) ?
+   output logic             o_bubble               // Bubble out
 );
 
 //===================================================================================================================================================
 // Combinatorial logic to compute result
 //===================================================================================================================================================
-logic [`XLEN-1:0] result ;  // ALU result
-logic             bubble ;  // Bubble
+logic [`XLEN-1:0] result             ;  // ALU result
+logic             is_op0_lt_op1      ;  // Unsigned comparison flag
+logic             is_sign_op0_lt_op1 ;  // Signed comparison flag
+logic             bubble             ;  // Bubble
 
 always_comb begin
    case (i_opcode)
       // Legal ALU instructions
       ALU_ADD  : result = i_op0 + i_op1 ; 
       ALU_SUB  : result = i_op0 - i_op1 ;
-      ALU_SLT  : result = {{`XLEN-1{1'b0}}, (signed'(i_op0) < signed'(i_op1))} ;
-      ALU_SLTU : result = {{`XLEN-1{1'b0}}, (i_op0 < i_op1)} ;
+      ALU_SLT  : result = {{`XLEN-1{1'b0}}, is_sign_op0_lt_op1} ;
+      ALU_SLTU : result = {{`XLEN-1{1'b0}}, is_op0_lt_op1} ;
       ALU_XOR  : result = i_op0 ^ i_op1 ;
       ALU_OR   : result = i_op0 | i_op1 ;
       ALU_AND  : result = i_op0 & i_op1 ;
@@ -78,7 +82,9 @@ always_comb begin
       default  : result = '0 ;  // Illegal ALU instruction. Currently bubble is not generated, allows to go fwd in pipeline as it's non-critical...  	
    endcase
 end
-assign bubble = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
+assign is_op0_lt_op1      = (i_op0 < i_op1) ;                    // Unsigned comparison
+assign is_sign_op0_lt_op1 = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
+assign bubble             = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
 
 //===================================================================================================================================================
 // Synchronous logic to register outputs
@@ -99,8 +105,10 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
 end
 
-assign o_result = result_rg ;
-assign o_bubble = bubble_rg ;
+assign o_result          = result_rg          ;
+assign o_op0_lt_op1      = is_op0_lt_op1      ;
+assign o_sign_op0_lt_op1 = is_sign_op0_lt_op1 ;
+assign o_bubble          = bubble_rg          ;
 
 endmodule
 //###################################################################################################################################################

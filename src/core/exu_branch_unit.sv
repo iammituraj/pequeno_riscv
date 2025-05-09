@@ -65,6 +65,8 @@ module exu_branch_unit #(
    input  logic [11:0]      i_immB           ,  // B-type immediate
    input  logic [`XLEN-1:0] i_op0            ,  // Operand-0 from register file
    input  logic [`XLEN-1:0] i_op1            ,  // Operand-1 from register file
+   input  logic             i_op0_lt_op1     ,  // Unsigned comparison flag: op0 < op1 ? from ALU
+   input  logic             i_sign_op0_lt_op1,  // Signed comparison flag: signed(op0) < signed(op1) ? from ALU
    input  logic             i_branch_taken   ,  // Branch taken status from Branch Predictor
 
    // Status signals
@@ -91,7 +93,7 @@ logic [`XLEN-1:0] pc_plus_4                     ;  // PC+4
 logic [`XLEN-1:0] pc_plus_immB                  ;  // PC+immJ and PC+immB  
 logic [`XLEN-1:0] op0_plus_immI                 ;  // op0+immI  
 
-logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Unsigned comparison flag 
+logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Equality, Unsigned comparison flags 
 logic             is_sign_op0_lt_op1            ;  // Signed comparison flag 
 logic             is_branch_taken_diff          ;  // Branch taken difference flag
 
@@ -149,9 +151,9 @@ always_comb begin
    endcase
 end
 
-assign is_op0_eq_op1        = (i_op0 == i_op1)                  ;  // Equality
-assign is_op0_lt_op1        = (i_op0 < i_op1)                   ;  // Unsigned comparison
-assign is_sign_op0_lt_op1   = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
+assign is_op0_eq_op1        = (i_op0 == i_op1)  ;  // Not bringing this from ALU to improve locality, and reduce routing delays...
+assign is_op0_lt_op1        = i_op0_lt_op1      ;
+assign is_sign_op0_lt_op1   = i_sign_op0_lt_op1 ;
 
 // Combinatorial logic for Branch PC resolution
 always_comb begin
