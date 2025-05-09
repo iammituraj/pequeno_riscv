@@ -143,17 +143,17 @@ always_comb begin
                       F3_BGE  : branch_taken = ~is_sign_op0_lt_op1 ;
                       F3_BLTU : branch_taken =  is_op0_lt_op1      ;
                       F3_BGEU : branch_taken = ~is_op0_lt_op1      ;
-                      default : branch_taken =  1'b0               ;  // Illegal Branch instruction --> May or may not lead to flush, it's fine either way...
+                      default : branch_taken =  1'b0               ;  // Illegal Branch instr --> Never leads to flush cz Branch Predictor should have the same branch taken status = 0
                    endcase
                 end
       // Invalid instruction
-      default : branch_taken = 1'b0 ;  // Never leads to flush cz Branch Predictor should also have the same branch taken status = 0
+      default : branch_taken = 1'b0 ;  // Never leads to flush cz Branch Predictor should have the same branch taken status = 0
    endcase
 end
 
-assign is_op0_eq_op1        = (i_op0 == i_op1)  ;  // Not bringing this from ALU to improve locality, and reduce routing delays...
-assign is_op0_lt_op1        = i_op0_lt_op1      ;
-assign is_sign_op0_lt_op1   = i_sign_op0_lt_op1 ;
+assign is_op0_eq_op1        = (i_op0 == i_op1)  ;  // Not implemented this in ALU as it's unused by ALU instructions, so implemented here for locality, and reduce routing delays...
+assign is_op0_lt_op1        = i_op0_lt_op1      ;  // Computed from ALU
+assign is_sign_op0_lt_op1   = i_sign_op0_lt_op1 ;  // Computed from ALU
 
 // Combinatorial logic for Branch PC resolution
 always_comb begin

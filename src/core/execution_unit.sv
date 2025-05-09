@@ -275,7 +275,7 @@ always_comb begin
       4'b0100,
       4'b0010,
       4'b0001 : exu_bubble = du_bubble ;
-      default : exu_bubble = 1'b1      ;
+      default : exu_bubble = 1'b1      ;  // Branch instructions will insert bubble, cz they don't need to propagate fwd in the pipeline...
    endcase   
 end
 
@@ -288,13 +288,6 @@ always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_pkt_valid_rg <= 1'b0        ; end
    else if (!stall)   begin exu_pkt_valid_rg <= ~exu_bubble ; end 
 end
-
-//logic dbg_exu_bubble_rg, dbg_exu_pkt_valid_rg;
-//assign dbg_exu_bubble_rg = alu_bubble & bu_bubble & lsu_bubble ;
-//assign dbg_exu_pkt_valid_rg = ~exu_bubble_rg;
-
-//assign exu_bubble_rg = alu_bubble & bu_bubble & lsu_bubble ;
-//assign exu_pkt_valid_rg = ~exu_bubble_rg;
 
 //===================================================================================================================================================
 //  Operands and Opcode to ALU

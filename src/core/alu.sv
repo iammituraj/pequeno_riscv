@@ -26,7 +26,7 @@
 //----%% Description      : ALU used by Execution Unit (EXU) of PQR5 Core. The ALU supports all RV32I integer computation instructions.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Feb-2023
+//----%% Last modified on : May-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
