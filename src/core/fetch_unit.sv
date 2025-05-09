@@ -109,6 +109,7 @@ logic [`ILEN-1:0] instr              ;  // Buffer-1 instruction
 logic             instr_valid        ;  // Buffer-1 instruction valid
 logic [`XLEN-1:0] instr_pc           ;  // Buffer-1 instruction PC
 logic [6:0]       op                 ;  // Opcode in Buffer-1 instruction
+logic [2:0]       funct3             ;  // funct3 in Buffer-1 instruction
 logic [`XLEN-1:0] immJ, immB         ;  // Sign-extended Immediate (Jump/Branch) in Buffer-1 instruction
 logic             is_op_jal          ;  // To flag if JAL instruction in Buffer-1
 logic             is_op_branch       ;  // To flag if branch instruction in Buffer-1
@@ -231,8 +232,9 @@ assign instr_pc     = instr_pc_rg[0]    ;
 assign immJ         = {{(`XLEN-20){instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0} ;
 assign immB         = {{(`XLEN-12){instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0}   ;
 assign op           = instr[6:0]        ;
+assign funct3       = instr[14:12]      ;
 assign is_op_jal    = (op == OP_JAL)    ;  
-assign is_op_branch = (op == OP_BRANCH) ;
+assign is_op_branch = (op == OP_BRANCH) && (funct3 != 3'b010) && (funct3 != 3'b011) ;
 
 // Synchronous logic to register branch_taken and pipe it forward
 always_ff @(posedge clk or negedge aresetn) begin
