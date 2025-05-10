@@ -112,7 +112,6 @@ module execution_unit #(
    output logic             o_maccu_is_riuj     ,  // RIUJ flag to MACCU
    output logic [2:0]       o_maccu_funct3      ,  // Funct3 to MACCU
    output logic             o_maccu_bubble      ,  // Bubble to MACCU
-   output logic             o_maccu_pkt_valid   ,  // Packet valid to MACCU
    input  logic             i_maccu_stall       ,  // Stall signal from MACCU
 
    output logic [4:0]       o_maccu_rdt_addr    ,  // Writeback address to MACCU
@@ -164,7 +163,6 @@ logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
 // EXU results in the Payload to MACCU
 logic             exu_bubble         ;  // Bubble
 logic             exu_bubble_rg      ;  // Bubble (registered)
-logic             exu_pkt_valid_rg   ;  // Packet valid
 logic [`XLEN-1:0] exu_result         ;  // EXU result for writeback
 
 // Glue logic signals
@@ -282,11 +280,6 @@ end
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin exu_bubble_rg <= 1'b1       ; end
    else if (!stall)   begin exu_bubble_rg <= exu_bubble ; end 
-end
-
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin exu_pkt_valid_rg <= 1'b0        ; end
-   else if (!stall)   begin exu_pkt_valid_rg <= ~exu_bubble ; end 
 end
 
 //===================================================================================================================================================
@@ -408,7 +401,6 @@ assign o_maccu_instr      = exu_instr_rg      ;
 assign o_maccu_funct3     = exu_funct3_rg     ;
 assign o_maccu_is_riuj    = exu_is_riuj_rg    ;
 assign o_maccu_bubble     = exu_bubble_rg     ;
-assign o_maccu_pkt_valid  = exu_pkt_valid_rg  ;
 
 assign o_maccu_rdt_addr   = exu_rdt_rg        ;
 assign o_maccu_rdt_data   = exu_result        ;

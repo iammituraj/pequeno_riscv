@@ -63,7 +63,6 @@ module memory_access_unit #(
    input  logic             i_exu_is_riuj      ,  // RIUJ flag from EXU
    input  logic [2:0]       i_exu_funct3       ,  // Funct3 from EXU
    input  logic             i_exu_bubble       ,  // Bubble from EXU
-   input  logic             i_exu_pkt_valid    ,  // Packet valid from EXU
    output logic             o_exu_stall        ,  // Stall signal to EXU
 
    input  logic [4:0]       i_exu_rdt_addr     ,  // Writeback address from EXU
@@ -92,7 +91,6 @@ module memory_access_unit #(
    output logic             o_wbu_is_riuj      ,  // RIUJ flag to WBU
    output logic [2:0]       o_wbu_funct3       ,  // Funct3 to WBU
    output logic             o_wbu_bubble       ,  // Bubble to WBU
-   output logic             o_wbu_pkt_valid    ,  // Packet valid to WBU
    input  logic             i_wbu_stall        ,  // Stall signal from WBU   
    output logic [4:0]       o_wbu_rdt_addr     ,  // rdt address to WBU
    output logic [`XLEN-1:0] o_wbu_rdt_data     ,  // rdt data to WBU
@@ -123,7 +121,6 @@ logic [`ILEN-1:0] maccu_instr_rg      ;  // Instruction
 logic [2:0]       maccu_funct3_rg     ;  // Funct3
 logic             maccu_is_riuj_rg    ;  // RIUJ flag
 logic             maccu_bubble_rg     ;  // Bubble
-logic             maccu_pkt_valid_rg  ;  // Packet valid
 logic [4:0]       rdt_addr_rg         ;  // rdt address
 logic [`XLEN-1:0] rdt_data_rg         ;  // rdt data
 logic             rdt_not_x0_rg       ;  // rdt neq x0
@@ -156,7 +153,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       maccu_is_riuj_rg    <= 1'b0       ;
       maccu_funct3_rg     <= 3'h0       ;
       maccu_bubble_rg     <= 1'b1       ;
-      maccu_pkt_valid_rg  <= 1'b0       ;
       rdt_addr_rg         <= '0         ;  
       rdt_data_rg         <= '0         ;
       rdt_not_x0_rg       <= 1'b0       ;
@@ -174,7 +170,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       maccu_is_riuj_rg    <= i_exu_is_riuj & ~exu_bubble ;
       maccu_funct3_rg     <= i_exu_funct3     ;
       maccu_bubble_rg     <= exu_bubble       ;
-      maccu_pkt_valid_rg  <= i_exu_pkt_valid  ;
       rdt_addr_rg         <= i_exu_rdt_addr   ;  
       rdt_data_rg         <= i_exu_rdt_data   ;
       rdt_not_x0_rg       <= i_exu_rdt_not_x0 ;
@@ -223,7 +218,6 @@ assign o_wbu_instr         = maccu_instr_rg      ;
 assign o_wbu_is_riuj       = maccu_is_riuj_rg    ;
 assign o_wbu_funct3        = maccu_funct3_rg     ;
 assign o_wbu_bubble        = maccu_bubble_rg     ;
-assign o_wbu_pkt_valid     = maccu_pkt_valid_rg  ;
 assign o_wbu_rdt_addr      = rdt_addr_rg         ;
 assign o_wbu_rdt_data      = rdt_data_rg         ;
 assign o_wbu_rdt_not_x0    = rdt_not_x0_rg       ;

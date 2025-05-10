@@ -77,7 +77,6 @@ module writeback_unit #(
    input  logic             i_maccu_is_riuj       ,  // RIUJ flag from MACCU
    input  logic [2:0]       i_maccu_funct3        ,  // Funct3 from MACCU
    input  logic             i_maccu_bubble        ,  // Bubble from MACCU
-   input  logic             i_maccu_pkt_valid     ,  // Packet valid from MACCU
    output logic             o_maccu_stall         ,  // Stall signal to MACCU   
    input  logic [4:0]       i_maccu_rdt_addr      ,  // rdt address from MACCU
    input  logic [`XLEN-1:0] i_maccu_rdt_data      ,  // rdt data from MACCU
@@ -166,7 +165,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       wbu_instr_rg     <= i_maccu_instr     ;
       `endif
       wbu_is_riuj_rg   <= i_maccu_is_riuj & ~i_maccu_bubble ;
-      wbu_pkt_valid_rg <= i_maccu_pkt_valid ;      
+      wbu_pkt_valid_rg <= ~i_maccu_bubble ;      
    end
 end
 
