@@ -44,7 +44,12 @@
 
 // Module definition
 module static_bpredictor (  
+   // Clock and Reset  
+   input  logic             clk               ,  // Clock
+   input  logic             aresetn           ,  // Asynchronous Reset; active-low
+
    // Fetch Unit Interface
+   input  logic             i_stall           ,  // Stall
    input  logic             i_is_op_jal       ,  // JAL instruction?
    input  logic             i_is_op_branch    ,  // Branch instruction? 
    input  logic [`XLEN-1:0] i_immJ            ,  // Sign-extended Immediate (Jump) 
@@ -54,7 +59,8 @@ module static_bpredictor (
 
    // Branch Prediction signals
    output logic [`XLEN-1:0] o_branch_pc       ,  // Branch PC         
-   output logic             o_branch_taken       // Branch taken status; '0'- not taken, '1'- taken
+   output logic             o_branch_taken    ,  // Branch taken status (registered); '0'- not taken, '1'- taken
+   output logic             o_flush              // Flush generated on branch taken
 );
 
 // Branch PC computation
@@ -70,7 +76,23 @@ assign o_branch_pc = i_pc + pc_offset ;
 // - If Jump instruction, branch is always taken
 // - If Branch instruction, branch is taken if backward jump 
 // - Branch taken status is never set if the instruction is not Branch/Jump   
-assign o_branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_valid ;  
+logic branch_taken ;
+assign branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_valid ;  
+
+// Synchronous logic to register branch_taken and pipe it forward
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      o_branch_taken <= 1'b0 ;
+   end
+   // Out of reset
+   else begin
+      if (!i_stall) begin o_branch_taken <= branch_taken ; end
+   end
+end
+
+// Flush out
+assign o_flush = branch_taken ;
 
 endmodule
 //###################################################################################################################################################
