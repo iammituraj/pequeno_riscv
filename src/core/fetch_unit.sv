@@ -141,9 +141,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       else if (!i_imem_stall)  begin pc_rg <= nxt_pc      ; end  // Request PC+4 
       
       // PC valid
-      if      (i_exu_bu_flush) begin pc_valid_rg <= 1'b1 ; end  // Valid
-      else if (branch_taken)   begin pc_valid_rg <= 1'b1 ; end  // Valid  
-      else if (!i_imem_stall)  begin pc_valid_rg <= 1'b1 ; end  // Valid
+      pc_valid_rg <= 1'b1 ;  // Always valid after coming out of reset
 
       // PC reset flag
       if (!i_imem_stall) begin pc_rst_flag_rg <= 1'b0 ; end              
