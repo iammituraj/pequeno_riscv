@@ -202,7 +202,6 @@ logic [`ILEN-1:0] exu_maccu_instr         ;  // Instruction from EXU to MACCU
 logic             exu_maccu_is_riuj       ;  // RIUJ flag from EXU to MACCU
 logic [2:0]       exu_maccu_funct3        ;  // Funct3 from EXU to MACCU
 logic             exu_maccu_bubble        ;  // Bubble from EXU to MACCU
-logic             exu_maccu_pkt_valid     ;  // Packet valid from EXU to MACCU
 logic             maccu_exu_stall         ;  // Stall signal from MACCU to EXU
 
 logic [4:0]       exu_maccu_rdt_addr      ;  // Writeback register address from EXU to MACCU 
@@ -222,7 +221,6 @@ logic [`ILEN-1:0] maccu_wbu_instr         ;  // Instruction from MACCU to WBU
 logic             maccu_wbu_is_riuj       ;  // RIUJ flag from MACCU to WBU
 logic [2:0]       maccu_wbu_funct3        ;  // Funct3 from MACCU to WBU
 logic             maccu_wbu_bubble        ;  // Bubble from MACCU to WBU
-logic             maccu_wbu_pkt_valid     ;  // Packet valid from MACCU to WBU
 logic             wbu_maccu_stall         ;  // Stall signal from WBU to MACCU  
 logic [4:0]       maccu_wbu_rdt_addr      ;  // rdt address from MACCU to WBU
 logic [`XLEN-1:0] maccu_wbu_rdt_data      ;  // rdt data from MACCU to WBU
@@ -475,7 +473,6 @@ execution_unit #(
    .o_maccu_is_riuj    (exu_maccu_is_riuj)    ,
    .o_maccu_funct3     (exu_maccu_funct3)     ,
    .o_maccu_bubble     (exu_maccu_bubble)     ,
-   .o_maccu_pkt_valid  (exu_maccu_pkt_valid)  ,
    .i_maccu_stall      (maccu_exu_stall)      ,
 
    .o_maccu_rdt_addr   (exu_maccu_rdt_addr)   ,
@@ -502,7 +499,6 @@ memory_access_unit #(
    .i_exu_is_riuj    (exu_maccu_is_riuj)    ,
    .i_exu_funct3     (exu_maccu_funct3)     ,
    .i_exu_bubble     (exu_maccu_bubble)     ,
-   .i_exu_pkt_valid  (exu_maccu_pkt_valid)  ,
    .o_exu_stall      (maccu_exu_stall)      ,
 
    .i_exu_rdt_addr   (exu_maccu_rdt_addr)   ,
@@ -529,7 +525,6 @@ memory_access_unit #(
    .o_wbu_is_riuj       (maccu_wbu_is_riuj)    ,
    .o_wbu_funct3        (maccu_wbu_funct3)     ,
    .o_wbu_bubble        (maccu_wbu_bubble)     ,
-   .o_wbu_pkt_valid     (maccu_wbu_pkt_valid)  ,
    .i_wbu_stall         (wbu_maccu_stall)      ,
    .o_wbu_rdt_addr      (maccu_wbu_rdt_addr)   ,
    .o_wbu_rdt_data      (maccu_wbu_rdt_data)   ,
@@ -564,7 +559,6 @@ writeback_unit #(
    .i_maccu_is_riuj       (maccu_wbu_is_riuj)        ,
    .i_maccu_funct3        (maccu_wbu_funct3)         ,
    .i_maccu_bubble        (maccu_wbu_bubble)         ,
-   .i_maccu_pkt_valid     (maccu_wbu_pkt_valid)      ,
    .o_maccu_stall         (wbu_maccu_stall)          ,
    .i_maccu_rdt_addr      (maccu_wbu_rdt_addr)       ,
    .i_maccu_rdt_data      (maccu_wbu_rdt_data)       ,
@@ -601,7 +595,7 @@ initial begin
    forever begin 
        @(posedge clk);
        if (wbu_instr_out == `INSTR_END && wbu_pkt_valid_out) begin   // END simulation command: mvi x0, 0xEEE ??  
-          $display("| PQR5_SIM_CORE: [INFO ] Simulation exit triggered by END command @t = %0t ns", $time);        
+          $display("| PQR5_SIM_CORE: [INFO ] Simulation exit triggered by END command @t = %0t ns", $time); 
           $finish;  // Finish simulation
       end
    end
@@ -609,14 +603,45 @@ end
 `endif  //SIMEXIT_INSTR_END
 
 `ifdef DBG
+final begin
+   $display("");
+   $display("///////////// SUMMARY STARTS //////////////");
+   $display("");
+   $display("+===========================+");
+   $display("| CPI MONITOR");
+   $display("+===========================+");
+   $display("| Clocks = %0d cycles", clk_cycles);
+   $display("| Exec   = %0d cycles ", exec_cycles);
+   $display("| Bubble = %0d cycles ", bubb_cycles);
+   $display("| Stall  = %0d cycles ", stal_cycles);
+   $display("| CPI    = %0.2f ", (clk_cycles * 1.0)/((clk_cycles * 1.0) - bubb_cycles - stal_cycles));
+   $display("+===========================+");
+   $display("");
+   $display("+===========================+");
+   $display("| BRANCH PREDICT MONITOR");
+   $display("+===========================+");
+   $display("| Jump/Branch = %0d cycles", jb_cycles);
+   $display("| Flush       = %0d cycles ", bu_flush_cycles);
+   $display("| Hit rate    = %0.2f %%", (((jb_cycles - bu_flush_cycles)*1.0)/jb_cycles)*100);
+   $display("+===========================+");
+   $display(""); 
+   $display("///////////// SUMMARY ENDS   //////////////");   
+   $display("");    
+end
+`endif
+
+`ifdef DBG
 // DEBUG BLOCK
 
 // Registers/Signals/Variables
 logic clk_stable  ;
 logic exec_begin  ;
+int   clk_cycles  ;
 int   exec_cycles ;
 int   stal_cycles ;
 int   bubb_cycles ;
+int   jb_cycles   ;
+int   bu_flush_cycles ;
 
 // Header display
 initial begin
@@ -661,6 +686,7 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("+================================================");
       $display("| EXECUTE - DEBUG");
       $display("+------------------------------------------------");
+      $display("| Pipe interlock : %s", ynstatus(exu_dbg[4]));
       $display("| Branch taken    : %s", ynstatus(exu_dbg[3]));
       if      (exu_dbg[2] && !exu_maccu_bubble) $display("| Instr executed  : by Load-Store Unit");
       else if (exu_dbg[1] && !exu_maccu_bubble) $display("| Instr executed  : by ALU");
@@ -688,10 +714,19 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("+===========================+");
       $display("| CPI MONITOR");
       $display("+===========================+");
+      $display("| Clocks = %0d cycles", clk_cycles);
       $display("| Exec   = %0d cycles ", exec_cycles);
       $display("| Bubble = %0d cycles ", bubb_cycles);
       $display("| Stall  = %0d cycles ", stal_cycles);
-      $display("| CPI    = %0.2f ", (exec_cycles * 1.0)/((exec_cycles * 1.0) - bubb_cycles - stal_cycles));
+      $display("| CPI    = %0.2f ", (clk_cycles * 1.0)/((clk_cycles * 1.0) - bubb_cycles - stal_cycles));
+      $display("+===========================+");
+      $display("");
+      $display("+===========================+");
+      $display("| BRANCH PREDICT MONITOR");
+      $display("+===========================+");
+      $display("| Jump/Branch = %0d cycles", jb_cycles);
+      $display("| Flush       = %0d cycles ", bu_flush_cycles);
+      $display("| Hit rate    = %0.2f %%", (((jb_cycles - bu_flush_cycles)*1.0)/jb_cycles)*100);
       $display("+===========================+");
       $display("");
       $display("+=====================================================================================+");
@@ -744,26 +779,41 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
 end
 `endif  //DBG_PRINT
 
+///////////////////////////////////////////////////////////////////////////////
 // CPI Monitor
+///////////////////////////////////////////////////////////////////////////////
 logic is_cpu_bubble ;
-assign is_cpu_bubble = du_exu_bubble | (du_exu_instr == `INSTR_NOP) ;
+assign is_cpu_bubble = du_exu_bubble | exu_bu_flush ;
 
 always @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin    
-      exec_begin  <= 1'b0 ;     
-      exec_cycles <= 1    ;
-      stal_cycles <= 0    ;
-      bubb_cycles <= 0    ;
+      clk_cycles  <= 0 ; 
+      exec_cycles <= 0 ;
+      stal_cycles <= 0 ;
+      bubb_cycles <= 0 ;
    end
    else begin
-      if (exec_begin) begin
-         if (is_cpu_bubble)                  bubb_cycles <= bubb_cycles + 1 ;
-         if (!du_exu_bubble && exu_du_stall) stal_cycles <= stal_cycles + 1 ;
-         exec_cycles <= exec_cycles + 1 ;                       
-      end
-      else begin
-         exec_begin  <= ~du_exu_bubble  ;         
-      end
+      if (!du_exu_bubble && (exu_du_stall || exu_dbg[4])) stal_cycles <= stal_cycles + 1 ; 
+      if (is_cpu_bubble)                                  bubb_cycles <= bubb_cycles + 1 ;
+      if (!is_cpu_bubble && !exu_du_stall)                exec_cycles <= exec_cycles + 1 ; 
+      clk_cycles <= clk_cycles + 1 ;
+   end
+end
+
+///////////////////////////////////////////////////////////////////////////////
+// Branch Predict Monitor
+///////////////////////////////////////////////////////////////////////////////
+logic is_j_or_b ;
+assign is_j_or_b = du_exu_is_j_or_jalr | du_exu_is_b_type ;
+
+always @(posedge clk or negedge aresetn) begin
+   if (!aresetn) begin    
+      jb_cycles       <= 0 ; 
+      bu_flush_cycles <= 0 ;
+   end
+   else begin
+      if (!(du_exu_bubble | exu_bu_flush) && is_j_or_b && !exu_du_stall) jb_cycles       <= jb_cycles + 1 ; 
+      if (exu_bu_flush)                                                  bu_flush_cycles <= bu_flush_cycles + 1 ;
    end
 end
 
