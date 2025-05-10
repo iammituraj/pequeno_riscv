@@ -146,7 +146,6 @@ logic             is_auipc            ;  // AUIPC flag
 logic             is_lui_or_auipc     ;  // LUI or AUIPC flag
 logic             is_sli_sri          ;  // SLLI/SRLI/SRAI flag
 logic             is_illegal          ;  // Illegal instruction flag
-logic             is_illegal_rg       ;  // Illegal instruction flag (registered)
 logic             is_alu_op           ;  // ALU operation flag
 logic             is_alu_op_rg        ;  // ALU operation flag (registered)
 logic [3:0]       alu_opcode          ;  // ALU opcode
@@ -194,7 +193,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       is_load_rg      <= 1'b0 ;
       is_lui_rg       <= 1'b0 ;
       is_alui_rg      <= 1'b0 ;
-      is_illegal_rg   <= 1'b0 ;
    end
    // Out of reset
    else begin 
@@ -209,7 +207,6 @@ always_ff @(posedge clk or negedge aresetn) begin
          is_load_rg      <= is_load      ; 
          is_alui_rg      <= is_alui      ; 
          is_lui_rg       <= is_lui       ;
-         is_illegal_rg   <= is_illegal   ;
       end                   
    end
 end
@@ -323,7 +320,7 @@ end
 // Synchronous logic to pipe bubble
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin du_bubble_rg <= 1'b0        ; end
+   if      (!aresetn) begin du_bubble_rg <= 1'b1        ; end
    else if (flush)    begin du_bubble_rg <= 1'b1        ; end  // Invalidate on flush
    else if (!stall)   begin du_bubble_rg <= i_fu_bubble ; end  // Pipe forward...
 end
