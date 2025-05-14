@@ -97,9 +97,9 @@ logic [`XLEN-1:0] pc_plus_four       ;  // PC+4
 logic [`XLEN-1:0] nxt_pc             ;  // Next PC to IMEMIF
 
 // Instruction buffers
-logic [`ILEN-1:0] instr_rg [2]       ;  // Instruction buffer with two entries (Buffer-1, Buffer-2)
-logic             instr_valid_rg [2] ;  // Instruction valid corresponding to instruction buffer entries
-logic [`XLEN-1:0] instr_pc_rg [2]    ;  // PC corresponding to instruction buffer entries
+logic [`ILEN-1:0] instr_rg [1]       ;  // Instruction buffer with one entry (Buffer-1)
+logic             instr_valid_rg [1] ;  // Instruction valid corresponding to instruction buffer entries
+logic [`XLEN-1:0] instr_pc_rg [1]    ;  // PC corresponding to instruction buffer entries
 
 // Branch logic specific
 logic             branch_taken       ;  // To flag that branch has to be taken
@@ -141,7 +141,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       else if (!i_imem_stall)  begin pc_rg <= nxt_pc      ; end  // Request PC+4 
       
       // PC valid
-      pc_valid_rg <= 1'b1 ;  // Always valid after coming out of reset
+      if (!i_imem_stall) begin pc_valid_rg <= 1'b1 ;  end  // Always valid after coming out of reset
 
       // PC reset flag
       if (!i_imem_stall) begin pc_rst_flag_rg <= 1'b0 ; end              
@@ -157,7 +157,6 @@ assign nxt_pc       = pc_rst_flag_rg ? PC_INIT : pc_plus_four ;
 // Synchronous logic to buffer instruction at Instruction Buffer-1
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-
    // Reset   
    if (!aresetn) begin
       instr_rg      [0] <= `INSTR_NOP ;
@@ -170,40 +169,13 @@ always_ff @(posedge clk or negedge aresetn) begin
       if (!stall) begin instr_rg[0] <= i_imem_pkt ; end  // Pipe forward...
       
       // Instruction Buffer-1 valid
-      if      (flush)              begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on flush
-      else if (bp_flush && !stall) begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate if branch taken
+      if      (flush)              begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on external flush; highest priority 
+      else if (bp_flush && !stall) begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on BP flush iff not stalling
       else if (!stall)             begin instr_valid_rg[0] <= i_imem_pkt_valid ; end  // Pipe forward packet valid... 
 
       // Instruction Buffer-1 PC
       if (!stall) begin instr_pc_rg[0] <= i_imem_pc ; end             
    end
-
-end
-
-//===================================================================================================================================================
-// Synchronous logic to buffer instruction at Instruction Buffer-2
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-
-   // Reset   
-   if (!aresetn) begin
-      instr_rg      [1] <= `INSTR_NOP ;
-      instr_valid_rg[1] <= 1'b0       ;
-      instr_pc_rg   [1] <= PC_INIT    ;
-   end
-   // Out of reset
-   else begin 
-      // Instruction Buffer-2
-      if (!stall) begin instr_rg[1] <= instr_rg[0] ; end  // Pipe forward...  
-      
-      // Instruction Buffer-2 valid
-      if      (flush)  begin instr_valid_rg[1] <= 1'b0              ; end  // Invalidate on flush
-      else if (!stall) begin instr_valid_rg[1] <= instr_valid_rg[0] ; end  // Pipe forward...
-
-      // Instruction Buffer-2 PC
-      if (!stall) begin instr_pc_rg[1] <= instr_pc_rg[0] ; end  // Pipe forward...               
-   end
-
 end
 
 //===================================================================================================================================================
@@ -223,16 +195,16 @@ static_bpredictor inst_static_bpredictor(
    .i_is_op_branch (is_op_branch) ,   
    .i_immJ         (immJ)         ,      
    .i_immB         (immB)         , 
-   .i_instr_valid  (instr_valid)  ,  
+   .i_instr_valid  (instr_valid & ~i_exu_bu_flush),  // Flush should immediately invalidate to avoid any potential bp flush in the next clock cycle... 
    .i_pc           (instr_pc)     ,            
 
    .o_branch_pc    (branch_pc)    ,  
    .o_branch_taken (branch_taken) ,
    .o_flush        (bp_flush)
 );
-assign instr        = instr_rg[0]       ;
-assign instr_valid  = instr_valid_rg[0] ;
-assign instr_pc     = instr_pc_rg[0]    ;
+assign instr        = i_imem_pkt        ;
+assign instr_valid  = i_imem_pkt_valid  ;
+assign instr_pc     = i_imem_pc         ;
 assign immJ         = {{(`XLEN-20){instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0} ;
 assign immB         = {{(`XLEN-12){instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0}   ;
 assign op           = instr[6:0]        ;
@@ -243,7 +215,7 @@ assign is_op_branch = (op == OP_BRANCH) && (funct3 != 3'b010) && (funct3 != 3'b0
 //===================================================================================================================================================
 //  Stall logic
 //===================================================================================================================================================
-assign stall        = i_du_stall & instr_valid_rg[1] ;  // Only DU can stall FU from outside.
+assign stall        = i_du_stall & instr_valid_rg[0] ;  // Only DU can stall FU from outside.
                                                         // Conditioned with valid to burst unwanted pipeline bubbles
 assign fu_stall_ext = stall        ;
 assign o_imem_stall = fu_stall_ext ;  // Stall signal to IMEMIF 
@@ -252,7 +224,7 @@ assign o_imem_stall = fu_stall_ext ;  // Stall signal to IMEMIF
 //  Flush logic
 //===================================================================================================================================================
 assign flush        = i_exu_bu_flush   ;  // Only EXU-BU can flush FU from outside
-assign fu_flush_ext = flush | bp_flush ;  // If branch taken, flush should be generated to upstream...
+assign fu_flush_ext = flush | bp_flush ;  // Any flush should be propagated to the upstream...
 assign o_imem_flush = fu_flush_ext     ;  // Flush signal to IMEMIF
 
 //===================================================================================================================================================
@@ -268,10 +240,10 @@ assign o_imem_pc       = pc_rg        ;
 assign o_imem_pc_valid = pc_valid_rg  ;
 
 // Payload to Decode Unit (DU)
-assign o_du_pc       =  instr_pc_rg[1]    ; 
-assign o_du_instr    =  instr_rg[1]       ;
+assign o_du_pc       =  instr_pc_rg[0]    ; 
+assign o_du_instr    =  instr_rg[0]       ;
 assign o_du_br_taken =  branch_taken      ;
-assign o_du_bubble   = ~instr_valid_rg[1] ;  // Insert bubble if invalid instruction
+assign o_du_bubble   = ~instr_valid_rg[0] ;  // Insert bubble if invalid instruction
 
 endmodule
 //###################################################################################################################################################

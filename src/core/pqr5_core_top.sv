@@ -667,8 +667,8 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("+================================================");
       $display("| FETCH - DEBUG");
       $display("+------------------------------------------------");
-      $display("| Branch taken    : %s", ynstatus(fu_dbg[2]));
-      $write  ("| Flush generated : %s", ynstatus(o_imem_flush));
+      $display("| BP flush      : %s", ynstatus(fu_dbg[2]));
+      $write  ("| Flush to IMEM : %s", ynstatus(o_imem_flush));
       if (fu_dbg[2] && !exu_bu_flush) $write(", by %s", ynstatus(fu_dbg[0], "JAL instr", "Branch instr")); 
       $write("\n");
       $display("| Stall generated : %s", ynstatus(o_imem_stall));
