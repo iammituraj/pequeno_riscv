@@ -416,10 +416,6 @@ opfwd_control inst_opfwd_control (
    .o_fwd_op1           (opfwd_exu_op1) 
 );
 
-// If Load access@MACCU, forward load data from DMEM access, else forward register writeback data
-//**CHECKME**// This logic can be moved inside opfwd block or MACCU block?
-assign maccu_result      = (maccu_wbu_is_load)? dmem_load_data : maccu_wbu_rdt_data ;  
-
 // Execution Unit (EXU)
 execution_unit #(
    .PC_INIT (PC_INIT)
