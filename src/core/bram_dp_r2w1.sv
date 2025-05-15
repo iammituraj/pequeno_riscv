@@ -18,15 +18,17 @@
 //    
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //----%% 
-//----%% File Name        : alu.sv
-//----%% Module Name      : ALU                                           
+//----%% File Name        : bram_dp_r2w1.sv
+//----%% Module Name      : Dual-port Block RAM with 2 read ports, 1 write port                                          
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : ALU used by Execution Unit (EXU) of PQR5 Core. The ALU supports all RV32I integer computation instructions.
+//----%% Description      : Dual-port Block RAM which can be mapped to FPGA BRAMs.
+//----%%                    ## Two Read ports with common read enable, one Write port
+//----%%                    ## Synchronous read & write, 1-cycle access
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : May-2025
+//----%% Last modified on : Apr-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -34,83 +36,86 @@
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 //###################################################################################################################################################
-//                                                                     A L U                                         
+//                                                    D U A L - P O R T   B L O C K   R A M                                       
 //###################################################################################################################################################
-// Header files
+// Header files included
 `include "../include/pqr5_core_macros.svh"
 
-// Packages imported
-import pqr5_core_pkg :: * ;
-
 // Module definition
-module alu (
-   input  logic             clk                 ,  // Clock
-   input  logic             aresetn             ,  // Asynchronous Reset; active-low
-   input  logic             i_stall             ,  // Stall signal
-   input  logic             i_bubble            ,  // Bubble in
-   input  logic             i_is_alu_op         ,  // ALU operation flag
-   input  logic [`XLEN-1:0] i_op0               ,  // Operand-0
-   input  logic [`XLEN-1:0] i_op1               ,  // Operand-1
-   input  logic [3:0]       i_opcode            ,  // Opcode
-   output logic [`XLEN-1:0] o_result            ,  // Result
-   output logic             o_op0_lt_op1        ,  // op0 < op1  ?
-   output logic             o_sign_op0_lt_op1   ,  // signed (op0) < signed(op1) ?
-   output logic             o_bubble               // Bubble out
+module bram_dp_r2w1#(
+   // Configurable Parameters
+   parameter  DTW = 32,  // Data width
+   parameter  DPT = 32,  // Depth of RAM
+
+   // Derived/Constant Parameters
+   localparam ADW    = $clog2(DPT),  // Address width
+   localparam DPT_2N = 2**ADW        // Depth of RAM scaled to 2^N for compatibility with FPGA Block RAMs
+)
+(
+   // Clock
+   input  logic clk,
+
+   `ifdef DBG
+   // Debug ports
+   output logic [DTW-1:0] o_marray [DPT_2N] ,  // Memory array
+   `endif
+   
+   // Write Port
+   input  logic           i_wren  ,  // Write enable
+   input  logic [ADW-1:0] i_waddr ,  // Write address
+   input  logic [DTW-1:0] i_wdata ,  // Write data
+
+   // Read Ports
+   input  logic           i_rden   ,  // Read enable
+   input  logic [ADW-1:0] i_raddr0 ,  // Read address to port-0
+   output logic [DTW-1:0] o_rdata0 ,  // Read data from port-0
+   input  logic [ADW-1:0] i_raddr1 ,  // Read address to port-1
+   output logic [DTW-1:0] o_rdata1    // Read data from port-1
 );
 
 //===================================================================================================================================================
-// Combinatorial logic to compute result
+// Internal Registers/Signals
 //===================================================================================================================================================
-logic [`XLEN-1:0] result             ;  // ALU result
-logic             is_op0_lt_op1      ;  // Unsigned comparison flag
-logic             is_sign_op0_lt_op1 ;  // Signed comparison flag
-logic             bubble             ;  // Bubble
-
-always_comb begin
-   casez (i_opcode)
-      // Legal ALU instructions
-      ALU_ADD  : result = i_op0 + i_op1 ; 
-      ALU_SUB  : result = i_op0 - i_op1 ;
-      ALU_SLT  : result = {{`XLEN-1{1'b0}}, is_sign_op0_lt_op1} ;
-      ALU_SLTU : result = {{`XLEN-1{1'b0}}, is_op0_lt_op1} ;
-      ALU_XOR  : result = i_op0 ^ i_op1 ;
-      ALU_OR   : result = i_op0 | i_op1 ;
-      ALU_AND  : result = i_op0 & i_op1 ;
-      ALU_SLL  : result = i_op0 << i_op1[4:0] ;
-      ALU_SRL  : result = i_op0 >> i_op1[4:0] ;
-      ALU_SRA  : result = (signed'(i_op0)) >>> i_op1[4:0] ;
-      default  : result = '0 ;  // Illegal ALU instruction. Currently bubble is not generated, allows to go fwd in pipeline as it's non-critical...  	
-   endcase
-end
-assign is_op0_lt_op1      = (i_op0 < i_op1) ;                    // Unsigned comparison
-assign is_sign_op0_lt_op1 = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
-assign bubble             = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
+(* ram_style = "block" *)
+logic [DTW-1:0] ram [DPT_2N]         ;  // 2D memory array
+logic [DTW-1:0] rdata0_rg, rdata1_rg ;  // Read data
 
 //===================================================================================================================================================
-// Synchronous logic to register outputs
+// Synchronous logic to write to RAM
 //===================================================================================================================================================
-logic [`XLEN-1:0] result_rg ;  // ALU result
-logic             bubble_rg ;  // Bubble
-
-always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
-   if (!aresetn) begin
-      result_rg <= '0   ;
-      bubble_rg <= 1'b1 ;       
-   end
-   // Out of reset
-   else if (!i_stall) begin
-      result_rg <= result ;
-      bubble_rg <= bubble ;
+always_ff @(posedge clk) begin
+   if (i_wren) begin
+      ram[i_waddr] <= i_wdata ;
    end
 end
 
-assign o_result          = result_rg          ;
-assign o_op0_lt_op1      = is_op0_lt_op1      ;
-assign o_sign_op0_lt_op1 = is_sign_op0_lt_op1 ;
-assign o_bubble          = bubble_rg          ;
+//===================================================================================================================================================
+// Synchronous logic to read from Read port-0
+//===================================================================================================================================================
+always_ff @(posedge clk) begin
+   if (i_rden) begin      
+      rdata0_rg <= ram[i_raddr0];
+   end
+end
+
+//===================================================================================================================================================
+// Synchronous logic to read from Read port-1
+//===================================================================================================================================================
+always_ff @(posedge clk) begin
+   if (i_rden) begin      
+      rdata1_rg <= ram[i_raddr1];
+   end
+end
+
+// Read data to outputs
+assign o_rdata0 = rdata0_rg ;
+assign o_rdata1 = rdata1_rg ;
+
+`ifdef DBG
+assign o_marray = ram ;
+`endif
 
 endmodule
 //###################################################################################################################################################
-//                                                                     A L U                                          
+//                                                    D U A L - P O R T   B L O C K   R A M                                       
 //###################################################################################################################################################

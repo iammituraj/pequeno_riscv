@@ -28,6 +28,8 @@
 ./src/core/fetch_unit.sv
 
 ./src/core/opfwd_control.sv
+
+./src/core/bram_dp_r2w1.sv
 ./src/core/regfile.sv
 ./src/core/decode_unit.sv
 

@@ -42,30 +42,33 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Generic constants - DO NOT MODIFY
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-`define CPU           "Pequeno RISC-V"
-`define VERS          "v1.0"
+`define CPU           "Pequeno RISC-V (PQR5)"
+`define VERS          "v1.1"
 `define ISA           "RV32I"
 
 `define XLEN          32                   // Size of register
 `define ILEN          32                   // Size of instruction
 
-`define XLSB          $clog2(`XLEN/8)-1:0  // Least significant addressing bits in XLEN addressing space
+`define XLSB          $clog2(`XLEN/8)      // Least significant addressing bits in XLEN addressing space
 
 // Instructions
 `define INSTR_NOP     32'h0000_0013        // NOP pseudo-instruction
-`define INSTR_END     32'hEEE0_0013        // END simulation instruction (mvi x0, 0xEEE); known only by sim framework, not Assembler
+`define INSTR_END     32'hEEE0_0013        // END sim instruction (mvi x0, 0xEEE); known only by sim framework, NOT an Assembler instruction
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
-//`define TEST_PORTS                        // Define this macro to generate test ports from core: x31 bits, boot flag
+//`define RF_IN_BRAM                        // Define this macro to generate Block RAM based Register File
+                                          // Undefining this macro will generate Flip-flop based Register File 
+//`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
+
 //`define CORE_SYNTH                        // Define this macro to configure the core for SYNTHESIS
-`define DBG                               // Define this macro to generate all debug modules/interfaces for simulation; UNDEFINE FOR SYNTHESIS
-//`define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages; UNDEFINE FOR SYNTHESIS
-`define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END simulation instruction; UNDEFINE FOR SYNTHESIS
-`define REGFILE_DUMP  1                   // If DBG is enabled: '1'- Dump Register File @end of simulation, '0'- Do not dump; '0' FOR SYNTHESIS
+`define DBG                               // Define this macro to generate all Debug interfaces for simulation         ; OVERRIDEN FOR SYNTHESIS
+//`define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages  ; OVERRIDEN FOR SYNTHESIS
+`define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END sim instruction ; OVERRIDEN FOR SYNTHESIS
+`define REGFILE_DUMP  1                   // If DBG is enabled: '1'- Dump Register File @end of sim, '0'- No dump  ; OVERRIDEN to 0 for SYNTHESIS
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 
 // SYNTHESIS override ............ //

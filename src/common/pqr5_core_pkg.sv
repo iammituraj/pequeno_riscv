@@ -100,12 +100,12 @@ localparam [2:0] F3_SW   = 3'b010 ;
 //===================================================================================================================================================
 localparam [3:0] ALU_ADD  = 4'b0000 ;
 localparam [3:0] ALU_SUB  = 4'b0001 ;
-localparam [3:0] ALU_SLT  = 4'b0100 ;
-localparam [3:0] ALU_SLTU = 4'b0110 ;
-localparam [3:0] ALU_XOR  = 4'b1000 ;
-localparam [3:0] ALU_OR   = 4'b1100 ;
-localparam [3:0] ALU_AND  = 4'b1110 ;
-localparam [3:0] ALU_SLL  = 4'b0010 ;
+localparam [3:0] ALU_SLT  = 4'b010? ;
+localparam [3:0] ALU_SLTU = 4'b011? ;
+localparam [3:0] ALU_XOR  = 4'b100? ;
+localparam [3:0] ALU_OR   = 4'b110? ;
+localparam [3:0] ALU_AND  = 4'b111? ;
+localparam [3:0] ALU_SLL  = 4'b001? ;
 localparam [3:0] ALU_SRL  = 4'b1010 ;
 localparam [3:0] ALU_SRA  = 4'b1011 ;
 localparam [3:0] ALU_ILLG = 4'b1111 ;  // Illegal opcode
@@ -240,7 +240,7 @@ function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarr
 endfunction
 
 // Function to display Register File
-function automatic void disp_regfile (logic [RSIZE-1:0] regarray []);
+function automatic void disp_regfile (logic [RSIZE-1:0] regarray [32]);
    int i = 0 ;
    $display("+================================================================+");
    $display("| REGFILE                                                        |");

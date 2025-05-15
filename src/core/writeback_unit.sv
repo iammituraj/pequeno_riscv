@@ -53,68 +53,74 @@ module writeback_unit #(
 )
 (
    // Clock and Reset
-   input  logic             clk                ,  // Clock
-   input  logic             aresetn            ,  // Asynchronous Reset; active-low   
+   input  logic             clk                   ,  // Clock
+   input  logic             aresetn               ,  // Asynchronous Reset; active-low   
    
    `ifdef DBG
    // Debug Interface  	
-   output logic [4:0]       o_wbu_dbg          ,  // Debug signal
+   output logic [4:0]       o_wbu_dbg             ,  // Debug signal
    `endif
 
    // Data Memory/Cache Acknowledge Interface (DMEMIF) 
-   input  logic [`XLEN-1:0] i_dmem_rdata       ,  // Read-data from DMEMIF
-   input  logic             i_dmem_ack         ,  // Acknowledge from DMEMIF
-   output logic             o_dmem_stall       ,  // Stall signal to DMEMIF
+   input  logic [`XLEN-1:0] i_dmem_rdata          ,  // Read-data from DMEMIF
+   input  logic             i_dmem_ack            ,  // Acknowledge from DMEMIF
+   output logic             o_dmem_stall          ,  // Stall signal to DMEMIF
 
    // Operand Forward Interface
-   output logic [`XLEN-1:0] o_load_data        ,  // Load data from DMEM access 
+   output logic [`XLEN-1:0] o_load_data           ,  // Load data from DMEM access 
 
    // Interface with Memory Access Unit (MACCU)
-   input  logic [`XLEN-1:0] i_maccu_pc         ,  // PC from MACCU
-   input  logic [`ILEN-1:0] i_maccu_instr      ,  // Instruction from MACCU
-   input  logic             i_maccu_is_riuj    ,  // RIUJ flag from MACCU
-   input  logic             i_maccu_bubble     ,  // Bubble from MACCU
-   output logic             o_maccu_stall      ,  // Stall signal to MACCU   
-   input  logic [4:0]       i_maccu_rdt_addr   ,  // rdt address from MACCU
-   input  logic [`XLEN-1:0] i_maccu_rdt_data   ,  // rdt data from MACCU
-   input  logic             i_maccu_rdt_not_x0 ,  // rdt neq x0
-   input  logic             i_maccu_is_macc    ,  // Memory access flag from MACCU
-   input  logic             i_maccu_is_load    ,  // Load operation flag from MACCU
-   input  logic             i_maccu_is_dwback  ,  // Direct writeback operation flag from MACCU
-   input  logic [`XLEN-1:0] i_maccu_macc_addr  ,  // Memory access address from MACCU //**CHECKME**// only LSbs used as of now
+   `ifdef DBG
+   input  logic [`XLEN-1:0] i_maccu_pc            ,  // PC from MACCU
+   input  logic [`ILEN-1:0] i_maccu_instr         ,  // Instruction from MACCU
+   `endif
+   input  logic             i_maccu_is_riuj       ,  // RIUJ flag from MACCU
+   input  logic [2:0]       i_maccu_funct3        ,  // Funct3 from MACCU
+   input  logic             i_maccu_bubble        ,  // Bubble from MACCU
+   output logic             o_maccu_stall         ,  // Stall signal to MACCU   
+   input  logic [4:0]       i_maccu_rdt_addr      ,  // rdt address from MACCU
+   input  logic [`XLEN-1:0] i_maccu_rdt_data      ,  // rdt data from MACCU
+   input  logic             i_maccu_rdt_not_x0    ,  // rdt neq x0
+   input  logic             i_maccu_is_macc       ,  // Memory access flag from MACCU
+   input  logic             i_maccu_is_load       ,  // Load operation flag from MACCU
+   input  logic             i_maccu_is_dwback     ,  // Direct writeback operation flag from MACCU
+   input  logic [`XLSB-1:0] i_maccu_macc_addr_lsb ,  // Memory access address from MACCU (LSbs)
 
    // Interface with Register File (RF)
-   output logic             o_rf_wren          ,  // Write Enable to RF
-   output logic [4:0]       o_rf_rdt_addr      ,  // rdt address to RF
-   output logic [`XLEN-1:0] o_rf_rdt_data      ,  // rdt data to RF
+   output logic             o_rf_wren             ,  // Write Enable to RF
+   output logic [4:0]       o_rf_rdt_addr         ,  // rdt address to RF
+   output logic [`XLEN-1:0] o_rf_rdt_data         ,  // rdt data to RF
 
    // Instruction Interface
-   output logic [`XLEN-1:0] o_pc               ,  // PC from WBU
-   output logic [`ILEN-1:0] o_instr            ,  // Instruction from WBU
-   output logic             o_is_riuj          ,  // RIUJ flag from WBU
-   output logic [4:0]       o_rdt_addr         ,  // rdt address from WBU
-   output logic [`XLEN-1:0] o_rdt_data         ,  // rdt data from WBU
-   output logic             o_rdt_not_x0       ,  // rdt neq x0
-   output logic             o_bubble           ,  // Bubble from WBU
-   input  logic             i_stall               // Stall to WBU //**CHECKME**// Currently no external source to stall WBU 
+   `ifdef DBG
+   output logic [`XLEN-1:0] o_pc                  ,  // PC from WBU
+   output logic [`ILEN-1:0] o_instr               ,  // Instruction from WBU
+   `endif
+   output logic             o_is_riuj             ,  // RIUJ flag from WBU
+   output logic [4:0]       o_rdt_addr            ,  // rdt address from WBU
+   output logic [`XLEN-1:0] o_rdt_data            ,  // rdt data from WBU
+   output logic             o_rdt_not_x0          ,  // rdt neq x0
+   output logic             o_pkt_valid           ,  // Packet valid from WBU
+   input  logic             i_stall                  // Stall to WBU
 );
 
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
 // Instruction specific
+`ifdef DBG
 logic [`XLEN-1:0] wbu_pc_rg         ;  // PC
 logic [`ILEN-1:0] wbu_instr_rg      ;  // Instruction
+`endif
 logic             wbu_is_riuj_rg    ;  // RIUJ flag
-logic             wbu_bubble_rg     ;  // Bubble
-logic [2:0]       funct3            ;  // funct3 
+logic             wbu_pkt_valid_rg  ;  // Packet valid
 
 // Memory access/writeback specific
 logic             is_dmem_acc      ;  // Flags if memory access required
 logic             is_dmem_acc_load ;  // Flags if Load operation
 logic             is_dir_writeback ;  // Flags if direct writeback operation w/o any memory access
 logic             is_usig_macc     ;  // Flags if unsigned memory access
-logic [`XLEN-1:0] maddr            ;  // Memory access address
+logic [`XLSB-1:0] maddr_lsb        ;  // Memory access address (LSbs)
 logic [1:0]       msize            ;  // Memory access size
 logic [7:0]       load_byte        ;  // Load byte
 logic [15:0]      load_hword       ;  // Load half-word
@@ -127,35 +133,39 @@ logic [4:0]       rdt_addr         ;  // Writeback address
 logic [`XLEN-1:0] rdt_data         ;  // Writeback data
 
 // Writeback copy buffers
-logic             rdt_wren_rg      ;  // Write Enable copy buffer
+logic             rdt_wren_rg      ;  // Write Enable copy buffer //**CHECKME**// Debug purpose only...
 logic [4:0]       rdt_addr_rg      ;  // Writeback address copy buffer
 logic [`XLEN-1:0] rdt_data_rg      ;  // Writeback data copy buffer
 logic             rdt_not_x0_rg    ;  // rdt neq x0
 
 // Stall logic specific
-logic             stall            ;  // Local stall generated by WBU from external stall coming to WBU
+logic             ext_stall        ;  // External stall coming to WBU
 logic             dmem_stall_ext   ;  // External stall generated by WBU to DMEMIF
 logic             dmem_acc_stall   ;  // Stall locally generated on memory access
 logic             pipe_stall       ;  // Stall locally generated to stall WBU pipeline
 logic             wbu_stall_ext    ;  // External stall generated by WBU to MACCU
 
 //===================================================================================================================================================
-// Synchronous logic to pipe instruction, PC, bubble
+// Synchronous logic to pipe instruction, PC, bubble/packet valid
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
-      wbu_pc_rg       <= PC_INIT    ;
-      wbu_instr_rg    <= `INSTR_NOP ;
-      wbu_is_riuj_rg  <= 1'b0       ;
-      wbu_bubble_rg   <= 1'b1       ;      
+      `ifdef DBG
+      wbu_pc_rg        <= PC_INIT    ;
+      wbu_instr_rg     <= `INSTR_NOP ;
+      `endif
+      wbu_is_riuj_rg   <= 1'b0       ;
+      wbu_pkt_valid_rg <= 1'b0       ;      
    end
    // Out of reset
    else if (!pipe_stall) begin
-      wbu_pc_rg       <= i_maccu_pc      ;
-      wbu_instr_rg    <= i_maccu_instr   ;
-      wbu_is_riuj_rg  <= i_maccu_is_riuj ;
-      wbu_bubble_rg   <= i_maccu_bubble  ;      
+      `ifdef DBG
+      wbu_pc_rg        <= i_maccu_pc        ;
+      wbu_instr_rg     <= i_maccu_instr     ;
+      `endif
+      wbu_is_riuj_rg   <= i_maccu_is_riuj & ~i_maccu_bubble ;
+      wbu_pkt_valid_rg <= ~i_maccu_bubble ;      
    end
 end
 
@@ -181,7 +191,7 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 // Writeback to RF: combi routing to sync RF write with WBU pipe outputs
-assign rdt_wren = pipe_stall ? 1'b0 : (is_dmem_acc_load | is_dir_writeback);
+assign rdt_wren = pipe_stall ? 1'b0 : ((is_dmem_acc_load | is_dir_writeback) && i_maccu_rdt_not_x0);
 assign rdt_addr = i_maccu_rdt_addr ;
 assign rdt_data = is_dmem_acc_load ? load_data : i_maccu_rdt_data ;  // Writeback data selected from memory (Load data) or MACCU (Direct writeback)
 
@@ -199,27 +209,34 @@ always_comb begin
    endcase      
 end
 
-assign funct3       = i_maccu_instr[14:12] ;
-assign is_usig_macc = funct3[2]            ;
-assign maddr        = i_maccu_macc_addr    ;
-assign msize        = funct3[1:0]          ;
+assign is_usig_macc = i_maccu_funct3[2]     ;
+assign maddr_lsb    = i_maccu_macc_addr_lsb ;
+assign msize        = i_maccu_funct3[1:0]   ;
 
-assign load_byte    = i_dmem_rdata >> (8 * maddr[`XLSB]) ;
-assign load_hword   = i_dmem_rdata >> (8 * maddr[`XLSB]) ;
+always_comb begin
+   case (maddr_lsb)   
+      2'b00   : load_hword = i_dmem_rdata[15:0] ;
+      2'b01   : load_hword = i_dmem_rdata[23:8] ;
+      2'b10   : load_hword = i_dmem_rdata[31:16];
+      default : load_hword = {8'h00, i_dmem_rdata[31:24]};        
+   endcase
+end
+assign load_byte    = load_hword[7:0];
 assign load_word    = i_dmem_rdata ;
 
+// Load data out
 assign o_load_data  = load_data ;
 
 //===================================================================================================================================================
 //  Stall logic
 //===================================================================================================================================================
-assign stall          = i_stall                                    ;  // External stall from outside CPU
-assign dmem_stall_ext = stall                                      ;  // Only external stall can stall memory pipeline
-assign dmem_acc_stall = is_dmem_acc & ~i_dmem_ack                  ;  // Stall until onging memory access is acknowledged
-assign pipe_stall     = stall | dmem_acc_stall                     ;  // External or memory access stall should stall WBU pipeline 
-assign wbu_stall_ext  = (stall & ~i_maccu_bubble) | dmem_acc_stall ;  // If invalid instruction from MACCU, stall need not be generated to MACCU
-assign o_dmem_stall   = dmem_stall_ext                             ;  // Stall signal to DMEMIF
-assign o_maccu_stall  = wbu_stall_ext                              ;  // Stall signal to MACCU
+assign ext_stall      = i_stall                    ;  // External stall from outside CPU
+assign dmem_stall_ext = ext_stall                  ;  // Only external stall can stall memory pipeline
+assign dmem_acc_stall = is_dmem_acc & ~i_dmem_ack  ;  // Stall until onging memory access is acknowledged
+assign pipe_stall     = ext_stall | dmem_acc_stall ;  // External or memory access stall should stall WBU pipeline 
+assign wbu_stall_ext  = pipe_stall                 ;  // If WBU is stalled --> MACCU stall
+assign o_dmem_stall   = dmem_stall_ext             ;  // Stall signal to DMEMIF
+assign o_maccu_stall  = wbu_stall_ext              ;  // Stall signal to MACCU
 
 //===================================================================================================================================================
 // Internally decoded signals and outputs from WBU
@@ -239,13 +256,15 @@ assign o_rf_rdt_addr = rdt_addr ;
 assign o_rf_rdt_data = rdt_data ;
 
 // Payload out of WBU
-assign o_pc          = wbu_pc_rg      ;  
-assign o_instr       = wbu_instr_rg   ;
-assign o_is_riuj     = wbu_is_riuj_rg ;
-assign o_rdt_addr    = rdt_addr_rg    ;
-assign o_rdt_data    = rdt_data_rg    ;
-assign o_rdt_not_x0  = rdt_not_x0_rg  ;
-assign o_bubble      = wbu_bubble_rg  ;
+`ifdef DBG
+assign o_pc          = wbu_pc_rg        ;  
+assign o_instr       = wbu_instr_rg     ;
+`endif
+assign o_is_riuj     = wbu_is_riuj_rg   ;
+assign o_rdt_addr    = rdt_addr_rg      ;
+assign o_rdt_data    = rdt_data_rg      ;
+assign o_rdt_not_x0  = rdt_not_x0_rg    ;
+assign o_pkt_valid   = wbu_pkt_valid_rg ;
 
 endmodule
 //###################################################################################################################################################

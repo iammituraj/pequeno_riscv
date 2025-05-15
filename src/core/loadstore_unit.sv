@@ -115,10 +115,10 @@ end
 //===================================================================================================================================================
 always_comb begin
    case (memacc_size)
-      BYTE    : store_data = i_op1[7:0]  << (8 * store_addr[`XLSB]) ;  // Extend LS Byte and send
-      HWORD   : store_data = i_op1[15:0] << (8 * store_addr[`XLSB]) ;  // Extend LS Half-word and send
-      WORD    : store_data = i_op1 ;                                   // Send word
-      default : store_data = i_op1 ;                                   // Send word
+      BYTE    : store_data = i_op1[7:0]  << (8 * store_addr[`XLSB-1:0]) ;  // Extend LS Byte and send
+      HWORD   : store_data = i_op1[15:0] << (8 * store_addr[`XLSB-1:0]) ;  // Extend LS Half-word and send
+      WORD    : store_data = i_op1 ;                                       // Send word
+      default : store_data = i_op1 ;                                       // Send word
    endcase      
 end
 

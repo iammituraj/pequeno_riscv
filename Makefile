@@ -63,8 +63,8 @@ DSZ  = 1024
 DTW  = 32
 # Base address in IRAM                
 OFT  = 0
-# Assembly pgm passed to asm2bin; empty but MANDATORY input to recipes
-ASM  =
+# Assembly pgm passed to asm2bin
+ASM  = 01_test_regfile.s
 # peqFlash flags
 PQF  =
 # pqr5asm flags; -pcrel to generate relocatable (text) binary by default
@@ -127,8 +127,8 @@ help:
 	@echo ""
 	@echo "NOTES:"
 	@echo "1) Pay attention to all errors/warnings of build before proceeding ahead..."
-	@echo "2) Default values for optional flags: ISZ/DSZ=1024, OFT=0, GUI=0"
-	@echo "   OFT, PC_INIT, program (text section) base address are related, refer to: database_readme.txt"
+	@echo "2) Default values of flags: ASM=01_test_regfile.s ISZ/DSZ=1024, OFT=0, GUI=0"
+	@echo "   OFT, PC_INIT, program (text section) base address are related, refer to: readme_database.html"
 	@echo "3) ASM flags (ASMF) available are: -pcrel. It is added by default for relocatable program binary."
 	@echo "   Override ASMF=<empty> to create non-relocatable program binary"
 	@echo "   For more details, refer to: pqr5asm_imanual.pdf"

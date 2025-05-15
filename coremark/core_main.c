@@ -106,10 +106,6 @@ char *mem_name[3] = { "Static", "Heap", "Stack" };
 
 */
 
-////////////////// PQR5 SPECIFIC FUNCTION PROTOTYPES - Starts here //////////////////
-void uart_init(); 
-////////////////// PQR5 SPECIFIC FUNCTION PROTOTYPES - Ends here ////////////////////
-
 #if MAIN_HAS_NOARGC
 MAIN_RETURN_TYPE
 main(void)
@@ -117,11 +113,6 @@ main(void)
     int   argc = 0;
     char *argv[1];
 
-    //pqr5: Initializing UART
-    uart_init();
-
-    //pqr5: Welcome message
-    ee_printf("Starting benchmark on Pequeno with COREMARK 1.0...\n"); 
 #else
 MAIN_RETURN_TYPE
 main(int argc, char *argv[])

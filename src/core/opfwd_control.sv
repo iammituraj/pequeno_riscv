@@ -57,31 +57,38 @@ module opfwd_control (
    input  logic [`XLEN-1:0] i_rf_op1            ,  // Operand-1 from RF
 
    // Interface with Decode Unit (DU) 
+   input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU
    input  logic [4:0]       i_du_rs0            ,  // rs0 from DU
+   input  logic [4:0]       i_du_rs0_cpy        ,  // rs0 copy from DU
    input  logic [4:0]       i_du_rs1            ,  // rs1 from DU 
+   input  logic [4:0]       i_du_rs1_cpy        ,  // rs1 copy from DU
+   input  logic             i_du_is_i_type      ,  // I-type instruction flag from DU
+   input  logic [11:0]      i_du_i_type_imm     ,  // I-type immediate from DU   
+   input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU
+   input  logic [19:0]      i_du_u_type_imm     ,  // U-type immediate from DU
+   input  logic             i_du_is_lui         ,  // LUI flag from DU
+   input  logic             i_du_instr_rsb      ,  // RSB flag from DU
    input  logic             i_du_instr_risb     ,  // RISB instruction flag from DU
-   input  logic             i_du_instr_valid    ,  // Instruction valid from DU 
-
+  
    // Interface with Execution Unit (EXU)
    input  logic [`XLEN-1:0] i_exu_result        ,  // Result from EXU
    input  logic [4:0]       i_exu_rdt           ,  // rdt from EXU
    input  logic             i_exu_rdt_not_x0    ,  // rdt neq x0
    input  logic             i_exu_instr_riuj    ,  // RIUJ instruction flag from EXU
-   input  logic             i_exu_instr_valid   ,  // Instruction valid from EXU 
 
    // Interface with Memory Access Unit (MACCU)
-   input  logic [`XLEN-1:0] i_maccu_result      ,  // Result from MACCU
+   input  logic [`XLEN-1:0] i_dmem_load_data    ,  // Load data from DMEM
+   input  logic [`XLEN-1:0] i_maccu_wbdata      ,  // Writeback data from MACCU
+   input  logic             i_is_load           ,  // Load flag
    input  logic [4:0]       i_maccu_rdt         ,  // rdt from MACCU
    input  logic             i_maccu_rdt_not_x0  ,  // rdt neq x0
    input  logic             i_maccu_instr_riuj  ,  // RIUJ instruction flag from MACCU
-   input  logic             i_maccu_instr_valid ,  // Instruction valid from MACCU 
 
    // Interface with Write Back Unit (WBU)
    input  logic [`XLEN-1:0] i_wbu_result        ,  // Result from WBU
    input  logic [4:0]       i_wbu_rdt           ,  // rdt from WBU
    input  logic             i_wbu_rdt_not_x0    ,  // rdt neq x0
    input  logic             i_wbu_instr_riuj    ,  // RIUJ instruction flag from WBU
-   input  logic             i_wbu_instr_valid   ,  // Instruction valid from WBU
 
    // Forwarded Operands
    output logic [`XLEN-1:0] o_fwd_op0           ,  // Forwarded Operand-0
@@ -89,31 +96,15 @@ module opfwd_control (
 );
 
 //===================================================================================================================================================
-// Localparams
-//===================================================================================================================================================
-localparam R = 5 ;  // Index for R-type instruction flag
-localparam I = 4 ;  // Index for I-type instruction flag
-localparam S = 3 ;  // Index for S-type instruction flag
-localparam B = 2 ;  // Index for B-type instruction flag
-localparam U = 1 ;  // Index for U-type instruction flag
-localparam J = 0 ;  // Index for J-type instruction flag
-
-//===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-logic [`XLEN-1:0] exu_fwd_op0            ;  // EXU fwd Operand-0
-logic [`XLEN-1:0] exu_fwd_op1            ;  // EXU fwd Operand-1
-
-logic [`XLEN-1:0] maccu_fwd_op0          ;  // MACCU fwd Operand-0
-logic [`XLEN-1:0] maccu_fwd_op1          ;  // MACCU fwd Operand-1
-
-logic [`XLEN-1:0] wbu_fwd_op0            ;  // WBU fwd Operand-0
-logic [`XLEN-1:0] wbu_fwd_op1            ;  // WBU fwd Operand-1 
+logic [`XLEN-1:0] maccu_result           ;  // MACCU result to be forwarded
 
 logic             is_exu_rdt_not_x0      ;  // Flags if EXU rdt != x0
 logic             is_maccu_rdt_not_x0    ;  // Flags if MACCU rdt != x0
 logic             is_wbu_rdt_not_x0      ;  // Flags if WBU rdt != x0
 
+logic             is_du_instr_rsb        ;  // Flags if DU instruction = RSB-type
 logic             is_du_instr_risb       ;  // Flags if DU instruction = RISB-type
 logic             is_exu_instr_riuj      ;  // Flags if EXU instruction = RIUJ-type 
 logic             is_maccu_instr_riuj    ;  // Flags if MACCU instruction = RIUJ-type
@@ -127,143 +118,115 @@ logic             is_du_wbu_op0_raw      ;  // Flags RAW access of Operand-0 wrt
 logic             is_du_wbu_op1_raw      ;  // Flags RAW access of Operand-1 wrt WBU
 logic [2:0]       is_op0_raw, is_op1_raw ;  // Flags RAW access of Operand-0, Operand-1 wrt {EXU, MACCU, WBU}
 
-//===================================================================================================================================================
-// Combinatorial logic to forward EXU result
-//===================================================================================================================================================
-always_comb begin 
-   // Hazard condition
-   if (is_exu_instr_riuj && is_du_instr_risb && i_exu_instr_valid && i_du_instr_valid) begin
-      // Operand-0 fwd; x0 never causes hazards
-      if ((i_du_rs0 == i_exu_rdt) && is_exu_rdt_not_x0) begin 
-         exu_fwd_op0       = i_exu_result ;  // Potential RAW hazard, forward WBU result 
-         is_du_exu_op0_raw = 1'b1         ;
-      end      
-      else begin 
-         exu_fwd_op0       = i_rf_op0     ;  // No hazard, bypass RF operand
-         is_du_exu_op0_raw = 1'b0         ;
-      end
-      // Operand-1 fwd; I-type instr @DU output doesn't have operand-1, but no harm in forwarding as it is anyway unused...
-      if ((i_du_rs1 == i_exu_rdt) && is_exu_rdt_not_x0) begin 
-         exu_fwd_op1       = i_exu_result ;  // Potential RAW hazard, forward WBU result 
-         is_du_exu_op1_raw = 1'b1         ;
-      end       
-      else begin 
-         exu_fwd_op1       = i_rf_op1     ;  // No hazard, bypass RF operand
-         is_du_exu_op1_raw = 1'b0         ;
-      end                                       	
-   end
-   // No hazard condition, bypass
-   else begin
-      exu_fwd_op0       = i_rf_op0 ;
-      exu_fwd_op1       = i_rf_op1 ; 
-      is_du_exu_op0_raw = 1'b0     ;
-      is_du_exu_op1_raw = 1'b0     ;	
-   end
-end
+logic [`XLEN-1:0] rf_bypass_op0, rf_bypass_op1 ;  // Bypassed operands from RF/DU
+logic [`XLEN-1:0] immI, immU ;                    // Sign-extended I/U-type immediates
 
 //===================================================================================================================================================
-// Combinatorial logic to forward MACCU result
+// Bypass logic for operand-0 from RF
+// ----------------------------------
+// Operand-0 from RF is bypassed with value from DU in case of U-type instruction at DU.
+// U-type instruction at DU never causes hazard at operand-0, so the bypassed operand is guaranteed to reach EXU through operand forward logic.
 //===================================================================================================================================================
-always_comb begin 
-   // Hazard condition
-   if (is_maccu_instr_riuj && is_du_instr_risb && i_maccu_instr_valid && i_du_instr_valid) begin
-      // Operand-0 fwd; x0 never causes hazards
-      if ((i_du_rs0 == i_maccu_rdt) && is_maccu_rdt_not_x0) begin 
-         maccu_fwd_op0       = i_maccu_result ;  // Potential RAW hazard, forward WBU result 
-         is_du_maccu_op0_raw = 1'b1           ;
-      end      
-      else begin 
-         maccu_fwd_op0       = i_rf_op0       ;  // No hazard, bypass RF operand
-         is_du_maccu_op0_raw = 1'b0           ;
-      end
-      // Operand-1 fwd; I-type instr @DU output doesn't have operand-1, but no harm in forwarding as it is anyway unused...
-      if ((i_du_rs1 == i_maccu_rdt) && is_maccu_rdt_not_x0) begin 
-         maccu_fwd_op1       = i_maccu_result ;  // Potential RAW hazard, forward WBU result 
-         is_du_maccu_op1_raw = 1'b1           ;
-      end      
-      else begin 
-         maccu_fwd_op1       = i_rf_op1       ;  // No hazard, bypass RF operand
-         is_du_maccu_op1_raw = 1'b0           ;
-      end                                       	
-   end
-   // No hazard condition, bypass
-   else begin
-      maccu_fwd_op0       = i_rf_op0 ;
-      maccu_fwd_op1       = i_rf_op1 ;
-      is_du_maccu_op0_raw = 1'b0     ; 	
-      is_du_maccu_op1_raw = 1'b0     ;
-   end
-end
+logic [`XLEN-1:0] DU_imm_op0 ;
+logic             is_du_req_op0_bypass ;
+
+assign is_du_req_op0_bypass = i_du_is_u_type;
+assign DU_imm_op0           = i_du_is_lui? '0 : i_du_pc ;  // For LUI, 0 + immU.. For AUIPC: PC + immU
+assign rf_bypass_op0        = is_du_req_op0_bypass? DU_imm_op0 : i_rf_op0 ;
 
 //===================================================================================================================================================
-// Combinatorial logic to forward WBU result
+// Bypass logic for operand-1 from RF
+// ----------------------------------
+// Operand-1 from RF is bypassed with value from DU in case of I/U-type instruction at DU.
+// I/U-type instruction at DU never causes hazard at operand-1, so the bypassed operand is guaranteed to reach EXU through operand forward logic.
 //===================================================================================================================================================
-always_comb begin 
-   // Hazard condition
-   if (is_wbu_instr_riuj && is_du_instr_risb && i_wbu_instr_valid && i_du_instr_valid) begin
-      // Operand-0 fwd; x0 never causes hazards
-      if ((i_du_rs0 == i_wbu_rdt) && is_wbu_rdt_not_x0) begin 
-         wbu_fwd_op0       = i_wbu_result ;  // Potential RAW hazard, forward WBU result 
-         is_du_wbu_op0_raw = 1'b1         ;
-      end      
-      else begin 
-         wbu_fwd_op0       = i_rf_op0     ;  // No hazard, bypass RF operand
-         is_du_wbu_op0_raw = 1'b0         ;
-      end
-      // Operand-1 fwd; I-type instr @DU output doesn't have operand-1, but no harm in forwarding as it is anyway unused...
-      if ((i_du_rs1 == i_wbu_rdt) && is_wbu_rdt_not_x0) begin 
-         wbu_fwd_op1       = i_wbu_result ;  // Potential RAW hazard, forward WBU result 
-         is_du_wbu_op1_raw = 1'b1         ;
-      end       
-      else begin 
-         wbu_fwd_op1       = i_rf_op1     ;  // No hazard, bypass RF operand
-         is_du_wbu_op1_raw = 1'b0         ;
-      end                                       	
-   end
-   // No hazard condition, bypass
-   else begin
-      wbu_fwd_op0       = i_rf_op0 ;
-      wbu_fwd_op1       = i_rf_op1 ; 
-      is_du_wbu_op0_raw = 1'b0     ;	
-      is_du_wbu_op1_raw = 1'b0     ;
-   end
-end
+logic [`XLEN-1:0] DU_imm_op1 ;
+logic             is_du_req_op1_bypass ;
+
+assign is_du_req_op1_bypass = i_du_is_i_type | i_du_is_u_type ;
+assign DU_imm_op1           = i_du_is_i_type? immI : immU ;
+assign rf_bypass_op1        = is_du_req_op1_bypass? DU_imm_op1 : i_rf_op1 ;
+
+assign immI = {{(`XLEN-12){i_du_i_type_imm[11]}}, i_du_i_type_imm} ;  // Sign-extend
+assign immU = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;  // LSbs to fill 0s
+
+//===================================================================================================================================================
+// Combinatorial logic to flag RAW access b/w DU and EXU
+//===================================================================================================================================================
+// Operand-0 forwarding
+assign is_du_exu_op0_raw = (is_exu_instr_riuj && is_du_instr_risb && (i_du_rs0 == i_exu_rdt) && is_exu_rdt_not_x0);
+
+// Operand-1 forwarding
+assign is_du_exu_op1_raw = (is_exu_instr_riuj && is_du_instr_rsb  && (i_du_rs1 == i_exu_rdt) && is_exu_rdt_not_x0);
+
+//===================================================================================================================================================
+// Combinatorial logic to flag RAW access b/w DU and MACCU
+//===================================================================================================================================================
+// Select the data to be forwarded as MACCU result... 
+// If Load access happened at MACCU, forward load data from DMEM access, else forward register writeback data from MACCU
+assign maccu_result  = (i_is_load)? i_dmem_load_data : i_maccu_wbdata ;  
+
+// Operand-0 forwarding
+assign is_du_maccu_op0_raw = (is_maccu_instr_riuj && is_du_instr_risb && (i_du_rs0_cpy == i_maccu_rdt) && is_maccu_rdt_not_x0);
+
+// Operand-1 forwarding
+assign is_du_maccu_op1_raw = (is_maccu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1_cpy == i_maccu_rdt) && is_maccu_rdt_not_x0);
+
+//===================================================================================================================================================
+// Combinatorial logic to flag RAW access b/w DU and WBU
+//===================================================================================================================================================
+// Operand-0 forwarding
+assign is_du_wbu_op0_raw = (is_wbu_instr_riuj && is_du_instr_risb && (i_du_rs0_cpy == i_wbu_rdt) && is_wbu_rdt_not_x0);
+
+// Operand-1 forwarding
+assign is_du_wbu_op1_raw = (is_wbu_instr_riuj && is_du_instr_rsb &&  (i_du_rs1_cpy == i_wbu_rdt) && is_wbu_rdt_not_x0);
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-0 to output
 //===================================================================================================================================================
+logic [`XLEN-1:0] fwd_op0_pre ;
+// First-level Mux - 8:1 Mux
 always_comb begin 
    casez (is_op0_raw)
-      3'b1??  : begin o_fwd_op0 = exu_fwd_op0   ; end  // EXU fwd, highest priority
-      3'b01?  : begin o_fwd_op0 = maccu_fwd_op0 ; end  // MACCU fwd
-      3'b001  : begin o_fwd_op0 = wbu_fwd_op0   ; end  // WBU fwd      
-      default : begin o_fwd_op0 = i_rf_op0      ; end  // Bypass  
+      3'b1??  : begin fwd_op0_pre = i_exu_result  ; end  // EXU fwd, highest priority
+      3'b01?  : begin fwd_op0_pre = maccu_result  ; end  // MACCU fwd
+      default : begin fwd_op0_pre = i_wbu_result  ; end  // Bypass  
    endcase
 end
-
+// Second level Mux - 2:1 Mux to relax timing at rf_bypass_op0
+always_comb begin
+   if (is_op0_raw == 3'b000) o_fwd_op0 = rf_bypass_op0 ;
+   else                      o_fwd_op0 = fwd_op0_pre   ;
+end
 assign is_op0_raw = {is_du_exu_op0_raw, is_du_maccu_op0_raw, is_du_wbu_op0_raw} ;
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-1 to output
 //===================================================================================================================================================
+logic [`XLEN-1:0] fwd_op1_pre ;
+// First-level Mux - 8:1 Mux
 always_comb begin 
    casez (is_op1_raw)
-      3'b1??  : begin o_fwd_op1 = exu_fwd_op1   ; end  // EXU fwd, highest priority
-      3'b01?  : begin o_fwd_op1 = maccu_fwd_op1 ; end  // MACCU fwd
-      3'b001  : begin o_fwd_op1 = wbu_fwd_op1   ; end  // WBU fwd      
-      default : begin o_fwd_op1 = i_rf_op1      ; end  // Bypass  
+      3'b1??  : begin fwd_op1_pre = i_exu_result  ; end  // EXU fwd, highest priority
+      3'b01?  : begin fwd_op1_pre = maccu_result  ; end  // MACCU fwd
+      default : begin fwd_op1_pre = i_wbu_result  ; end  // Bypass  
    endcase
 end
-
+// Second level Mux - 2:1 Mux to relax timing at rf_bypass_op1
+always_comb begin
+   if (is_op1_raw == 3'b000) o_fwd_op1 = rf_bypass_op1 ;
+   else                      o_fwd_op1 = fwd_op1_pre   ;
+end
 assign is_op1_raw = {is_du_exu_op1_raw, is_du_maccu_op1_raw, is_du_wbu_op1_raw} ;
 
 //===================================================================================================================================================
-// Continuous assignments
+// Internal signals derived
 //===================================================================================================================================================
 assign is_exu_rdt_not_x0   = i_exu_rdt_not_x0   ;
 assign is_maccu_rdt_not_x0 = i_maccu_rdt_not_x0 ;
 assign is_wbu_rdt_not_x0   = i_wbu_rdt_not_x0   ;
 
+assign is_du_instr_rsb     = i_du_instr_rsb     ;
 assign is_du_instr_risb    = i_du_instr_risb    ;
 assign is_exu_instr_riuj   = i_exu_instr_riuj   ;
 assign is_maccu_instr_riuj = i_maccu_instr_riuj ;
