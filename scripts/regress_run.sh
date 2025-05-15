@@ -34,6 +34,9 @@ en_run12=1
 en_run13=1
 en_run14=1
 en_run15=1
+en_run18=1
+en_run19=1
+en_run20=1
 
 set -e
 
@@ -44,7 +47,9 @@ if [ "$en_run01" -eq 0 ] && [ "$en_run02" -eq 0 ] && \
    [ "$en_run07" -eq 0 ] && [ "$en_run08" -eq 0 ] && \
    [ "$en_run09" -eq 0 ] && [ "$en_run10" -eq 0 ] && \
    [ "$en_run11" -eq 0 ] && [ "$en_run12" -eq 0 ] && \
-   [ "$en_run13" -eq 0 ] && [ "$en_run14" -eq 0 ] && [ "$en_run15" -eq 0 ]; then
+   [ "$en_run13" -eq 0 ] && [ "$en_run14" -eq 0 ] && \
+   [ "$en_run15" -eq 0 ] && [ "$en_run18" -eq 0 ] && \
+   [ "$en_run19" -eq 0 ] && [ "$en_run20" -eq 0 ]; then
    echo ""
    echo "| PQR5: No tests enabled! REGRESSION RUN ABORTED..."
    echo ""
@@ -402,6 +407,75 @@ if [ "$en_run15" -eq 1 ]; then
    cp -f ./sim/*.log ./regress_run_dump/15_datacopy
    echo ""
    echo "| PQR5: RUN 15 completed..."
+   echo ""
+fi
+
+# RUN 18
+if [ "$en_run18" -eq 1 ]; then
+   echo ""
+   echo "| PQR5: RUN 18 initiated..."
+   echo ""
+   [ -d ./regress_run_dump ] || mkdir ./regress_run_dump
+   mkdir ./regress_run_dump/18_bpredict_test1
+   make -C ./ build_clean
+   make -C ./ build ASM="18_bpredict_test1.s"
+   make -C ./ compile
+   make -C ./ sim
+   echo "## RUN 18: 18_bpredict_test1" >> ./regress_run_dump/checker.log
+   make -C ./ diff >> ./regress_run_dump/checker.log
+   echo "" >> ./regress_run_dump/checker.log
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 18: [PASS] 18_bpredict_test1" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 18: [FAIL] 18_bpredict_test1" >> ./regress_run_dump/regress_result.txt
+   cp -rf ./dump/* ./regress_run_dump/18_bpredict_test1
+   cp -f ./sim/*.log ./regress_run_dump/18_bpredict_test1
+   echo ""
+   echo "| PQR5: RUN 18 completed..."
+   echo ""
+fi
+
+# RUN 19
+if [ "$en_run19" -eq 1 ]; then
+   echo ""
+   echo "| PQR5: RUN 19 initiated..."
+   echo ""
+   [ -d ./regress_run_dump ] || mkdir ./regress_run_dump
+   mkdir ./regress_run_dump/19_bpredict_test2
+   make -C ./ build_clean
+   make -C ./ build ASM="19_bpredict_test2.s"
+   make -C ./ compile
+   make -C ./ sim
+   echo "## RUN 19: 19_bpredict_test2" >> ./regress_run_dump/checker.log
+   make -C ./ diff >> ./regress_run_dump/checker.log
+   echo "" >> ./regress_run_dump/checker.log
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 19: [PASS] 19_bpredict_test2" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 19: [FAIL] 19_bpredict_test2" >> ./regress_run_dump/regress_result.txt
+   cp -rf ./dump/* ./regress_run_dump/19_bpredict_test2
+   cp -f ./sim/*.log ./regress_run_dump/19_bpredict_test2
+   echo ""
+   echo "| PQR5: RUN 19 completed..."
+   echo ""
+fi
+
+# RUN 20
+if [ "$en_run20" -eq 1 ]; then
+   echo ""
+   echo "| PQR5: RUN 20 initiated..."
+   echo ""
+   [ -d ./regress_run_dump ] || mkdir ./regress_run_dump
+   mkdir ./regress_run_dump/20_bpredict_test3
+   make -C ./ build_clean
+   make -C ./ build ASM="20_bpredict_test3.s"
+   make -C ./ compile
+   make -C ./ sim
+   echo "## RUN 20: 20_bpredict_test3" >> ./regress_run_dump/checker.log
+   make -C ./ diff >> ./regress_run_dump/checker.log
+   echo "" >> ./regress_run_dump/checker.log
+   grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN 20: [PASS] 20_bpredict_test3" >> ./regress_run_dump/regress_result.txt \
+           || echo "## RUN 20: [FAIL] 20_bpredict_test3" >> ./regress_run_dump/regress_result.txt
+   cp -rf ./dump/* ./regress_run_dump/20_bpredict_test3
+   cp -f ./sim/*.log ./regress_run_dump/20_bpredict_test3
+   echo ""
+   echo "| PQR5: RUN 20 completed..."
    echo ""
 fi
 
