@@ -41,6 +41,11 @@ volatile ee_s32 seed5_volatile = 0;
    cpu clock cycles performance counter etc. Sample implementation for standard
    time.h and windows.h definitions included.
 */
+
+////////////////// PQR5 SPECIFIC FUNCTION PROTOTYPES - Starts here //////////////////
+void uart_init(); 
+////////////////// PQR5 SPECIFIC FUNCTION PROTOTYPES - Ends here ////////////////////
+
 //pqr5: To be implemented by using the free-running clock tick counter in the core...
 CORETIMETYPE barebones_clock() {
     //#error "You must implement a method to measure time in barebones_clock()! This function should return current time.\n"
@@ -144,6 +149,12 @@ portable_init(core_portable *p, int *argc, char *argv[])
 
     (void)argc; // prevent unused warning
     (void)argv; // prevent unused warning
+
+    //pqr5: Initializing UART
+    uart_init();
+
+    //pqr5: Welcome message
+    ee_printf("Starting benchmark on Pequeno with COREMARK 1.0...\n"); 
 
     if (sizeof(ee_ptr_int) != sizeof(ee_u8 *))
     {
