@@ -1,10 +1,11 @@
 📁 Pequeno RISC-V CPU v1.0 (PQR5 v1.0) - Directory Tree
 |
 📁 assembler
+├── 📁 example_programs - Contains example programs for testing, and used by regressions
 ├── 📄 pqr5asm.py - pqr5asm Assembler for Pequeno (PQR5)
 ├── 📄 sample.* - [BUILD GENERATED] Assembler-generated files during build
 ├── 📄 asm_pgm_info.txt - [BUILD GENERATED] ASM program info
-└── 📁 asm_pgm_dump_ref - Golden reference dump for simulation verification
+└── 📁 asm_pgm_dump_ref - [BUILD GENERATED] Golden reference dump for simulation verification
 |
 📁 doc
 ├── 📁 synth_reports - Contains synthesis reports
