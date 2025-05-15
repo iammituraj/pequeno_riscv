@@ -17,7 +17,7 @@
 #
 # Last modified on : Aug-2024
 # Compatiblility   : Python 3.9 tested
-# Notes            : sudo setserial -g /dev/ttyUSB[01] - to list USB serial ports in Linux
+# Notes            : sudo dmesg | grep tty OR ls /dev/ttyUSB* - to list USB serial ports in Linux
 #
 # Copyright        : Open-source license, see LICENSE.
 #############################################################################################################
@@ -37,7 +37,7 @@ def bytes_to_ascii(data):
 # MAIN()
 def main():
     # Default values
-    serial_port = 'COM3'
+    serial_port = 'COM3'  # /dev/ttyUSBx in Linux...
     baud_rate = 115200
     parity = 'N'
     timeout = 0.1  # 100 ms
