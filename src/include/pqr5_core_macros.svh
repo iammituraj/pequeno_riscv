@@ -60,7 +60,7 @@
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
-`define RF_IN_BRAM                        // Define this macro to generate Block RAM based Register File
+//`define RF_IN_BRAM                        // Define this macro to generate Block RAM based Register File
                                           // Undefining this macro will generate Flip-flop based Register File 
 //`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
 
