@@ -80,7 +80,7 @@ The validation was primarily done on Xilinx Artix-7 based FPGA boards Basys-3, C
 | **Full Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
 
 # Pequeno in Blog
-Follow the journey of Pequeno in my blog, how this RISC-V CPU was designed in RTL from scratch: [Follow pequeno in chipmunklogic.com](https://chipmunklogic.com/category/pequeno-cpu/)
+Follow the journey of Pequeno in my blog, how this RISC-V CPU was designed in RTL from scratch: [pequeno blogs in chipmunklogic.com](https://chipmunklogic.com/category/pequeno-cpu/)
 
 # Important
 Please go through [readme_database.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/readme_database.html) for complete info about this repo database and how to setup the PQR5 build environment.
