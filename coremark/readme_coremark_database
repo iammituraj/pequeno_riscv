@@ -1,0 +1,8 @@
+PQR5 CoreMark - Directory Tree
+==============================
+|
+├── 📁 barebones    - Contains the source files ported for bare-metal builds
+├── *.c             - C source files of CoreMark
+├── startup.s       - Start-up code
+├── linker.ld       - Linker script
+└── Makefile        - Makefile to build CoreMark

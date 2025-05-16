@@ -12,7 +12,7 @@
 | Version       : v1.1_beta
 | Type          : Soft core in SV
 | License       : [see LICENSE]
-| Release Date  : Apr-2025
+| Release Date  : May-2025
 | 
 | Documentation : [TBD]
 | 

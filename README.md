@@ -1,19 +1,22 @@
-# pequeno_riscv
+# Pequeno RISC-V
 Pequeno (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-order RISC-V CPU Core compliant with RV32I ISA.
-The core is bare RTL, balanced for area/performance, and portable across platforms like FPGA, ASIC.
+The core is bare RTL designed in System Verilog, balanced for area/performance, and portable across platforms like FPGA, ASIC.
+<p align="center">
+  <img src="pequeno.jpg" alt="PQR5 Brand" width="400"/>
+</p>
 
 ## Overview
 - RV32I ISA v2.2
 - Single-core, Single-issue, In-order execution
 - Classic 5-stage RISC-V pipeline
-- Intended for baremetal applications, not OS & interrupt capable.
+- Intended for baremetal embedded applications, not OS & interrupt capable.
 
                                              ____________________________
                                             / CHIPMUNK LOGIC            /\
                                            /                           / /\ 
                                           /     =================     / /
                                          /     / P e q u e n o  /   / \/
-                                        /     /  RISC-V 32I    /    /\
+                                        /     /  RISC-V 32-bit /    /\
                                        /     /================/    / /
                                       /___________________________/ /
                                       \___________________________\/
@@ -36,6 +39,12 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 | **OS capable**                             | No, privilege modes are not supported     |
 | **Interrupt/Exceptions capable**           | No                                        |
 
+## Configuration options
+| Parameter / Macro                          |                                           |
+|--------------------------------------------|-------------------------------------------|
+| RF_IN_BRAM                                 | Maps Register File to Block RAM instead of LUT RAM/Flops
+| PC_INIT                                    | Reset PC vector
+
 ## Functional Block Diagram
 
 ![Pequeno RISC-V CPU Block Diagram](doc/misc/pequeno_block_diagram.png "Block Diagram of PQR5")
@@ -48,36 +57,39 @@ The core is bare RTL, balanced for area/performance, and portable across platfor
 
 
 ## Pequeno in Action!  
-  * _FPGA demo of Pequeno running Hello world program_: 
-  https://youtu.be/GECyL9U5ZxI
+  * FPGA demo video of Pequeno running [Hello world!](https://youtu.be/GECyL9U5ZxI)
 
-  * _FPGA demo of Pequeno being flashed by peqFlash through serial interface (UART) and running Blinky LED program_: https://www.youtube.com/watch?v=cEEZbzSd6v0
+  * FPGA demo video of Pequeno being flashed by peqFlash through serial interface (UART) and running [Blinky LED program](https://www.youtube.com/watch?v=cEEZbzSd6v0)
 
-The validation was primarily done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
+_The validation was done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T_
 
 ## FPGA Resource Utilization
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
-| **Core version** | pqr5 v1.0.1
+| **Core version** | v1.1_beta
+| **Configuration**| Register File in LUT RAMs
 | **Target** | Artix-7, xc7a35tcpg236-1
-| **LUTs** | 1424
-| **Registers** | 562
-| **Targetted clock freq** | 100 MHz
+| **LUTs** | 1060
+| **Registers** | 551
+| **Max clock freq** | 115 MHz
+| **Max clock freq in fastest Artix-7 speed grade** | 165 MHz
 
 ## CoreMark®
 | **Performance Validation**                 |                                           |
 |--------------------------------------------|-------------------------------------------|
-| **Core version** | pqr5 v1.0.1
-| **CoreMark score** | 0.7 CoreMark/MHz 
+| **Core version** | v1.1_beta
+| **CoreMark score** | 0.75 CoreMark/MHz 
 | **Iterations** | 400
-| **Iterations per second** | 8
+| **Iterations per second** | 9
 | **Test clock freq** | 12 MHz
 | **Test platform** | FPGA
 | **Full Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
 
+# Pequeno in Blog
+Follow the journey of Pequeno in my blog, how this RISC-V CPU was designed in RTL from scratch: [pequeno blogs in chipmunklogic.com](https://chipmunklogic.com/category/pequeno-cpu/)
 
-## Important
-Please go through [readme_database.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/readme_database.html) for info about this repo database and how to setup the PQR5 build environment.
+# Important
+Please go through [readme_database](readme_database) for complete info about this repo database and how to setup the PQR5 build environment.
 
 # Disclaimer
 This CPU core is intended for educational purposes only.
