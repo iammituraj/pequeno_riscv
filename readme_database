@@ -1,5 +1,6 @@
-📁 Pequeno RISC-V CPU v1.0 (PQR5 v1.0) - Directory Tree
-|
+Pequeno RISC-V CPU - Directory Tree
+===================================
+
 📁 assembler
 ├── 📁 example_programs - Contains example programs for testing, and used by regressions
 ├── 📄 pqr5asm.py - pqr5asm Assembler for Pequeno (PQR5)
