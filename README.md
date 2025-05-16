@@ -39,7 +39,7 @@ The core is bare RTL designed in System Verilog, balanced for area/performance, 
 | **OS capable**                             | No, privilege modes are not supported     |
 | **Interrupt/Exceptions capable**           | No                                        |
 
-## Configuration options for core generation
+## Configuration options
 | Parameter / Macro                          |                                           |
 |--------------------------------------------|-------------------------------------------|
 | RF_IN_BRAM                                 | Maps Register File to Block RAM instead of LUT RAM/Flops
