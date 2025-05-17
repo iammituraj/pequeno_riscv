@@ -1,9 +1,9 @@
 # Pequeno RISC-V
 
-[![GitHub stars](https://img.shields.io/github/stars/pequeno-riscv/pequeno_riscv?style=social)](https://github.com/pequeno-riscv/pequeno_riscv/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/pequeno-riscv/pequeno_riscv?style=social)](https://github.com/pequeno-riscv/pequeno_riscv/network)
-[![GitHub release](https://img.shields.io/github/v/release/pequeno-riscv/pequeno_riscv)](https://github.com/pequeno-riscv/pequeno_riscv/releases)
-[![License](https://img.shields.io/github/license/pequeno-riscv/pequeno_riscv)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/iammituraj/pequeno-riscv/pequeno_riscv?style=social)](https://github.com/pequeno-riscv/pequeno_riscv/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/iammituraj/pequeno-riscv/pequeno_riscv?style=social)](https://github.com/iammituraj/pequeno-riscv/pequeno_riscv/network)
+[![GitHub release](https://img.shields.io/github/v/release/iammituraj/pequeno_riscv/pequeno_riscv)](https://github.com/pequeno-riscv/iammituraj/pequeno_riscv/releases)
+[![License](https://img.shields.io/github/license/pequeno-riscv/iammituraj/pequeno_riscv)](LICENSE)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Follow-blue?logo=linkedin)](https://www.linkedin.com/in/iammituraj/)
 [![Website](https://img.shields.io/badge/Visit-chipmunklogic.com-green?logo=Google-Chrome)](https://chipmunklogic.com)
 
