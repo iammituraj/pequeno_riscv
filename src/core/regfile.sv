@@ -31,7 +31,9 @@
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Apr-2025
-//----%% Notes            : The register array is expected to map to BRAMs. Doesn't support reset as FPGA BRAMs don't support resetting the array. 
+//----%% Notes            : The register array can be configured to map to Block RAMs on FPGAs.
+//----%%                    Since, reset is not implemented, it should otherwise be mapped to LUT RAMs on FPGAs. 
+//----%%                    On ASIC, the register file translates to flip-flops based RAM with no reset.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
 //----%%                                                                                             
@@ -148,7 +150,7 @@ assign reg_file = bram_marray[1:31];
 `endif
 
 `else
-////////////////////////////////////////////// Flops based RF ////////////////////////////////////////////////////
+/////////////////////////////////////////// Flops / LUT RAM based RF /////////////////////////////////////////////
 logic [`XLEN-1:0] rs0_data_rg   ;  // Read data from port-0
 logic [`XLEN-1:0] rs1_data_rg   ;  // Read data from port-1
 
