@@ -79,7 +79,7 @@
 `define SYSCLK_PERIOD        `TCLK     // TB clock period in ns
 `define SYSRST_LEN           20        // TB reset length in clock cycles
 `define SIMLIMIT                       // Define this macro if subsystem simulation should be cycles limited
-`define SIMCYCLES            30000     // If SIMLIMIT is enabled: Max. no. of clock cycles of simulation 
+`define SIMCYCLES            100000    // If SIMLIMIT is enabled: Max. no. of clock cycles of simulation 
 
 // Memory Dump during simulation
 `define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; OVERRIDEN FOR SYNTHESIS
