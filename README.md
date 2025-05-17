@@ -55,7 +55,7 @@ The core is bare RTL designed in System Verilog, balanced for area/performance, 
 
 ## Functional Block Diagram
 
-![Pequeno RISC-V CPU Block Diagram](doc/misc/pequeno_block_diagram.png "Block Diagram of PQR5")
+
 
 ## PQR5ASM, The tailor-made Assembler
    This RV32I assembler supports all 37 base instructions + 16 pseudo instructions 
