@@ -397,7 +397,7 @@ assign funct3     = du_instr_rg[14:12] ;
 assign funct7     = du_instr_rg[31:25] ;
 
 // Read-side control signals to Register File (RF)
-assign o_rf_rden    = ~stall            ;  // DU and RF (read-side) are at the same stage of pipeline, so they should stall together always
+assign o_rf_rden    = ~i_fu_bubble & ~stall ;  // DU and RF (read-side) are at the same stage of pipeline, so they should stall together always
 assign rf_reg_src0  = i_fu_instr[19:15] ; 
 assign rf_reg_src1  = i_fu_instr[24:20] ;
 assign o_rf_rs0     = rf_reg_src0       ;  // Combi routing to sync the read-data from RF with DU payload to EXU 

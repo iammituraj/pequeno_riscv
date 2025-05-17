@@ -55,11 +55,11 @@ module static_bpredictor (
    input  logic [`XLEN-1:0] i_immJ            ,  // Sign-extended Immediate (Jump) 
    input  logic [`XLEN-1:0] i_immB            ,  // Sign-extended Immediate (Branch)
    input  logic             i_instr_valid     ,  // Instruction valid
-   input  logic [`XLEN-1:0] i_pc              ,  // PC of 
+   input  logic [`XLEN-1:0] i_pc              ,  // PC in
 
    // Branch Prediction signals
    output logic [`XLEN-1:0] o_branch_pc       ,  // Branch PC         
-   output logic             o_branch_taken    ,  // Branch taken status (registered); '0'- not taken, '1'- taken
+   output logic             o_branch_taken    ,  // Branch taken status; '0'- not taken, '1'- taken
    output logic             o_flush              // Flush generated on branch taken
 );
 
@@ -108,7 +108,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else begin
       if      (bp_flush_rg) begin bp_flush_rg <= 1'b0         ; end  // Flush should always de-assert in the next cycle...
-      else if (!i_stall)    begin bp_flush_rg <= branch_taken ; end  // Flush should always assert along with the instruction registered at FU
+      else if (!i_stall)    begin bp_flush_rg <= branch_taken ; end  // Flush if asserts, should sync it along with the instruction registered at FU
    end
 end
 assign o_flush = bp_flush_rg ;
