@@ -108,7 +108,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else begin
       if      (bp_flush_rg) begin bp_flush_rg <= 1'b0         ; end  // Flush should always de-assert in the next cycle...
-      else if (!i_stall)    begin bp_flush_rg <= branch_taken ; end  // Flush if asserts, should sync it along with the instruction registered at FU
+      else if (!i_stall)    begin bp_flush_rg <= branch_taken ; end  // Flush asserted on branch taken
    end
 end
 assign o_flush = bp_flush_rg ;
