@@ -107,7 +107,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       bubble_rg          <= 1'b1      ;
       branch_taken_rg    <= 1'b0      ;
       bp_branch_taken_rg <= 1'b0      ;
-      en_branch_comp_rg  <= 1'b0      ;
       branch_pc_rg       <= PC_INIT   ;   
    end
    // Out of reset
@@ -116,9 +115,18 @@ always_ff @(posedge clk or negedge aresetn) begin
       bubble_rg          <= bubble         ;  
       branch_taken_rg    <= branch_taken   ;
       bp_branch_taken_rg <= i_branch_taken ;
-      en_branch_comp_rg  <= ~i_bubble      ;
       branch_pc_rg       <= branch_pc      ;
    end
+end
+// Branch compare signal generation
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      en_branch_comp_rg  <= 1'b0;
+   end
+   // Out of reset
+   else if (flush)    begin en_branch_comp_rg <= 1'b0      ; end  // Compare signal should always de-assert in the next cycle to make flush = pulse...
+   else if (!i_stall) begin en_branch_comp_rg <= ~i_bubble ; end
 end
 
 //===================================================================================================================================================
