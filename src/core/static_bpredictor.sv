@@ -49,13 +49,13 @@ module static_bpredictor (
    input  logic             aresetn           ,  // Asynchronous Reset; active-low
 
    // Fetch Unit Interface
+   input  logic [`XLEN-1:0] i_pc              ,  // PC in
    input  logic             i_stall           ,  // Stall
    input  logic             i_is_op_jal       ,  // JAL instruction?
    input  logic             i_is_op_branch    ,  // Branch instruction? 
    input  logic [`XLEN-1:0] i_immJ            ,  // Sign-extended Immediate (Jump) 
    input  logic [`XLEN-1:0] i_immB            ,  // Sign-extended Immediate (Branch)
    input  logic             i_instr_valid     ,  // Instruction valid
-   input  logic [`XLEN-1:0] i_pc              ,  // PC in
 
    // Branch Prediction signals
    output logic [`XLEN-1:0] o_branch_pc       ,  // Branch PC         
