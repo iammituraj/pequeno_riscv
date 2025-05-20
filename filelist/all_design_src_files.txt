@@ -24,6 +24,8 @@
 
 
 ############################## CORE #################################
+./src/core/bhistory_table.sv
+./src/core/pqGshare_bpredictor.sv
 ./src/core/static_bpredictor.sv
 ./src/core/fetch_unit.sv
 

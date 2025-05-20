@@ -50,7 +50,9 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module fetch_unit #(
    // Configurable parameters
-   parameter PC_INIT = `PC_INIT  // Init PC on reset
+   parameter PC_INIT         = `PC_INIT,          // Init PC on reset
+   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Branch predictor type
+   parameter BHT_TYPE        = `BHT_TYPE          // Branch History Table configuration
 )
 (   
    // Clock and Reset  
@@ -182,23 +184,52 @@ end
 // Handles all Jump, Branch instructions.
 // Generates branch taken status, which is later validated during branch resolution at Execution Unit (EXU).
 //===================================================================================================================================================
-// Static Branch Predictor
-static_bpredictor inst_static_bpredictor(
-   .clk            (clk)          ,
-   .aresetn        (aresetn)      ,
+generate
+if (IS_BPREDICT_DYN == 1'b0) begin : GEN_BPREDICT_STATIC
+   // Static Branch Predictor
+   static_bpredictor inst_static_bpredictor(
+      .clk            (clk)          ,
+      .aresetn        (aresetn)      ,
+      
+      .i_pc           (instr_pc)     ,            
+      .i_stall        (stall)        ,
+      .i_is_op_jal    (is_op_jal)    ,    
+      .i_is_op_branch (is_op_branch) ,   
+      .i_immJ         (immJ)         ,      
+      .i_immB         (immB)         , 
+      .i_instr_valid  (instr_valid & ~i_exu_bu_flush),  // Flush should immediately invalidate to avoid any potential bp flush in the next clock cycle... 
+   
+      .o_branch_pc    (branch_pc)    ,  
+      .o_branch_taken (branch_taken) ,
+      .o_flush        (bp_flush)
+   );
+end else begin : GEN_BPREDICT_DYNAMIC
+   // Pequeno Gshare Dynamic Branch Predictor
+   pqGshare_bpredictor#(
+      .BHT_TYPE (BHT_TYPE)
+   ) inst_pqGshare_bpredictor (
+      .clk            (clk)          ,
+      .aresetn        (aresetn)      ,
+   
+      .i_req_pc       (instr_pc)     ,   
+      .i_stall        (stall)        ,
+      .i_is_op_jal    (is_op_jal)    ,    
+      .i_is_op_branch (is_op_branch) ,  
+      .i_immJ         (immJ)         ,      
+      .i_immB         (immB)         ,  
+      .i_instr_valid  (instr_valid & ~i_exu_bu_flush),  // Flush should immediately invalidate to avoid any potential bp flush in the next clock cycle... 
+   
+      .o_branch_pc    (branch_pc)    ,
+      .o_pred_btaken  (branch_taken) ,   
+      .o_flush        (bp_flush)     ,
+   
+      .i_update       (),
+      .i_update_pc    (),
+      .i_actual_btaken()
+   );
+   end
+endgenerate
 
-   .i_stall        (stall)        ,
-   .i_is_op_jal    (is_op_jal)    ,    
-   .i_is_op_branch (is_op_branch) ,   
-   .i_immJ         (immJ)         ,      
-   .i_immB         (immB)         , 
-   .i_instr_valid  (instr_valid & ~i_exu_bu_flush),  // Flush should immediately invalidate to avoid any potential bp flush in the next clock cycle... 
-   .i_pc           (instr_pc)     ,            
-
-   .o_branch_pc    (branch_pc)    ,  
-   .o_branch_taken (branch_taken) ,
-   .o_flush        (bp_flush)
-);
 assign instr        = i_imem_pkt        ;
 assign instr_valid  = i_imem_pkt_valid  ;
 assign instr_pc     = i_imem_pc         ;

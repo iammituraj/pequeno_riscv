@@ -60,8 +60,14 @@
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
-//`define RF_IN_BRAM                        // Define this macro to generate Block RAM based Register File
-                                          // Undefining this macro will generate Flip-flop/LUT RAM based Register File 
+//`define IS_RF_IN_BRAM                     // Define this macro to generate Block RAM based Register File, 
+                                            // Else Flops/LUT RAM based Register File is generated
+`define IS_BPREDICT_DYN   1               // 1 - Generates Pequeno GShare Dynamic Branch Predictor
+                                          // 0 - Generates Static Branch Predictor (backward always taken strategy)
+`define BHT_TYPE          "lutram"        // Branch History Table configuration. This macro is valid only if IS_BPREDICT_DYN = 1
+                                          // "blkram" - BHT is generated on Block RAMs on FPGAs
+                                          // "lutram" - BHT is generated on LUT RAMs on FPGAs
+                                          // "flops"  - BHT is generated on flip-flops; ideal for ASIC
 //`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
 
 //`define CORE_SYNTH                        // Define this macro to configure the core for SYNTHESIS

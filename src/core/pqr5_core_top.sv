@@ -87,7 +87,9 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module pqr5_core_top #(
    // Configurable parameters
-   parameter PC_INIT = `PC_INIT  // Init PC on reset
+   parameter PC_INIT         = `PC_INIT,          // Init PC on reset
+   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Branch predictor type
+   parameter BHT_TYPE        = `BHT_TYPE          // Branch History Table configuration
 )
 (   
    // Clock and Reset  
@@ -268,7 +270,9 @@ logic boot_flag_rg          ;  // Boot flag
 //===================================================================================================================================================
 // Fetch Unit (FU)
 fetch_unit #(
-   .PC_INIT (PC_INIT)   
+   .PC_INIT         (PC_INIT),
+   .IS_BPREDICT_DYN (IS_BPREDICT_DYN),
+   .BHT_TYPE        (BHT_TYPE)
 )  inst_fetch_unit (
    .clk              (clk)     ,
    .aresetn          (aresetn) ,

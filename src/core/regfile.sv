@@ -91,7 +91,7 @@ logic [`XLEN-1:0] reg_file [1:31] ;  // Register file: x1-x31, x0 is implicitly 
 //===================================================================================================================================================
 // Register Array of RF
 //===================================================================================================================================================
-`ifdef RF_IN_BRAM
+`ifdef IS_RF_IN_BRAM
 ////////////////////////////////////////////// BRAM based RF /////////////////////////////////////////////////////
 logic [`XLEN-1:0] rdata0, rdata1 ;  // Read data from the Register array
 `ifdef DBG
@@ -189,7 +189,7 @@ always_ff @(posedge clk) begin
 end
 assign o_rs1_data = rs1_data_rg ;
 
-`endif  //RF_IN_BRAM
+`endif  //IS_RF_IN_BRAM
 
 `ifdef TEST_PORTS
 // Test Ports
