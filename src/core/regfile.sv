@@ -49,7 +49,10 @@
 import pqr5_core_pkg :: * ;
 
 // Module definition
-module regfile (
+module regfile #(
+   // Configurable Parameters
+   parameter IS_RF_ON_BRAM = `IS_RF_ON_BRAM  // Register File target = Block RAM?
+)(
    // Clock and Reset
    input  logic             clk        ,  // Clock
    input  logic             aresetn    ,  // Asynchronous Reset; active-low //**CHECKME**// Unused signal as of now
@@ -91,7 +94,8 @@ logic [`XLEN-1:0] reg_file [1:31] ;  // Register file: x1-x31, x0 is implicitly 
 //===================================================================================================================================================
 // Register Array of RF
 //===================================================================================================================================================
-`ifdef IS_RF_IN_BRAM
+generate
+if (IS_RF_ON_BRAM) begin : GEN_RF_ON_BRAM
 ////////////////////////////////////////////// BRAM based RF /////////////////////////////////////////////////////
 logic [`XLEN-1:0] rdata0, rdata1 ;  // Read data from the Register array
 `ifdef DBG
@@ -149,7 +153,7 @@ assign o_rs1_data = is_rs1_not_x0_rg? rdata1 : '0 ;  // x0 always read as 0...
 assign reg_file = bram_marray[1:31];
 `endif
 
-`else
+end else begin : GEN_RF_ON_FLOPS
 /////////////////////////////////////////// Flops / LUT RAM based RF /////////////////////////////////////////////
 logic [`XLEN-1:0] rs0_data_rg   ;  // Read data from port-0
 logic [`XLEN-1:0] rs1_data_rg   ;  // Read data from port-1
@@ -189,8 +193,12 @@ always_ff @(posedge clk) begin
 end
 assign o_rs1_data = rs1_data_rg ;
 
-`endif  //IS_RF_IN_BRAM
+end  //IS_RF_ON_BRAM
+endgenerate
 
+//-------------------------------------------------------------------
+// Test Ports
+//-------------------------------------------------------------------
 `ifdef TEST_PORTS
 // Test Ports
 assign o_x31_tst = reg_file[31] ;

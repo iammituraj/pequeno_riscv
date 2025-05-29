@@ -35,7 +35,7 @@
 //----%%                    # Pipeline latency = 1 cycle at all execution units ALU, LSU, EXU-BU.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : May-2025
 //----%% Notes            : - 
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -54,7 +54,10 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module execution_unit #(
    // Configurable parameters
-   parameter PC_INIT = `PC_INIT  // Init PC on reset
+   parameter PC_INIT         = `PC_INIT,          // Init PC on reset
+   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter GHRW            = `GHRW ,            // GHR width
+   parameter BPCW            = `BHT_IDW+2         // PC width to index BHT
 )
 (
    // Clock and Reset
@@ -64,6 +67,8 @@ module execution_unit #(
    `ifdef DBG
    // Debug Interface  
    output logic [4:0]       o_exu_dbg           ,  // Debug signal
+   output logic             o_dbg_is_b_instr    ,  // Branch instruction flag
+   output logic             o_dbg_is_pred_wrong ,  // Prediction wrong?
    `endif
 
    // Operands from Register File/Operand Forward Control
@@ -73,7 +78,17 @@ module execution_unit #(
    // EXU-BU Interface
    output logic             o_exu_bu_flush      ,  // Flush signal to upstream pipeline
    output logic [`XLEN-1:0] o_exu_bu_pc         ,  // Branch PC to upstream pipeline   
-   input  logic             i_exu_bu_br_taken   ,  // Branch taken status from upstream pipeline
+   input  logic             i_exu_bu_pred_btaken,  // Branch taken status from upstream pipeline
+    
+   `ifdef BPREDICT_DYN
+   // Branch Predictor Update Interface
+   input  logic [GHRW-1:0]  i_du_ghr_snapshot   ,  // GHR snapshot from DU
+   output logic             o_bp_upd_ghr        ,  // Update GHR signal
+   output logic             o_bp_upd_bht        ,  // Update BHT signal
+   output logic [BPCW-1:0]  o_bp_idx_pc         ,  // PC to index BHT
+   output logic [GHRW-1:0]  o_bp_idx_ghr        ,  // GHR to index BHT
+   output logic             o_bp_sts_btaken     ,  // Branch taken status after branch resolution
+   `endif
    
    // Interface with Decode Unit (DU)   
    input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU 
@@ -194,7 +209,10 @@ logic             sign_op0_lt_op1 ;  // Signed comparison flag
 //===================================================================================================================================================
 // Branch Unit (EXU-BU)
 exu_branch_unit #(
-   .PC_INIT (PC_INIT)
+   .PC_INIT         (PC_INIT),
+   .IS_BPREDICT_DYN (IS_BPREDICT_DYN),
+   .GHRW            (GHRW),
+   .BPCW            (BPCW)
 )  inst_exu_branch_unit (
    .clk               (clk)     ,
    .aresetn           (aresetn) ,
@@ -212,13 +230,27 @@ exu_branch_unit #(
    .i_op1             (i_op1)             ,  
    .i_op0_lt_op1      (op0_lt_op1)        ,  
    .i_sign_op0_lt_op1 (sign_op0_lt_op1)   ,
-   .i_branch_taken    (i_exu_bu_br_taken) ,
+   .i_branch_taken    (i_exu_bu_pred_btaken) ,
 
-   .o_nxt_instr_pc (bu_result)       ,  
-   .o_bubble       (bu_bubble)       , 
-   .o_branch_taken (bu_branch_taken) ,
-   .o_branch_pc    (bu_branch_pc)    , 
-   .o_flush        (bu_flush)      
+   `ifdef DBG
+   .o_dbg_is_b_instr    (o_dbg_is_b_instr)    ,
+   .o_dbg_is_pred_wrong (o_dbg_is_pred_wrong) ,
+   `endif
+
+   `ifdef BPREDICT_DYN
+   .i_bp_ghr_snapshot (i_du_ghr_snapshot),
+   .o_bp_upd_ghr      (o_bp_upd_ghr)    ,
+   .o_bp_upd_bht      (o_bp_upd_bht)    ,
+   .o_bp_idx_pc       (o_bp_idx_pc)     ,
+   .o_bp_idx_ghr      (o_bp_idx_ghr)    ,
+   .o_bp_sts_btaken   (o_bp_sts_btaken) ,
+   `endif
+
+   .o_nxt_instr_pc    (bu_result)       ,  
+   .o_bubble          (bu_bubble)       , 
+   .o_branch_taken    (bu_branch_taken) ,
+   .o_branch_pc       (bu_branch_pc)    , 
+   .o_flush           (bu_flush)      
 );
 
 // ALU

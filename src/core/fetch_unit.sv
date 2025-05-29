@@ -31,7 +31,7 @@
 //----%%                    # Pipeline latency = 2 cycles
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : May-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -50,9 +50,14 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module fetch_unit #(
    // Configurable parameters
-   parameter PC_INIT         = `PC_INIT,          // Init PC on reset
-   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Branch predictor type
-   parameter BHT_TYPE        = `BHT_TYPE          // Branch History Table configuration
+   parameter PC_INIT         = `PC_INIT        ,  // Init PC on reset
+   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter BHT_IDW         = `BHT_IDW        ,  // BHT index width
+   parameter BHT_TYPE        = `BHT_TYPE       ,  // BHT target configuration (for Dynamic Branch Predictor)
+   parameter GHRW            = `GHRW           ,  // GHR width
+
+   // Derived parameters
+   localparam BPCW           = BHT_IDW+2          // PC width to index BHT
 )
 (   
    // Clock and Reset  
@@ -79,11 +84,21 @@ module fetch_unit #(
    output logic [`XLEN-1:0] o_du_pc            ,  // PC to DU
    output logic [`ILEN-1:0] o_du_instr         ,  // Instruction fetched and sent to DU
    output logic             o_du_br_taken      ,  // Branch taken status to DU; '0'- not taken, '1'- taken
+   `ifdef BPREDICT_DYN
+   output logic [GHRW-1:0]  o_du_ghr_snapshot  ,  // GHR snapshot to DU
+   `endif
    output logic             o_du_bubble        ,  // Bubble to DU
    input  logic             i_du_stall         ,  // Stall signal from DU
 
-
    // Interface with Execution Unit (EXU)
+   `ifdef BPREDICT_DYN
+   input  logic             i_exu_bp_upd_ghr   ,  // Update GHR signal
+   input  logic             i_exu_bp_upd_bht   ,  // Update BHT signal
+   input  logic [BPCW-1:0]  i_exu_bp_idx_pc    ,  // PC to index BHT
+   input  logic [GHRW-1:0]  i_exu_bp_idx_ghr   ,  // GHR to index BHT
+   input  logic             i_exu_bp_sts_btaken,  // Branch taken status after branch resolution
+   `endif
+
    input  logic             i_exu_bu_flush     ,  // Flush signal from EXU-BU
    input  logic [`XLEN-1:0] i_exu_bu_pc           // Branch PC from EXU-BU
 );
@@ -185,7 +200,7 @@ end
 // Generates branch taken status, which is later validated during branch resolution at Execution Unit (EXU).
 //===================================================================================================================================================
 generate
-if (IS_BPREDICT_DYN == 1'b0) begin : GEN_BPREDICT_STATIC
+if (!IS_BPREDICT_DYN) begin : GEN_BPREDICT_STT
    // Static Branch Predictor
    static_bpredictor inst_static_bpredictor(
       .clk            (clk)          ,
@@ -203,9 +218,11 @@ if (IS_BPREDICT_DYN == 1'b0) begin : GEN_BPREDICT_STATIC
       .o_branch_taken (branch_taken) ,
       .o_flush        (bp_flush)
    );
-end else begin : GEN_BPREDICT_DYNAMIC
+end else begin : GEN_BPREDICT_DYN
    // Pequeno Gshare Dynamic Branch Predictor
    pqGshare_bpredictor#(
+      .GHRW     (GHRW),
+      .BHT_IDW  (BHT_IDW),
       .BHT_TYPE (BHT_TYPE)
    ) inst_pqGshare_bpredictor (
       .clk            (clk)          ,
@@ -220,14 +237,17 @@ end else begin : GEN_BPREDICT_DYNAMIC
       .i_instr_valid  (instr_valid & ~i_exu_bu_flush),  // Flush should immediately invalidate to avoid any potential bp flush in the next clock cycle... 
    
       .o_branch_pc    (branch_pc)    ,
-      .o_pred_btaken  (branch_taken) ,   
+      .o_pred_btaken  (branch_taken) ,
+      .o_ghr_snapshot (o_du_ghr_snapshot),   
       .o_flush        (bp_flush)     ,
-   
-      .i_update       (),
-      .i_update_pc    (),
-      .i_actual_btaken()
+      
+      .i_upd_ghr      (i_exu_bp_upd_ghr),
+      .i_upd_bht      (i_exu_bp_upd_bht),
+      .i_upd_idx_pc   (i_exu_bp_idx_pc) ,
+      .i_upd_idx_ghr  (i_exu_bp_idx_ghr),
+      .i_actual_btaken(i_exu_bp_sts_btaken)
    );
-   end
+end  //GEN_BPREDICT
 endgenerate
 
 assign instr        = i_imem_pkt        ;

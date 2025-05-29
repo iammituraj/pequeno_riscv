@@ -46,7 +46,7 @@
 // Module definition
 module bhistory_table#(
    // Configurable Parameters
-   parameter  TGT    = "blkram",  // Target = "blkram" / "lutram" / "flops"; Block RAM / Distributed or LUT RAM / Flops
+   parameter  TGT    = "blkram",  // Target = "blkram" / "lutram" / "flops"; BHT to be implemented on Block RAM / Distributed or LUT RAM / Flops
    parameter  DPT    = 64      ,  // No. of entries in the table, 2^N
    parameter  RSTVAL = 2'b10   ,  // BHT reset value of all entries
 
@@ -100,13 +100,13 @@ logic [1:0] rdata0_rg, rdata1_rg ;  // Read data
 // Synchronous logic to update BHT
 //===================================================================================================================================================
 generate
-if (TGT == "blkram" || TGT == "lutram") begin : genw2_bram_or_lutram
+if (TGT == "blkram" || TGT == "lutram") begin
    always_ff @(posedge clk) begin
       if (i_wren) begin
          gen_ram.ram[i_waddr] <= i_wdata ;
       end
    end
-end else begin : genw2_flops
+end else begin
    always_ff @(posedge clk or negedge aresetn) begin
       if (!aresetn) begin  // Reset is reqd only if the BHT is implemented on flops...
          for (integer i=0; i<DPT_2N; i=i+1) gen_ram.ram[i] <= RSTVAL;
