@@ -24,6 +24,7 @@
 
 
 ############################## CORE #################################
+./src/core/call_stack.sv
 ./src/core/bhistory_table.sv
 ./src/core/pqGshare_bpredictor.sv
 ./src/core/static_bpredictor.sv

@@ -1,0 +1,194 @@
+Archive member included to satisfy reference by file (symbol)
+
+/opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+                              ee_printf.o (__divsi3)
+
+There are no discarded input sections
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+IRAM             0x00000000         0x00008000         xr
+DRAM             0x80000000         0x00008000         rw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a
+LOAD startup.o
+LOAD qsort_main.o
+LOAD stats.o
+LOAD ee_printf.o
+LOAD /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a
+START GROUP
+LOAD /opt/riscv/riscv64-unknown-elf/lib/rv32i/ilp32/libc.a
+LOAD /opt/riscv/riscv64-unknown-elf/lib/rv32i/ilp32/libgloss.a
+END GROUP
+LOAD /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a
+
+.text           0x00000000     0x21b8
+ *startup.o(.text)
+ .text          0x00000000       0xb0 startup.o
+                0x00000000                _start
+ *(.text)
+ .text          0x000000b0      0x184 qsort_main.o
+                0x000000b0                sort
+ .text          0x00000234       0x38 stats.o
+                0x00000234                setStats
+ .text          0x0000026c     0x1df8 ee_printf.o
+                0x00000918                delay_me
+                0x00000944                delay_cycles
+                0x00000974                uart_init
+                0x00000a10                uart_send_char
+                0x00000ab4                ee_printf
+ .text          0x00002064       0xb4 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+                0x00002064                __divsi3
+                0x0000206c                __hidden___udivsi3
+                0x0000206c                __udivsi3
+                0x000020b4                __umodsi3
+                0x000020e8                __modsi3
+ *(.text.*)
+ .text.startup  0x00002118       0xa0 qsort_main.o
+                0x00002118                main
+
+.rodata         0x80000000      0x2a7
+ *(.rodata)
+ .rodata        0x80000000      0x204 ee_printf.o
+ *(.rodata.*)
+ .rodata.str1.4
+                0x80000204       0xa3 qsort_main.o
+                                 0x4a (size before relaxing)
+ .rodata.str1.4
+                0x800002a7       0x57 ee_printf.o
+ *(.srodata)
+ *(.srodata.*)
+
+.rela.dyn       0x800002a8        0x0
+ .rela.text     0x800002a8        0x0 startup.o
+
+.data           0x800002a8     0x4004
+ *(.data)
+ .data          0x800002a8        0x0 startup.o
+ .data          0x800002a8     0x4000 qsort_main.o
+                0x800002a8                verify_data
+                0x800022a8                input_data
+ .data          0x800042a8        0x0 stats.o
+ .data          0x800042a8        0x0 ee_printf.o
+ .data          0x800042a8        0x0 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+ *(.data.*)
+ *(.sdata)
+ .sdata         0x800042a8        0x4 stats.o
+                0x800042a8                hardwareCounterAddr
+ *(.sdata.*)
+
+.bss            0x800042ac        0x0
+                0x800042ac                        _sbss = .
+ *(.bss)
+ .bss           0x800042ac        0x0 startup.o
+ .bss           0x800042ac        0x0 qsort_main.o
+ .bss           0x800042ac        0x0 stats.o
+ .bss           0x800042ac        0x0 ee_printf.o
+ .bss           0x800042ac        0x0 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+ *(.bss.*)
+ *(.sbss)
+ *(.sbss.*)
+ *(COMMON)
+                0x800042ac                        _ebss = .
+                0x80008000                        _stack_top = ((ORIGIN (DRAM) + LENGTH (DRAM)) & 0xfffffffffffffff0)
+OUTPUT(qsort_pqr5.elf elf32-littleriscv)
+
+.riscv.attributes
+                0x00000000       0x1c
+ .riscv.attributes
+                0x00000000       0x1a startup.o
+ .riscv.attributes
+                0x0000001a       0x1c qsort_main.o
+ .riscv.attributes
+                0x00000036       0x1c stats.o
+ .riscv.attributes
+                0x00000052       0x1c ee_printf.o
+ .riscv.attributes
+                0x0000006e       0x1a /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.comment        0x00000000       0x19
+ .comment       0x00000000       0x19 qsort_main.o
+                                 0x1a (size before relaxing)
+ .comment       0x00000019       0x1a stats.o
+ .comment       0x00000019       0x1a ee_printf.o
+
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 qsort_main.o
+ .note.GNU-stack
+                0x00000000        0x0 stats.o
+ .note.GNU-stack
+                0x00000000        0x0 ee_printf.o
+
+.debug_info     0x00000000      0xe6d
+ .debug_info    0x00000000      0x457 qsort_main.o
+ .debug_info    0x00000457      0x10f stats.o
+ .debug_info    0x00000566      0x8a8 ee_printf.o
+ .debug_info    0x00000e0e       0x5f /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_abbrev   0x00000000      0x652
+ .debug_abbrev  0x00000000      0x235 qsort_main.o
+ .debug_abbrev  0x00000235       0xc4 stats.o
+ .debug_abbrev  0x000002f9      0x331 ee_printf.o
+ .debug_abbrev  0x0000062a       0x28 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_loclists
+                0x00000000     0x1d9e
+ .debug_loclists
+                0x00000000      0x247 qsort_main.o
+ .debug_loclists
+                0x00000247       0x20 stats.o
+ .debug_loclists
+                0x00000267     0x1b37 ee_printf.o
+
+.debug_aranges  0x00000000       0x88
+ .debug_aranges
+                0x00000000       0x28 qsort_main.o
+ .debug_aranges
+                0x00000028       0x20 stats.o
+ .debug_aranges
+                0x00000048       0x20 ee_printf.o
+ .debug_aranges
+                0x00000068       0x20 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_rnglists
+                0x00000000      0x134
+ .debug_rnglists
+                0x00000000       0x5e qsort_main.o
+ .debug_rnglists
+                0x0000005e       0xd6 ee_printf.o
+
+.debug_line     0x00000000     0x4811
+ .debug_line    0x00000000      0x669 qsort_main.o
+ .debug_line    0x00000669       0xd4 stats.o
+ .debug_line    0x0000073d     0x3f81 ee_printf.o
+ .debug_line    0x000046be      0x153 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_str      0x00000000      0x38d
+ .debug_str     0x00000000      0x38d qsort_main.o
+                                0x1be (size before relaxing)
+ .debug_str     0x0000038d      0x19c stats.o
+ .debug_str     0x0000038d      0x281 ee_printf.o
+ .debug_str     0x0000038d       0xeb /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_line_str
+                0x00000000      0x177
+ .debug_line_str
+                0x00000000      0x177 qsort_main.o
+                                0x106 (size before relaxing)
+ .debug_line_str
+                0x00000177       0xa6 stats.o
+ .debug_line_str
+                0x00000177       0xff ee_printf.o
+ .debug_line_str
+                0x00000177       0xa4 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_frame    0x00000000      0x284
+ .debug_frame   0x00000000       0x50 qsort_main.o
+ .debug_frame   0x00000050       0x2c stats.o
+ .debug_frame   0x0000007c      0x208 ee_printf.o

@@ -1,0 +1,35 @@
+
+towers_pqr5.elf:     file format elf32-littleriscv
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         00002b9c  00000000  00000000  00001000  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .rodata       00000323  80000000  80000000  00004000  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  2 .data         00000008  80000324  80000324  00004324  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  3 .bss          00000040  8000032c  8000032c  0000432c  2**2
+                  ALLOC
+  4 .riscv.attributes 0000001c  00000000  00000000  0000432c  2**0
+                  CONTENTS, READONLY
+  5 .comment      00000019  00000000  00000000  00004348  2**0
+                  CONTENTS, READONLY
+  6 .debug_info   00001e9b  00000000  00000000  00004361  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  7 .debug_abbrev 000006ec  00000000  00000000  000061fc  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  8 .debug_loclists 00002544  00000000  00000000  000068e8  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+  9 .debug_aranges 00000088  00000000  00000000  00008e30  2**3
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 10 .debug_rnglists 000004d0  00000000  00000000  00008eb8  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 11 .debug_line   00006509  00000000  00000000  00009388  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 12 .debug_str    0000043e  00000000  00000000  0000f891  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 13 .debug_line_str 00000167  00000000  00000000  0000fccf  2**0
+                  CONTENTS, READONLY, DEBUGGING, OCTETS
+ 14 .debug_frame  0000039c  00000000  00000000  0000fe38  2**2
+                  CONTENTS, READONLY, DEBUGGING, OCTETS

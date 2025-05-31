@@ -1,0 +1,208 @@
+Archive member included to satisfy reference by file (symbol)
+
+/opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+                              ee_printf.o (__divsi3)
+
+There are no discarded input sections
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+IRAM             0x00000000         0x00008000         xr
+DRAM             0x80000000         0x00008000         rw
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a
+LOAD startup.o
+LOAD towers_main.o
+LOAD stats.o
+LOAD ee_printf.o
+LOAD /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a
+START GROUP
+LOAD /opt/riscv/riscv64-unknown-elf/lib/rv32i/ilp32/libc.a
+LOAD /opt/riscv/riscv64-unknown-elf/lib/rv32i/ilp32/libgloss.a
+END GROUP
+LOAD /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a
+
+.text           0x00000000     0x2b9c
+ *startup.o(.text)
+ .text          0x00000000       0xb0 startup.o
+                0x00000000                _start
+ *(.text)
+ .text          0x000000b0      0x848 towers_main.o
+                0x000000b0                list_getSize
+                0x000000b8                list_init
+                0x000000c4                list_push
+                0x000000f8                list_pop
+                0x00000130                list_clear
+                0x00000168                towers_init
+                0x000001dc                towers_clear
+                0x00000318                towers_solve_h
+                0x00000774                towers_solve
+                0x00000874                towers_verify
+ .text          0x000008f8       0x98 stats.o
+                0x000008f8                setStats
+ .text          0x00000990     0x1df8 ee_printf.o
+                0x0000103c                delay_me
+                0x00001068                delay_cycles
+                0x00001098                uart_init
+                0x00001134                uart_send_char
+                0x000011d8                ee_printf
+ .text          0x00002788       0xb4 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+                0x00002788                __divsi3
+                0x00002790                __hidden___udivsi3
+                0x00002790                __udivsi3
+                0x000027d8                __umodsi3
+                0x0000280c                __modsi3
+ *(.text.*)
+ .text.startup  0x0000283c      0x360 towers_main.o
+                0x0000283c                main
+
+.rodata         0x80000000      0x323
+ *(.rodata)
+ .rodata        0x80000000      0x204 ee_printf.o
+ *(.rodata.*)
+ .rodata.str1.4
+                0x80000204      0x11f towers_main.o
+                                 0x3f (size before relaxing)
+ .rodata.str1.4
+                0x80000323       0x87 stats.o
+ .rodata.str1.4
+                0x80000323       0x57 ee_printf.o
+ *(.srodata)
+ *(.srodata.*)
+
+.rela.dyn       0x80000324        0x0
+ .rela.text     0x80000324        0x0 startup.o
+
+.data           0x80000324        0x8
+ *(.data)
+ .data          0x80000324        0x0 startup.o
+ .data          0x80000324        0x0 towers_main.o
+ .data          0x80000324        0x0 stats.o
+ .data          0x80000324        0x0 ee_printf.o
+ .data          0x80000324        0x0 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+ *(.data.*)
+ *(.sdata)
+ .sdata         0x80000324        0x8 stats.o
+                0x80000328                hardwareCounterAddr
+ *(.sdata.*)
+
+.bss            0x8000032c       0x40
+                0x8000032c                        _sbss = .
+ *(.bss)
+ .bss           0x8000032c        0x0 startup.o
+ .bss           0x8000032c       0x38 towers_main.o
+                0x8000032c                g_nodePool
+ .bss           0x80000364        0x0 stats.o
+ .bss           0x80000364        0x0 ee_printf.o
+ .bss           0x80000364        0x0 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+ *(.bss.*)
+ *(.sbss)
+ .sbss          0x80000364        0x8 towers_main.o
+                0x80000364                g_nodeFreeList
+ *(.sbss.*)
+ *(COMMON)
+                0x8000036c                        _ebss = .
+                0x80008000                        _stack_top = ((ORIGIN (DRAM) + LENGTH (DRAM)) & 0xfffffffffffffff0)
+OUTPUT(towers_pqr5.elf elf32-littleriscv)
+
+.riscv.attributes
+                0x00000000       0x1c
+ .riscv.attributes
+                0x00000000       0x1a startup.o
+ .riscv.attributes
+                0x0000001a       0x1c towers_main.o
+ .riscv.attributes
+                0x00000036       0x1c stats.o
+ .riscv.attributes
+                0x00000052       0x1c ee_printf.o
+ .riscv.attributes
+                0x0000006e       0x1a /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.comment        0x00000000       0x19
+ .comment       0x00000000       0x19 towers_main.o
+                                 0x1a (size before relaxing)
+ .comment       0x00000019       0x1a stats.o
+ .comment       0x00000019       0x1a ee_printf.o
+
+.note.GNU-stack
+                0x00000000        0x0
+ .note.GNU-stack
+                0x00000000        0x0 towers_main.o
+ .note.GNU-stack
+                0x00000000        0x0 stats.o
+ .note.GNU-stack
+                0x00000000        0x0 ee_printf.o
+
+.debug_info     0x00000000     0x1e9b
+ .debug_info    0x00000000     0x13ec towers_main.o
+ .debug_info    0x000013ec      0x1a8 stats.o
+ .debug_info    0x00001594      0x8a8 ee_printf.o
+ .debug_info    0x00001e3c       0x5f /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_abbrev   0x00000000      0x6ec
+ .debug_abbrev  0x00000000      0x279 towers_main.o
+ .debug_abbrev  0x00000279      0x11a stats.o
+ .debug_abbrev  0x00000393      0x331 ee_printf.o
+ .debug_abbrev  0x000006c4       0x28 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_loclists
+                0x00000000     0x2544
+ .debug_loclists
+                0x00000000      0x9bb towers_main.o
+ .debug_loclists
+                0x000009bb       0x52 stats.o
+ .debug_loclists
+                0x00000a0d     0x1b37 ee_printf.o
+
+.debug_aranges  0x00000000       0x88
+ .debug_aranges
+                0x00000000       0x28 towers_main.o
+ .debug_aranges
+                0x00000028       0x20 stats.o
+ .debug_aranges
+                0x00000048       0x20 ee_printf.o
+ .debug_aranges
+                0x00000068       0x20 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_rnglists
+                0x00000000      0x4d0
+ .debug_rnglists
+                0x00000000      0x3e1 towers_main.o
+ .debug_rnglists
+                0x000003e1       0x19 stats.o
+ .debug_rnglists
+                0x000003fa       0xd6 ee_printf.o
+
+.debug_line     0x00000000     0x6509
+ .debug_line    0x00000000     0x22c5 towers_main.o
+ .debug_line    0x000022c5      0x170 stats.o
+ .debug_line    0x00002435     0x3f81 ee_printf.o
+ .debug_line    0x000063b6      0x153 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_str      0x00000000      0x43e
+ .debug_str     0x00000000      0x43e towers_main.o
+                                0x277 (size before relaxing)
+ .debug_str     0x0000043e      0x1b0 stats.o
+ .debug_str     0x0000043e      0x281 ee_printf.o
+ .debug_str     0x0000043e       0xeb /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_line_str
+                0x00000000      0x167
+ .debug_line_str
+                0x00000000      0x167 towers_main.o
+                                 0xba (size before relaxing)
+ .debug_line_str
+                0x00000167       0xa8 stats.o
+ .debug_line_str
+                0x00000167      0x101 ee_printf.o
+ .debug_line_str
+                0x00000167       0xa4 /opt/riscv/lib/gcc/riscv64-unknown-elf/14.2.0/rv32i/ilp32/libgcc.a(div.o)
+
+.debug_frame    0x00000000      0x39c
+ .debug_frame   0x00000000      0x158 towers_main.o
+ .debug_frame   0x00000158       0x3c stats.o
+ .debug_frame   0x00000194      0x208 ee_printf.o
