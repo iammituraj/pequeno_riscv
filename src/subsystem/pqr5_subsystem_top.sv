@@ -365,11 +365,13 @@ assign halt_cpu        = (i_halt_cpu === 1'bz)? 1'b0 :        // Connect pull-do
                          (i_halt_cpu == 1'b0)? 1'b0 : 1'b1 ;  // User can still drive to '1' or '0' if reqd during simulation... 
 `endif 
 
+`ifdef DUMPVCD
 // VCD dump
 initial begin
    $dumpfile("sim.vcd");
    $dumpvars(0, pqr5_subsystem_top);
 end
+`endif
 
 `endif
 
