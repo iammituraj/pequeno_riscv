@@ -50,16 +50,16 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Features
 //`define EN_LOADER                    // Define this macro to generate Loader to program the core on the fly via UART
-//`define COREMARK                     // Define this macro to enable Coremark Benchmarking
+`define COREMARK                     // Define this macro to enable Coremark Benchmarking
 
 // On-board Test/Simulation environment INFO - define the parameters here
-`define FCLK                 10                         // System clock speed targetted for on-board testing/simulation; in MHz
+`define FCLK                 12                         // System clock speed targetted for on-board testing/simulation; in MHz
 `define TCLK                 (1000.0/`FCLK)             // System clock period targetted for on-board testing/simulation; in ns
-`define IRAM_SIZE            1024                       // Size of the generated IRAM; in bytes
+`define IRAM_SIZE            32768                       // Size of the generated IRAM; in bytes
 `define IRAM_DW              32                         // Data width of the generated IRAM [CONSTANT]
 `define IRAM_DEPTH           ((`IRAM_SIZE*8)/`IRAM_DW)  // Depth of the generated IRAM 
 `define IRAM_AW              ($clog2(`IRAM_DEPTH))      // Address width of the generated IRAM
-`define DRAM_SIZE            1024                       // Size of the generated DRAM; in bytes, max. 64kB
+`define DRAM_SIZE            32768                       // Size of the generated DRAM; in bytes, max. 64kB
 `define DRAM_DW              32                         // Data width of the generated DRAM [CONSTANT]
 `define DRAM_DEPTH           ((`DRAM_SIZE*8)/`DRAM_DW)  // Depth of the generated IRAM
 `define DRAM_AW              ($clog2(`DRAM_DEPTH))      // Address width of the generated DRAM
@@ -80,6 +80,7 @@
 `define SYSRST_LEN           20        // TB reset length in clock cycles
 `define SIMLIMIT                       // Define this macro if subsystem simulation should be cycles limited
 `define SIMCYCLES            100000    // If SIMLIMIT is enabled: Max. no. of clock cycles of simulation 
+//`define DUMPVCD                        // Define this macro dump VCD of simulation
 
 // Memory Dump during simulation
 `define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; OVERRIDEN FOR SYNTHESIS
