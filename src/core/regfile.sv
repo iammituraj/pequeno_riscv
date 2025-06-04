@@ -66,15 +66,14 @@ module regfile #(
    // Test Ports
    output logic [`XLEN-1:0] o_x31_tst  ,  // x31
    `endif
-   
-   // Read enable (common for both read ports)
-   input  logic             i_rden     ,  // Read Enable
 
    // Read Port-0   
+   input  logic             i_rden0    ,  // Read enable
    input  logic [4:0]       i_rs0_addr ,  // Register address
    output logic [`XLEN-1:0] o_rs0_data ,  // Register data read out
 
    // Read Port-1
+   input  logic             i_rden1    ,  // Read enable
    input  logic [4:0]       i_rs1_addr ,  // Register address
    output logic [`XLEN-1:0] o_rs1_data ,  // Register data read out
 
@@ -88,7 +87,7 @@ module regfile #(
 // Internal Registers/Signals
 //===================================================================================================================================================
 logic wren ;                         // Write enable to Register array
-logic rden ;                         // Read enable to Register array
+logic rden0, rden1 ;                 // Read enable to Register array
 logic [`XLEN-1:0] reg_file [1:31] ;  // Register file: x1-x31, x0 is implicitly 0...
 
 //===================================================================================================================================================
@@ -117,16 +116,19 @@ bram_dp_r2w1 #(
    .o_marray (bram_marray),
    `endif
 
-   .i_rden   (rden),      
+   .i_rden0  (rden0),      
    .i_raddr0 (i_rs0_addr),
    .o_rdata0 (rdata0),
+   
+   .i_rden1  (rden1),  
    .i_raddr1 (i_rs1_addr),
    .o_rdata1 (rdata1)
 );
 
 // Write & Read enable conditioned...
-assign wren = i_wren ;  // If target is x0, WBU never generates write enable... So no need to condition with |i_rdt_addr
-assign rden = i_rden ;
+assign wren  = i_wren  ;  // If target is x0, WBU never generates write enable... So no need to condition with |i_rdt_addr
+assign rden0 = i_rden0 ;
+assign rden1 = i_rden1 ;
 
 //-------------------------------------------------------------------
 // Glue Logic to condition the read data if x0 is accessed
@@ -134,7 +136,7 @@ assign rden = i_rden ;
 // Flag the x0 access concurrent to read access
 logic is_rs0_not_x0_rg ;
 always_ff @(posedge clk) begin
-   if (rden) begin      
+   if (rden0) begin      
       is_rs0_not_x0_rg <= |i_rs0_addr ;
    end
 end
@@ -143,7 +145,7 @@ assign o_rs0_data = is_rs0_not_x0_rg? rdata0 : '0 ;  // x0 always read as 0...
 // Flag the x0 access concurrent to read access
 logic is_rs1_not_x0_rg ;
 always_ff @(posedge clk) begin
-   if (rden) begin      
+   if (rden1) begin      
       is_rs1_not_x0_rg <= |i_rs1_addr ;
    end
 end
@@ -159,8 +161,9 @@ logic [`XLEN-1:0] rs0_data_rg   ;  // Read data from port-0
 logic [`XLEN-1:0] rs1_data_rg   ;  // Read data from port-1
 
 // Write & Read enable conditioned...
-assign wren = i_wren ;  // If target is x0, WBU will not generate write enable... So no need to condition with |i_rdt_addr
-assign rden = i_rden ;
+assign wren  = i_wren  ;  // If target is x0, WBU will not generate write enable... So no need to condition with |i_rdt_addr
+assign rden0 = i_rden0 ;
+assign rden1 = i_rden1 ;
 
 //-------------------------------------------------------------------
 // Synchronous logic to write to register file
@@ -175,7 +178,7 @@ end
 // Synchronous logic to read from register file (Read port-0)
 //-------------------------------------------------------------------
 always_ff @(posedge clk) begin
-   if (rden) begin      
+   if (rden0) begin      
       if (~|i_rs0_addr) begin rs0_data_rg <= '0                   ; end  // x0 is hard-wired & read as 0
       else              begin rs0_data_rg <= reg_file[i_rs0_addr] ; end
    end
@@ -186,7 +189,7 @@ assign o_rs0_data = rs0_data_rg ;
 // Synchronous logic to read from register file (Read port-1)
 //-------------------------------------------------------------------
 always_ff @(posedge clk) begin
-   if (rden) begin
+   if (rden1) begin
       if (~|i_rs1_addr) begin rs1_data_rg <= '0                   ; end  // x0 is hard-wired & read as 0
       else              begin rs1_data_rg <= reg_file[i_rs1_addr] ; end
    end

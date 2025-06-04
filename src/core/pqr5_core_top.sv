@@ -155,6 +155,12 @@ logic             du_rf_rden        ;  // Read-enable from DU to RF
 logic [4:0]       du_rf_rs0         ;  // rs0 from DU to RF
 logic [4:0]       du_rf_rs1         ;  // rs1 from DU to RF
 
+// RF read control
+logic             rf_rden0          ;  // Read enable-0 (rs0) to RF
+logic             rf_rden1          ;  // Read enable-1 (rs1) to RF
+logic [4:0]       rf_rs0_addr       ;  // rs0 address to RF
+logic [4:0]       rf_rs1_addr       ;  // rs1 address to RF
+
 // Operand Forward Control Interface
 logic [`XLEN-1:0] opfwd_exu_op0     ;  // Operand-0 forwarded to EXU
 logic [`XLEN-1:0] opfwd_exu_op1     ;  // Operand-1 forwarded to EXU
@@ -256,6 +262,7 @@ logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
 `endif
 logic             wbu_is_riuj_out      ;  // RIUJ flag from WBU
 logic             wbu_pkt_valid_out    ;  // Packet valid from WBU
+logic             wbu_rdt_wren_out     ;  // rdt write enable from WBU
 logic [4:0]       wbu_rdt_addr_out     ;  // rdt address from WBU
 logic [`XLEN-1:0] wbu_rdt_data_out     ;  // rdt data from WBU
 logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
@@ -263,13 +270,13 @@ logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
 
 // Debug signals
 `ifdef DBG
-logic [2:0]       fu_dbg    ;  // Debug signal from FU  : {branch_taken, is_op_branch, is_op_jal}
-logic [9:0]       du_dbg    ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
-logic [4:0]       exu_dbg   ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+logic [2:0]       fu_dbg                ;  // Debug signal from FU  : {branch_taken, is_op_branch, is_op_jal}
+logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
+logic [4:0]       exu_dbg               ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
 logic             exu_dbg_is_b_instr    ;  // Branch instruction flag from EXU  
 logic             exu_dbg_is_pred_wrong ;  // Branch prediction wrong flag from EXU
-logic [4:0]       wbu_dbg   ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, is_dir_writeback, pipe_stall, dmem_acc_stall}
-logic [`XLEN-1:0] regf [32] ;  // Debug signal from REGF: Register File
+logic [4:0]       wbu_dbg               ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, is_dir_writeback, pipe_stall, dmem_acc_stall}
+logic [`XLEN-1:0] regf [32]             ;  // Debug signal from REGF: Register File
 `endif
 
 // Dynamic branch prediction related
@@ -301,37 +308,37 @@ fetch_unit #(
    .BHT_TYPE        (BHT_TYPE),
    .GHRW            (GHRW)
 )  inst_fetch_unit (
-   .clk       (clk),
-   .aresetn   (aresetn),
+   .clk                 (clk),
+   .aresetn             (aresetn),
 
    `ifdef DBG
-   .o_fu_dbg  (fu_dbg),
+   .o_fu_dbg            (fu_dbg),
    `endif
     
-   .o_imem_pc        (o_imem_pc)        ,
-   .o_imem_pc_valid  (o_imem_pc_valid)  ,
-   .i_imem_stall     (i_imem_stall)     ,
+   .o_imem_pc           (o_imem_pc),
+   .o_imem_pc_valid     (o_imem_pc_valid) ,
+   .i_imem_stall        (i_imem_stall),
 
-   .i_imem_pc        (i_imem_pc)        ,
-   .i_imem_pkt       (i_imem_pkt)       ,
-   .i_imem_pkt_valid (i_imem_pkt_valid) ,
-   .o_imem_stall     (o_imem_stall)     ,
-   .o_imem_flush     (o_imem_flush)     ,
+   .i_imem_pc           (i_imem_pc),
+   .i_imem_pkt          (i_imem_pkt),
+   .i_imem_pkt_valid    (i_imem_pkt_valid),
+   .o_imem_stall        (o_imem_stall),
+   .o_imem_flush        (o_imem_flush),
    
-   .o_du_pc          (fu_du_pc)         ,
-   .o_du_instr       (fu_du_instr)      ,
-   .o_du_br_taken    (fu_du_br_taken)   ,
+   .o_du_pc             (fu_du_pc),
+   .o_du_instr          (fu_du_instr),
+   .o_du_br_taken       (fu_du_br_taken),
    `ifdef BPREDICT_DYN
-   .o_du_ghr_snapshot(fu_du_ghr_snapshot),
+   .o_du_ghr_snapshot   (fu_du_ghr_snapshot),
    `endif
-   .o_du_bubble      (fu_du_bubble),
-   .i_du_stall       (du_fu_stall),
+   .o_du_bubble         (fu_du_bubble),
+   .i_du_stall          (du_fu_stall),
    
    `ifdef BPREDICT_DYN
-   .i_exu_bp_upd_ghr    (exu_bp_upd_ghr)   ,
-   .i_exu_bp_upd_bht    (exu_bp_upd_bht)   ,
-   .i_exu_bp_idx_pc     (exu_bp_idx_pc)    ,
-   .i_exu_bp_idx_ghr    (exu_bp_idx_ghr)   ,
+   .i_exu_bp_upd_ghr    (exu_bp_upd_ghr),
+   .i_exu_bp_upd_bht    (exu_bp_upd_bht),
+   .i_exu_bp_idx_pc     (exu_bp_idx_pc),
+   .i_exu_bp_idx_ghr    (exu_bp_idx_ghr),
    .i_exu_bp_sts_btaken (exu_bp_sts_btaken),
    `endif
 
@@ -344,87 +351,107 @@ decode_unit #(
    .PC_INIT (PC_INIT),
    .GHRW    (GHRW)   
 )  inst_decode_unit (
-   .clk               (clk)     ,     
-   .aresetn           (aresetn) ,
+   .clk               (clk),     
+   .aresetn           (aresetn),
 
    `ifdef DBG
-   .o_du_dbg          (du_dbg)  ,    
+   .o_du_dbg          (du_dbg),    
    `endif
 
-   .i_fu_pc           (fu_du_pc)        ,      
-   .i_fu_instr        (fu_du_instr)     ,
-   .i_fu_br_taken     (fu_du_br_taken)  ,
+   .i_fu_pc           (fu_du_pc),      
+   .i_fu_instr        (fu_du_instr),
+   .i_fu_br_taken     (fu_du_br_taken),
    `ifdef BPREDICT_DYN
    .i_fu_ghr_snapshot (fu_du_ghr_snapshot),
    `endif
-   .i_fu_bubble       (fu_du_bubble)    ,
-   .o_fu_stall        (du_fu_stall)     ,
+   .i_fu_bubble       (fu_du_bubble),
+   .o_fu_stall        (du_fu_stall),
    
-   .o_rf_rden         (du_rf_rden) ,      
-   .o_rf_rs0          (du_rf_rs0)  ,      
-   .o_rf_rs1          (du_rf_rs1)  ,      
+   .o_rf_rden         (du_rf_rden),      
+   .o_rf_rs0          (du_rf_rs0),      
+   .o_rf_rs1          (du_rf_rs1),      
    
-   .i_exu_bu_flush    (exu_bu_flush)    ,
-   .o_exu_bu_br_taken (du_exu_bu_pred_btaken) ,
+   .i_exu_bu_flush    (exu_bu_flush),
+   .o_exu_bu_br_taken (du_exu_bu_pred_btaken),
    `ifdef BPREDICT_DYN
    .o_exu_ghr_snapshot(du_exu_ghr_snapshot),
    `endif
 
-   .o_exu_pc          (du_exu_pc)       ,
+   .o_exu_pc          (du_exu_pc),
    `ifdef DBG
-   .o_exu_instr       (du_exu_instr)    ,
+   .o_exu_instr       (du_exu_instr),
    `endif
-   .o_exu_bubble      (du_exu_bubble)   ,  
+   .o_exu_bubble      (du_exu_bubble),  
    .o_exu_pkt_valid   (du_exu_pkt_valid),
-   .i_exu_stall       (exu_du_stall)    ,
+   .i_exu_stall       (exu_du_stall),
    
-   .o_exu_is_alu_op   (du_exu_is_alu_op)  ,
-   .o_exu_alu_opcode  (du_exu_alu_opcode) ,
-   .o_exu_rs0         (du_exu_rs0)        ,
-   .o_exu_rs0_cpy_ff  (du_exu_rs0_cpy)    ,
-   .o_exu_rs1         (du_exu_rs1)        ,
-   .o_exu_rs1_cpy_ff  (du_exu_rs1_cpy)    ,
-   .o_exu_rdt         (du_exu_rdt)        , 
-   .o_exu_rdt_not_x0  (du_exu_rdt_not_x0) ,
-   .o_exu_funct3      (du_exu_funct3)     , 
+   .o_exu_is_alu_op   (du_exu_is_alu_op),
+   .o_exu_alu_opcode  (du_exu_alu_opcode),
+   .o_exu_rs0         (du_exu_rs0),
+   .o_exu_rs0_cpy_ff  (du_exu_rs0_cpy),
+   .o_exu_rs1         (du_exu_rs1),
+   .o_exu_rs1_cpy_ff  (du_exu_rs1_cpy),
+   .o_exu_rdt         (du_exu_rdt), 
+   .o_exu_rdt_not_x0  (du_exu_rdt_not_x0),
+   .o_exu_funct3      (du_exu_funct3), 
    
-   .o_exu_is_r_type   (du_exu_is_r_type)  ,
-   .o_exu_is_i_type   (du_exu_is_i_type)  ,
-   .o_exu_is_s_type   (du_exu_is_s_type)  ,
-   .o_exu_is_b_type   (du_exu_is_b_type)  ,
-   .o_exu_is_u_type   (du_exu_is_u_type)  ,
-   .o_exu_is_rsb      (du_exu_is_rsb)     ,
-   .o_exu_is_risb     (du_exu_is_risb)    ,
-   .o_exu_is_riuj     (du_exu_is_riuj)    ,
-   .o_exu_is_jalr     (du_exu_is_jalr)    ,
+   .o_exu_is_r_type   (du_exu_is_r_type),
+   .o_exu_is_i_type   (du_exu_is_i_type),
+   .o_exu_is_s_type   (du_exu_is_s_type),
+   .o_exu_is_b_type   (du_exu_is_b_type),
+   .o_exu_is_u_type   (du_exu_is_u_type),
+   .o_exu_is_rsb      (du_exu_is_rsb),
+   .o_exu_is_risb     (du_exu_is_risb),
+   .o_exu_is_riuj     (du_exu_is_riuj),
+   .o_exu_is_jalr     (du_exu_is_jalr),
    .o_exu_is_j_or_jalr(du_exu_is_j_or_jalr),
-   .o_exu_is_load     (du_exu_is_load)    ,
-   .o_exu_is_lui      (du_exu_is_lui)     ,
-   .o_exu_i_type_imm  (du_exu_i_type_imm) ,
-   .o_exu_s_type_imm  (du_exu_s_type_imm) ,
-   .o_exu_b_type_imm  (du_exu_b_type_imm) ,
+   .o_exu_is_load     (du_exu_is_load),
+   .o_exu_is_lui      (du_exu_is_lui),
+   .o_exu_i_type_imm  (du_exu_i_type_imm),
+   .o_exu_s_type_imm  (du_exu_s_type_imm),
+   .o_exu_b_type_imm  (du_exu_b_type_imm),
    .o_exu_u_type_imm  (du_exu_u_type_imm) 
+);
+
+// RF Read Control
+rf_rdctl inst_rf_rdctl (
+   .i_du_rf_rden  (du_rf_rden),
+   .i_du_rs0      (du_rf_rs0),
+   .i_du_rs1      (du_rf_rs1),
+   .i_du_stall    (du_fu_stall),
+   .i_pkt2exu_rs0 (du_exu_rs0),
+   .i_pkt2exu_rs1 (du_exu_rs1),
+   .i_wbk_rdt     (wbu_rdt_addr_out),
+   .i_wbk_en      (wbu_rdt_wren_out),
+
+   .o_rf_rden0    (rf_rden0),
+   .o_rf_rden1    (rf_rden1),
+   .o_rf_rs0_addr (rf_rs0_addr),
+   .o_rf_rs1_addr (rf_rs1_addr)
 );
 
 // Register File (RF)
 regfile #(
    .IS_RF_ON_BRAM (IS_RF_ON_BRAM)
 )  inst_regfile (
-   .clk        (clk)             ,  
-   .aresetn    (aresetn)         , 
+   .clk        (clk),  
+   .aresetn    (aresetn), 
    `ifdef DBG
-   .o_regf_dbg (regf)            ,
+   .o_regf_dbg (regf),
    `endif
    `ifdef TEST_PORTS
-   .o_x31_tst  (x31_tst)         ,
+   .o_x31_tst  (x31_tst),
    `endif
-   .i_rden     (du_rf_rden)      ,
-   .i_rs0_addr (du_rf_rs0)       ,  
-   .o_rs0_data (rf_exu_op0)      ,  
-   .i_rs1_addr (du_rf_rs1)       ,  
-   .o_rs1_data (rf_exu_op1)      ,  
-   .i_wren     (wbu_rf_wren)     ,
-   .i_rdt_addr (wbu_rf_rdt_addr) , 
+   .i_rden0    (rf_rden0),
+   .i_rs0_addr (rf_rs0_addr),  
+   .o_rs0_data (rf_exu_op0),  
+
+   .i_rden1    (rf_rden1),
+   .i_rs1_addr (rf_rs1_addr),  
+   .o_rs1_data (rf_exu_op1),  
+
+   .i_wren     (wbu_rf_wren),
+   .i_rdt_addr (wbu_rf_rdt_addr), 
    .i_rdt_data (wbu_rf_rdt_data)
 );
 
@@ -474,75 +501,75 @@ execution_unit #(
    .GHRW            (GHRW), 
    .BPCW            (BPCW)
 )  inst_execution_unit (
-   .clk                (clk)     ,          
-   .aresetn            (aresetn) ,
+   .clk                  (clk),          
+   .aresetn              (aresetn),
 
    `ifdef DBG
-   .o_exu_dbg           (exu_dbg) , 
-   .o_dbg_is_b_instr    (exu_dbg_is_b_instr)    ,
-   .o_dbg_is_pred_wrong (exu_dbg_is_pred_wrong) ,   
+   .o_exu_dbg            (exu_dbg), 
+   .o_dbg_is_b_instr     (exu_dbg_is_b_instr),
+   .o_dbg_is_pred_wrong  (exu_dbg_is_pred_wrong),   
    `endif 
 
-   .i_op0              (opfwd_exu_op0)   ,
-   .i_op1              (opfwd_exu_op1)   ,
+   .i_op0                (opfwd_exu_op0),
+   .i_op1                (opfwd_exu_op1),
 
-   .o_exu_bu_flush       (exu_bu_flush)         ,   
-   .o_exu_bu_pc          (exu_bu_pc)            ,  
+   .o_exu_bu_flush       (exu_bu_flush),   
+   .o_exu_bu_pc          (exu_bu_pc),  
    .i_exu_bu_pred_btaken (du_exu_bu_pred_btaken),
 
    `ifdef BPREDICT_DYN
    .i_du_ghr_snapshot  (du_exu_ghr_snapshot),
-   .o_bp_upd_ghr       (exu_bp_upd_ghr)    ,
-   .o_bp_upd_bht       (exu_bp_upd_bht)    ,
-   .o_bp_idx_pc        (exu_bp_idx_pc)     ,
-   .o_bp_idx_ghr       (exu_bp_idx_ghr)    ,
-   .o_bp_sts_btaken    (exu_bp_sts_btaken) ,
+   .o_bp_upd_ghr       (exu_bp_upd_ghr),
+   .o_bp_upd_bht       (exu_bp_upd_bht),
+   .o_bp_idx_pc        (exu_bp_idx_pc),
+   .o_bp_idx_ghr       (exu_bp_idx_ghr),
+   .o_bp_sts_btaken    (exu_bp_sts_btaken),
    `endif
 
-   .i_du_pc            (du_exu_pc)       ,
+   .i_du_pc            (du_exu_pc),
    `ifdef DBG
-   .i_du_instr         (du_exu_instr)    ,
+   .i_du_instr         (du_exu_instr),
    `endif
-   .i_du_bubble        (du_exu_bubble)   ,
+   .i_du_bubble        (du_exu_bubble),
    .i_du_pkt_valid     (du_exu_pkt_valid),
-   .o_du_stall         (exu_du_stall)    ,
+   .o_du_stall         (exu_du_stall),
 
-   .i_du_is_alu_op     (du_exu_is_alu_op)  ,
-   .i_du_alu_opcode    (du_exu_alu_opcode) ,
-   .i_du_rs0           (du_exu_rs0)        ,
-   .i_du_rs1           (du_exu_rs1)        ,
-   .i_du_rdt           (du_exu_rdt)        ,
-   .i_du_rdt_not_x0    (du_exu_rdt_not_x0) ,
-   .i_du_funct3        (du_exu_funct3)     ,
+   .i_du_is_alu_op     (du_exu_is_alu_op),
+   .i_du_alu_opcode    (du_exu_alu_opcode),
+   .i_du_rs0           (du_exu_rs0),
+   .i_du_rs1           (du_exu_rs1),
+   .i_du_rdt           (du_exu_rdt),
+   .i_du_rdt_not_x0    (du_exu_rdt_not_x0),
+   .i_du_funct3        (du_exu_funct3),
 
-   .i_du_is_r_type     (du_exu_is_r_type)  ,
-   .i_du_is_i_type     (du_exu_is_i_type)  ,
-   .i_du_is_s_type     (du_exu_is_s_type)  ,
-   .i_du_is_b_type     (du_exu_is_b_type)  ,
-   .i_du_is_riuj       (du_exu_is_riuj)    ,
+   .i_du_is_r_type     (du_exu_is_r_type),
+   .i_du_is_i_type     (du_exu_is_i_type),
+   .i_du_is_s_type     (du_exu_is_s_type),
+   .i_du_is_b_type     (du_exu_is_b_type),
+   .i_du_is_riuj       (du_exu_is_riuj),
    .i_du_is_jal_or_jalr(du_exu_is_j_or_jalr),
-   .i_du_is_jalr       (du_exu_is_jalr)    ,
-   .i_du_is_load       (du_exu_is_load)    ,
-   .i_du_i_type_imm    (du_exu_i_type_imm) ,
-   .i_du_s_type_imm    (du_exu_s_type_imm) ,
-   .i_du_b_type_imm    (du_exu_b_type_imm) ,
+   .i_du_is_jalr       (du_exu_is_jalr),
+   .i_du_is_load       (du_exu_is_load),
+   .i_du_i_type_imm    (du_exu_i_type_imm),
+   .i_du_s_type_imm    (du_exu_s_type_imm),
+   .i_du_b_type_imm    (du_exu_b_type_imm),
    
    `ifdef DBG
-   .o_maccu_pc         (exu_maccu_pc)         ,
-   .o_maccu_instr      (exu_maccu_instr)      ,
+   .o_maccu_pc         (exu_maccu_pc),
+   .o_maccu_instr      (exu_maccu_instr),
    `endif
-   .o_maccu_is_riuj    (exu_maccu_is_riuj)    ,
-   .o_maccu_funct3     (exu_maccu_funct3)     ,
-   .o_maccu_bubble     (exu_maccu_bubble)     ,
-   .i_maccu_stall      (maccu_exu_stall)      ,
+   .o_maccu_is_riuj    (exu_maccu_is_riuj),
+   .o_maccu_funct3     (exu_maccu_funct3),
+   .o_maccu_bubble     (exu_maccu_bubble),
+   .i_maccu_stall      (maccu_exu_stall),
 
-   .o_maccu_rdt_addr   (exu_maccu_rdt_addr)   ,
-   .o_maccu_rdt_data   (exu_maccu_rdt_data)   ,
-   .o_maccu_rdt_not_x0 (exu_maccu_rdt_not_x0) ,
-   .o_maccu_is_macc_op (exu_maccu_is_macc_op) , 
-   .o_maccu_macc_cmd   (exu_maccu_cmd)        ,
-   .o_maccu_macc_addr  (exu_maccu_addr)       ,
-   .o_maccu_macc_size  (exu_maccu_size)       ,
+   .o_maccu_rdt_addr   (exu_maccu_rdt_addr),
+   .o_maccu_rdt_data   (exu_maccu_rdt_data),
+   .o_maccu_rdt_not_x0 (exu_maccu_rdt_not_x0),
+   .o_maccu_is_macc_op (exu_maccu_is_macc_op), 
+   .o_maccu_macc_cmd   (exu_maccu_cmd),
+   .o_maccu_macc_addr  (exu_maccu_addr),
+   .o_maccu_macc_size  (exu_maccu_size),
    .o_maccu_macc_data  (exu_maccu_data)
 );
 
@@ -550,34 +577,34 @@ execution_unit #(
 memory_access_unit #(
    .PC_INIT(PC_INIT)
 )  inst_memory_access_unit (   
-   .clk              (clk)     ,
-   .aresetn          (aresetn) ,
+   .clk                 (clk)     ,
+   .aresetn             (aresetn) ,
    
    `ifdef DBG
-   .i_exu_pc         (exu_maccu_pc)         ,
-   .i_exu_instr      (exu_maccu_instr)      ,
+   .i_exu_pc            (exu_maccu_pc)         ,
+   .i_exu_instr         (exu_maccu_instr)      ,
    `endif
-   .i_exu_is_riuj    (exu_maccu_is_riuj)    ,
-   .i_exu_funct3     (exu_maccu_funct3)     ,
-   .i_exu_bubble     (exu_maccu_bubble)     ,
-   .o_exu_stall      (maccu_exu_stall)      ,
+   .i_exu_is_riuj       (exu_maccu_is_riuj)    ,
+   .i_exu_funct3        (exu_maccu_funct3)     ,
+   .i_exu_bubble        (exu_maccu_bubble)     ,
+   .o_exu_stall         (maccu_exu_stall)      ,
 
-   .i_exu_rdt_addr   (exu_maccu_rdt_addr)   ,
-   .i_exu_rdt_data   (exu_maccu_rdt_data)   ,
-   .i_exu_rdt_not_x0 (exu_maccu_rdt_not_x0) ,
-   .i_exu_is_macc_op (exu_maccu_is_macc_op) ,
-   .i_exu_macc_cmd   (exu_maccu_cmd)        ,
-   .i_exu_macc_addr  (exu_maccu_addr)       ,
-   .i_exu_macc_size  (exu_maccu_size)       ,
-   .i_exu_macc_data  (exu_maccu_data)       ,
+   .i_exu_rdt_addr      (exu_maccu_rdt_addr)   ,
+   .i_exu_rdt_data      (exu_maccu_rdt_data)   ,
+   .i_exu_rdt_not_x0    (exu_maccu_rdt_not_x0) ,
+   .i_exu_is_macc_op    (exu_maccu_is_macc_op) ,
+   .i_exu_macc_cmd      (exu_maccu_cmd)        ,
+   .i_exu_macc_addr     (exu_maccu_addr)       ,
+   .i_exu_macc_size     (exu_maccu_size)       ,
+   .i_exu_macc_data     (exu_maccu_data)       ,
 
-   .o_dmem_wen       (o_dmem_wen)   ,
-   .o_dmem_addr      (o_dmem_addr)  ,
-   .o_dmem_size      (o_dmem_size)  ,
-   .o_dmem_wdata     (o_dmem_wdata) ,
-   .o_dmem_req       (o_dmem_req)   ,
-   .i_dmem_stall     (i_dmem_stall) ,
-   .o_dmem_flush     (o_dmem_flush) ,
+   .o_dmem_wen          (o_dmem_wen)           ,
+   .o_dmem_addr         (o_dmem_addr)          ,
+   .o_dmem_size         (o_dmem_size)          ,
+   .o_dmem_wdata        (o_dmem_wdata)         ,
+   .o_dmem_req          (o_dmem_req)           ,
+   .i_dmem_stall        (i_dmem_stall)         ,
+   .o_dmem_flush        (o_dmem_flush)         ,
    
    `ifdef DBG
    .o_wbu_pc            (maccu_wbu_pc)         ,
@@ -600,49 +627,50 @@ memory_access_unit #(
 writeback_unit #(
    .PC_INIT(PC_INIT)
 )  inst_writeback_unit ( 
-   .clk                (clk)     ,
-   .aresetn            (aresetn) ,
+   .clk                   (clk),
+   .aresetn               (aresetn),
    
    `ifdef DBG
-   .o_wbu_dbg          (wbu_dbg) ,    
+   .o_wbu_dbg             (wbu_dbg),    
    `endif 
 
-   .i_dmem_rdata       (i_dmem_rdata)   ,
-   .i_dmem_ack         (i_dmem_ack)     ,
-   .o_dmem_stall       (o_dmem_stall)   ,
+   .i_dmem_rdata          (i_dmem_rdata),
+   .i_dmem_ack            (i_dmem_ack),
+   .o_dmem_stall          (o_dmem_stall),
 
-   .o_load_data        (dmem_load_data) ,
+   .o_load_data           (dmem_load_data),
    
    `ifdef DBG
-   .i_maccu_pc            (maccu_wbu_pc)             ,
-   .i_maccu_instr         (maccu_wbu_instr)          ,
+   .i_maccu_pc            (maccu_wbu_pc),
+   .i_maccu_instr         (maccu_wbu_instr),
    `endif
-   .i_maccu_is_riuj       (maccu_wbu_is_riuj)        ,
-   .i_maccu_funct3        (maccu_wbu_funct3)         ,
-   .i_maccu_bubble        (maccu_wbu_bubble)         ,
-   .o_maccu_stall         (wbu_maccu_stall)          ,
-   .i_maccu_rdt_addr      (maccu_wbu_rdt_addr)       ,
-   .i_maccu_rdt_data      (maccu_wbu_rdt_data)       ,
-   .i_maccu_rdt_not_x0    (maccu_wbu_rdt_not_x0)     ,
-   .i_maccu_is_macc       (maccu_wbu_is_macc)        ,
-   .i_maccu_is_load       (maccu_wbu_is_load)        ,
-   .i_maccu_is_dwback     (maccu_wbu_is_dwback)      ,
-   .i_maccu_macc_addr_lsb (maccu_wbu_macc_addr_lsb)  ,
+   .i_maccu_is_riuj       (maccu_wbu_is_riuj),
+   .i_maccu_funct3        (maccu_wbu_funct3),
+   .i_maccu_bubble        (maccu_wbu_bubble),
+   .o_maccu_stall         (wbu_maccu_stall),
+   .i_maccu_rdt_addr      (maccu_wbu_rdt_addr),
+   .i_maccu_rdt_data      (maccu_wbu_rdt_data),
+   .i_maccu_rdt_not_x0    (maccu_wbu_rdt_not_x0),
+   .i_maccu_is_macc       (maccu_wbu_is_macc),
+   .i_maccu_is_load       (maccu_wbu_is_load),
+   .i_maccu_is_dwback     (maccu_wbu_is_dwback),
+   .i_maccu_macc_addr_lsb (maccu_wbu_macc_addr_lsb),
    
-   .o_rf_wren          (wbu_rf_wren)      ,
-   .o_rf_rdt_addr      (wbu_rf_rdt_addr)  ,
-   .o_rf_rdt_data      (wbu_rf_rdt_data)  ,
+   .o_rf_wren             (wbu_rf_wren),
+   .o_rf_rdt_addr         (wbu_rf_rdt_addr),
+   .o_rf_rdt_data         (wbu_rf_rdt_data),
    
    `ifdef DBG  
-   .o_pc               (wbu_pc_out)         ,  
-   .o_instr            (wbu_instr_out)      ,  
+   .o_pc                  (wbu_pc_out),  
+   .o_instr               (wbu_instr_out),  
    `endif
-   .o_is_riuj          (wbu_is_riuj_out)    ,  
-   .o_pkt_valid        (wbu_pkt_valid_out)  ,
-   .o_rdt_addr         (wbu_rdt_addr_out)   , 
-   .o_rdt_data         (wbu_rdt_data_out)   , 
-   .o_rdt_not_x0       (wbu_rdt_not_x0_out) , 
-   .i_stall            (i_ext_stall)        
+   .o_is_riuj             (wbu_is_riuj_out),  
+   .o_pkt_valid           (wbu_pkt_valid_out),
+   .o_rdt_wren            (wbu_rdt_wren_out),
+   .o_rdt_addr            (wbu_rdt_addr_out),
+   .o_rdt_data            (wbu_rdt_data_out), 
+   .o_rdt_not_x0          (wbu_rdt_not_x0_out), 
+   .i_stall               (i_ext_stall)        
 );
 
 //assign wbu_stall_in = 1'b0 ;

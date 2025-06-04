@@ -97,6 +97,7 @@ module writeback_unit #(
    output logic [`ILEN-1:0] o_instr               ,  // Instruction from WBU
    `endif
    output logic             o_is_riuj             ,  // RIUJ flag from WBU
+   output logic             o_rdt_wren            ,  // rdt write enable from WBU
    output logic [4:0]       o_rdt_addr            ,  // rdt address from WBU
    output logic [`XLEN-1:0] o_rdt_data            ,  // rdt data from WBU
    output logic             o_rdt_not_x0          ,  // rdt neq x0
@@ -261,6 +262,7 @@ assign o_pc          = wbu_pc_rg        ;
 assign o_instr       = wbu_instr_rg     ;
 `endif
 assign o_is_riuj     = wbu_is_riuj_rg   ;
+assign o_rdt_wren    = rdt_wren_rg      ;
 assign o_rdt_addr    = rdt_addr_rg      ;
 assign o_rdt_data    = rdt_data_rg      ;
 assign o_rdt_not_x0  = rdt_not_x0_rg    ;
