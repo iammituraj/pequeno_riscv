@@ -1,3 +1,5 @@
+# Script to open Serial Terminal
+
 #!/bin/bash
 
 # Configure Python path
