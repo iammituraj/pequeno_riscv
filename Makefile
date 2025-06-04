@@ -454,6 +454,7 @@ regress:
 	bash $(SCRIPT_DIR)/regress_run.sh
 	@echo "|| Regression result ||"
 	@cat $(DUMP_DIR)/regress_run_dump/regress_result.txt
+	bash $(SCRIPT_DIR)/regress_check.sh
 
 # clean
 clean:
