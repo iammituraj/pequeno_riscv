@@ -55,11 +55,11 @@
 // On-board Test/Simulation environment INFO - define the parameters here
 `define FCLK                 12                         // System clock speed targetted for on-board testing/simulation; in MHz
 `define TCLK                 (1000.0/`FCLK)             // System clock period targetted for on-board testing/simulation; in ns
-`define IRAM_SIZE            32768                       // Size of the generated IRAM; in bytes
+`define IRAM_SIZE            1024                       // Size of the generated IRAM; in bytes
 `define IRAM_DW              32                         // Data width of the generated IRAM [CONSTANT]
 `define IRAM_DEPTH           ((`IRAM_SIZE*8)/`IRAM_DW)  // Depth of the generated IRAM 
 `define IRAM_AW              ($clog2(`IRAM_DEPTH))      // Address width of the generated IRAM
-`define DRAM_SIZE            32768                       // Size of the generated DRAM; in bytes, max. 64kB
+`define DRAM_SIZE            1024                       // Size of the generated DRAM; in bytes, max. 64kB
 `define DRAM_DW              32                         // Data width of the generated DRAM [CONSTANT]
 `define DRAM_DEPTH           ((`DRAM_SIZE*8)/`DRAM_DW)  // Depth of the generated IRAM
 `define DRAM_AW              ($clog2(`DRAM_DEPTH))      // Address width of the generated DRAM
