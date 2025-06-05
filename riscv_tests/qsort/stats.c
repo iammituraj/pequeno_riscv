@@ -9,7 +9,7 @@ void setStats(int enable) {
     if (enable) {
         // Init UART
         uart_init();
-        //ee_printf("Started QSORT BENCHMARK on Pequeno CPU...\n");
+        ee_printf("Started QSORT BENCHMARK on Pequeno CPU...\n");
         start_cycles = *hardwareCounterAddr;
     }
     else {
@@ -21,8 +21,8 @@ void setStats(int enable) {
             elapsed = (0xFFFFFFFF - start_cycles + 1) + end_cycles;
         }
         unsigned int time_us = elapsed / CLOCK_SPEED_MHZ;
-        //ee_printf("Finished QSORT BENCHMARK on Pequeno CPU...\n");
-        //ee_printf("Cycles elapsed: %u\n", elapsed);
-        //ee_printf("Time elapsed  : %u us\n", time_us);
+        ee_printf("Finished QSORT BENCHMARK on Pequeno CPU...\n");
+        ee_printf("Cycles elapsed: %u\n", elapsed);
+        ee_printf("Time elapsed  : %u us\n", time_us);
     }
 }

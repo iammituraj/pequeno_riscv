@@ -138,12 +138,6 @@ void sort(size_t n, type arr[])
 
 int main( int argc, char* argv[] )
 {
-#if PREALLOCATE
-  // If needed we preallocate everything in the caches
-  sort(DATA_SIZE, verify_data);
-  if (verify(DATA_SIZE, input_data, input_data))
-    return 1;
-#endif
   // Run sort
   setStats(1);
   sort( DATA_SIZE, input_data); 
@@ -155,7 +149,12 @@ int main( int argc, char* argv[] )
   if (sts == 0)
      ee_printf("SUCCESSFULLY VALIDATED!\n");
   else
-     ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n", sts);
+     ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n\n", sts);
+
+  //for (int i=0; i<DATA_SIZE; i++) {
+      //ee_printf("input_data[%0d]  = %0d\t", i, input_data[i]);
+      //ee_printf("verify_data[%0d] = %0d\n", i, verify_data[i]);
+  //}
 
   return 0;
 }

@@ -31,6 +31,7 @@ DATA_BIN = $(PRJNAME)_dram.bin
 # Compiler & Assembler flags
 CFLAGS = \
     -g \
+    -std=gnu99 \
     -O3 \
 	-march=$(ARCH) \
 	-mabi=$(ABI) \
