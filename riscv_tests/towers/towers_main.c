@@ -224,7 +224,6 @@ int main( int argc, char* argv[] )
 #endif
 
   // Solve it
-
   towers_clear( &towers );
   setStats(1);
   towers_solve( &towers );
@@ -233,12 +232,13 @@ int main( int argc, char* argv[] )
   // Check the results
   int sts;
   sts = towers_verify( &towers );
-  if (sts == 0)
+  if (sts == 0) {
      ee_printf("SUCCESSFULLY VALIDATED!\n");
-  else
+     return 0;
+  }
+  else {
      ee_printf("VALIDATION FAILED! error code=%0d\n", sts);
-
-  return 0;
-
+     return 1;
+  }
 }
 

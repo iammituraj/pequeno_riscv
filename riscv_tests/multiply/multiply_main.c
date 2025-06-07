@@ -1,19 +1,18 @@
 // See LICENSE for license details.
 
-//**************************************************************************
-// Median filter bencmark
-//--------------------------------------------------------------------------
+// *************************************************************************
+// multiply filter bencmark
+// -------------------------------------------------------------------------
 //
-// This benchmark performs a 1D three element median filter. The
+// This benchmark tests the software multiply implemenation. The
 // input data (and reference data) should be generated using the
-// median_gendata.pl perl script and dumped to a file named
-// dataset1.h.
+// multiply_gendata.pl perl script and dumped to a file named
+// dataset1.h
 
-#include "util.h"
 #include <stddef.h>  // Added by me
+#include "util.h"
 #include "stats.h"   // Added by me
-
-#include "median.h"
+#include "multiply.h"
 
 //--------------------------------------------------------------------------
 // Input/Reference Data
@@ -25,16 +24,21 @@
 
 int main( int argc, char* argv[] )
 {
+  int i;
   int results_data[DATA_SIZE];
 
 #if PREALLOCATE
-  // If needed we preallocate everything in the caches
-  median( DATA_SIZE, input_data, results_data );
+  for (i = 0; i < DATA_SIZE; i++)
+  {
+    results_data[i] = multiply( input_data1[i], input_data2[i] );
+  }
 #endif
 
-  // Do the filter
   setStats(1);
-  median( DATA_SIZE, input_data, results_data );
+  for (i = 0; i < DATA_SIZE; i++)
+  {
+    results_data[i] = multiply( input_data1[i], input_data2[i] );
+  }
   setStats(0);
 
   // Check the results
@@ -45,7 +49,7 @@ int main( int argc, char* argv[] )
      return 0;
   }
   else {
-     ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n", sts);
+     ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n\n", sts);
      return 1;
   }
 }

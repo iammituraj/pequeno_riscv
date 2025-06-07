@@ -4,7 +4,7 @@ GCC_PREFIX = riscv64-unknown-elf
 GCC_VER    = 14.2.0
 
 # [CONFIGURE] Benchmark specific definitions
-ITERATIONS      = 400        # Iterations of CoreMark
+ITERATIONS      = 400        # Iterations
 CLOCK_SPEED_MHZ = 12         # Core clock speed in MHz
 FLAGS_STR       = ""
 
@@ -154,7 +154,7 @@ binary: $(TARGET)
 .PHONY: clean
 clean:
 	@echo ""
-	@echo "| COREMARK_PQR5_MAKE: Cleaning all generated files!"
+	@echo "| MEDIAN_PQR5_MAKE: Cleaning all generated files!"
 	rm -f $(OBJS) $(TARGET) $(TEXT_BIN) $(DATA_BIN)
 	rm -f $(PRJNAME)_linker.map
 	rm -f $(PRJNAME).dump

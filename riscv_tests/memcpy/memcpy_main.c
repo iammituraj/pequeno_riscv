@@ -1,19 +1,18 @@
 // See LICENSE for license details.
 
 //**************************************************************************
-// Median filter bencmark
+// Memcpy benchmark
 //--------------------------------------------------------------------------
 //
-// This benchmark performs a 1D three element median filter. The
-// input data (and reference data) should be generated using the
-// median_gendata.pl perl script and dumped to a file named
+// This benchmark tests the memcpy implementation in syscalls.c.
+// The input data (and reference data) should be generated using
+// the memcpy_gendata.pl perl script and dumped to a file named
 // dataset1.h.
 
-#include "util.h"
 #include <stddef.h>  // Added by me
+#include "util.h"
 #include "stats.h"   // Added by me
-
-#include "median.h"
+//#include <string.h>  // Unused
 
 //--------------------------------------------------------------------------
 // Input/Reference Data
@@ -29,23 +28,23 @@ int main( int argc, char* argv[] )
 
 #if PREALLOCATE
   // If needed we preallocate everything in the caches
-  median( DATA_SIZE, input_data, results_data );
+  memcpy(results_data, input_data, sizeof(int) * DATA_SIZE);
 #endif
 
-  // Do the filter
+  // Do the riscv-linux memcpy
   setStats(1);
-  median( DATA_SIZE, input_data, results_data );
+  memcpy(results_data, input_data, sizeof(int) * DATA_SIZE); //, DATA_SIZE * sizeof(int));
   setStats(0);
 
   // Check the results
   int sts;
-  sts = verify( DATA_SIZE, results_data, verify_data );
-  if (sts == 0) {
-     ee_printf("SUCCESSFULLY VALIDATED!\n");
-     return 0;
+  sts = verify( DATA_SIZE, results_data, input_data );
+   if (sts == 0) {
+      ee_printf("SUCCESSFULLY VALIDATED!\n");
+      return 0;
   }
   else {
-     ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n", sts);
+     ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n\n", sts);
      return 1;
   }
 }

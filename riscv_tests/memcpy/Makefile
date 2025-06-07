@@ -23,7 +23,7 @@ NM      = $(GCC_PREFIX)-nm
 LINKER_SCRIPT = linker.ld
 
 # Output files
-PRJNAME  = qsort_pqr5
+PRJNAME  = memcpy_pqr5
 TARGET   = $(PRJNAME).elf
 TEXT_BIN = $(PRJNAME)_iram.bin
 DATA_BIN = $(PRJNAME)_dram.bin
@@ -72,7 +72,8 @@ LIBGCC = \
 
 # Core Source files
 CORE_SRC_FILES  = \
-	qsort_main.c \
+	memcpy.c \
+	memcpy_main.c \
 	stats.c \
 	ee_printf.c
 
@@ -91,7 +92,7 @@ OBJS   = $(ASRCS:.s=.o) $(CSRCS:.c=.o)
 .PHONY: msgc
 msgc:
 	@echo ""
-	@echo "| QSORT_PQR5_MAKE: Compiling..."
+	@echo "| MEMCPY_PQR5_MAKE: Compiling..."
 
 # Default rule: build everything
 all: $(TARGET) dump binary sections symbols
@@ -109,7 +110,7 @@ build: $(TARGET) binary sections
 # Link everything and generate ELF
 $(TARGET): msgc $(OBJS) $(LINKER_SCRIPT)
 	@echo ""
-	@echo "| QSORT_PQR5_MAKE: Linking..."
+	@echo "| MEMCPY_PQR5_MAKE: Linking..."
 	$(CC) $(LIBGCC) $(LIBC) $(LDFLAGS) $(OBJS) -o $(TARGET)
 	$(EF)-readelf -S $(TARGET)
 	@echo ""
@@ -119,7 +120,7 @@ $(TARGET): msgc $(OBJS) $(LINKER_SCRIPT)
 # Dump entire disassembly of ELF
 dump: $(TARGET)
 	@echo ""
-	@echo "| QSORT_PQR5_MAKE: Dumping the disassembly of the ELF..."
+	@echo "| MEMCPY_PQR5_MAKE: Dumping the disassembly of the ELF..."
 	$(OBJDUMP) -D $(TARGET) > $(PRJNAME).dump
 
 # Dump only .text section
@@ -146,7 +147,7 @@ symbols: $(TARGET)
 # Extract text and data sections separately and dump binary files
 binary: $(TARGET)
 	@echo ""
-	@echo "| QSORT_PQR5_MAKE: Dumping the binaries..."
+	@echo "| MEMCPY_PQR5_MAKE: Dumping the binaries..."
 	$(OBJCOPY) -O binary --only-section=.text $(TARGET) $(TEXT_BIN)
 	$(OBJCOPY) -O binary --only-section=.data --only-section=.rodata $(TARGET) $(DATA_BIN)
 
@@ -154,7 +155,7 @@ binary: $(TARGET)
 .PHONY: clean
 clean:
 	@echo ""
-	@echo "| QSORT_PQR5_MAKE: Cleaning all generated files!"
+	@echo "| MEMCPY_PQR5_MAKE: Cleaning all generated files!"
 	rm -f $(OBJS) $(TARGET) $(TEXT_BIN) $(DATA_BIN)
 	rm -f $(PRJNAME)_linker.map
 	rm -f $(PRJNAME).dump

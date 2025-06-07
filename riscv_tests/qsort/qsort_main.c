@@ -146,15 +146,16 @@ int main( int argc, char* argv[] )
   // Check the results
   int sts;
   sts = verify( DATA_SIZE, input_data, verify_data );
-  if (sts == 0)
+  if (sts == 0) {
      ee_printf("SUCCESSFULLY VALIDATED!\n");
-  else
+     return 0;
+  }
+  else {
      ee_printf("VALIDATION FAILED! first mismatch at idx=%0d\n\n", sts);
-
+     return 1;
+  }
   //for (int i=0; i<DATA_SIZE; i++) {
       //ee_printf("input_data[%0d]  = %0d\t", i, input_data[i]);
       //ee_printf("verify_data[%0d] = %0d\n", i, verify_data[i]);
   //}
-
-  return 0;
 }
