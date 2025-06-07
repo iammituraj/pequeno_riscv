@@ -300,7 +300,7 @@ cmk2bin: asm_clean cmk_clean
 	@echo "   . DRAM ORIGIN = 0x80000000"
 	@echo "   . DRAM LENGTH = <DRAM size>"
 	@echo "3. Configure the PQR5 subsystem macros:"
-	@echo "   . COREMARK      = Enabled"
+	@echo "   . BENCHMARK     = Enabled"
 	@echo "   . DBGUART       = Enabled"
 	@echo "   . DBGUART_BRATE = <Targetted baudrate>"
 	@echo "   . FCLK          = CLOCKS_PER_SEC"

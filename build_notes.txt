@@ -120,7 +120,7 @@
 |      . DRAM LENGTH = <DRAM size>
 |
 |   3) Configure the PQR5 subsystem macros:
-|      . COREMARK      = Enable
+|      . BENCHMARK     = Enable
 |      . DBGUART       = Enable
 |      . DBGUART_BRATE = <Targetted baudrate>
 |      . FCLK          = CLOCKS_PER_SEC

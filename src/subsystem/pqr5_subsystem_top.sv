@@ -312,8 +312,8 @@ dmem_top #(
    `endif
 
    .i_wen   (cpu_dmem_wen)    ,
-   `ifdef COREMARK
-   .i_addr  ({1'b0, cpu_dmem_addr[30:0]}),  // For Coremark, Linker reserved the baseaddr 0x8000_0000 for Data Memory 
+   `ifdef BENCHMARK
+   .i_addr  ({1'b0, cpu_dmem_addr[30:0]}),  // For Benchmark programs, Linker reserved the baseaddr 0x8000_0000 for Data Memory 
    `else
    .i_addr  (cpu_dmem_addr)   ,
    `endif

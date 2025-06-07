@@ -50,7 +50,7 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Features
 //`define EN_LOADER                    // Define this macro to generate Loader to program the core on the fly via UART
-`define COREMARK                     // Define this macro to enable Coremark Benchmarking
+`define BENCHMARK                     // Define this macro to enable Coremark/RISC-V tests Benchmarking
 
 // On-board Test/Simulation environment INFO - define the parameters here
 `define FCLK                 12                         // System clock speed targetted for on-board testing/simulation; in MHz
@@ -109,8 +109,8 @@
 `endif
 // SYNTHESIS override ............ //
 
-// COREMARK override ..............//
-`ifdef COREMARK
+// BENCHMARK override ..............//
+`ifdef BENCHMARK
 `undef SIMLIMIT
 `undef DMEM_IS_ZERO_LAT
 `define DMEM_IS_ZERO_LAT     1 
@@ -121,7 +121,7 @@
 `define DBGUART_BRATE        115200 
 `endif
 `endif
-// COREMARK override ..............//
+// BENCHMARK override ..............//
 
 `endif
 //###################################################################################################################################################
