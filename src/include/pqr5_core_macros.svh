@@ -43,7 +43,7 @@
 // Generic constants - DO NOT MODIFY
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define CPU           "Pequeno RISC-V (PQR5)"
-`define VERS          "v1.1"
+`define VERS          "v1.0.2"
 `define ISA           "RV32I"
 
 `define XLEN          32                   // Size of register
