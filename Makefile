@@ -307,7 +307,7 @@ cmk2bin: asm_clean cmk_clean
 	@echo "   . IRAM ORIGIN = 0x00000000"
 	@echo "   . IRAM LENGTH = <IRAM size>, min. 24 kB"
 	@echo "   . DRAM ORIGIN = 0x80000000"
-	@echo "   . DRAM LENGTH = <DRAM size>, min. 4 kB"
+	@echo "   . DRAM LENGTH = <DRAM size>, min. 8 kB"
 	@echo "3. Configure the PQR5 subsystem macros:"
 	@echo "   . BENCHMARK     = Enabled"
 	@echo "   . DBGUART       = Enabled"

@@ -117,7 +117,7 @@
 |      . IRAM ORIGIN = 0x00000000
 |      . IRAM LENGTH = <IRAM size>, min. 24 kB
 |      . DRAM ORIGIN = 0x80000000
-|      . DRAM LENGTH = <DRAM size>, min. 4 kB
+|      . DRAM LENGTH = <DRAM size>, min. 8 kB
 |
 |   3) Configure the PQR5 subsystem macros:
 |      . BENCHMARK     = Enable
