@@ -155,8 +155,8 @@ clean:
 	@echo ""
 	@echo "| TOWERS_PQR5_MAKE: Cleaning all generated files!"
 	rm -f $(OBJS) $(TARGET) $(TEXT_BIN) $(DATA_BIN)
-	rm -f $(PRJNAME)_linker.map
-	rm -f $(PRJNAME).dump
-	rm -f $(PRJNAME).text.dump
-	rm -f $(PRJNAME).sections
-	rm -f $(PRJNAME).symbols
+	@rm -f $(PRJNAME)_linker.map
+	@rm -f $(PRJNAME).dump
+	@rm -f $(PRJNAME).text.dump
+	@rm -f $(PRJNAME).sections
+	@rm -f $(PRJNAME).symbols

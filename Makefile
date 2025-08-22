@@ -18,10 +18,10 @@
 #                         - Synthesis, implementation for Xilinx FPGAs.
 #                         - Generate bitstream & burn to the FPGA. 
 #                         - Flash the binary to the target (Pequeno on FPGA) using peqFlash.
-#                    - Run CoreMark® CPU Benchmark and generate the binary for on-board validation.
-#                      The CoreMark binary typically requires >16kB IRAM and >4kB DRAM.
+#                    - Compile and build CoreMark® CPU Benchmark and generate the binary for on-board validation.
+#                    - Compile and build Standard RISC-V Test programs from riscv.org for on-board validation/simulation.
 #
-# Last Modified on : Apr-2025
+# Last Modified on : Aug-2025
 # Compatibility    : Linux/Unix, Windows require terminal programs like MSYS/Gitbash
 #                    ModelSim/QuestaSim for RTL simulation
 #                    Pequeno SW toolchain for ASM compiling, flashing Pequeno
@@ -49,9 +49,13 @@ SYNTH_DIR  = $(shell pwd)/synth
 SCRIPT_DIR = $(shell pwd)/scripts
 ASM_DIR    = $(shell pwd)/assembler
 COREMK_DIR = $(shell pwd)/coremark
+RVTEST_DIR = $(shell pwd)/riscv_tests
 DUMP_DIR   = $(shell pwd)/dump
 FL_DIR     = $(shell pwd)/filelist
 FLASH_DIR  = $(shell pwd)/peqFlash
+
+# List of RISC-V Test Programs
+RVTESTS := median memcpy multiply qsort rsort towers
 
 ##### Make variables default values  ####
 # GUI/Command line simulation
@@ -69,6 +73,8 @@ ASM  = 01_test_regfile.s
 PQF  =
 # pqr5asm flags; -pcrel to generate relocatable (text) binary by default
 ASMF = -pcrel
+# RVTEST flags
+PGM = median
 #DATE = $$(date +'%d_%m_%Y') # Date in DD-MM-YYY
 
 # Derived shell variables
@@ -105,30 +111,33 @@ help:
 	@echo "2.  make qcompile                                               -- To compile without clean"
 	@echo "3.  make sim GUI=0/1                                            -- To simulate the PQR5 subsystem"
 	@echo "4.  make run_all GUI=0/1                                        -- To clean + compile + simulate"	
-	@echo "5.  make asm2bin ASM=<assembly file> ASMF=<>                    -- To run the assembler and generate the binaries"
-	@echo "6.  make coremark ISZ=<IRAM size> DSZ=<DRAM size>               -- To build CoreMark® CPU Benchmark"
-	@echo "7.  make genram ISZ=<IRAM size> DSZ=<DRAM size> OFT=<PC_INIT>   -- To generate IRAM & DRAM with binaries initialized"
-	@echo "8.  make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To build the PQR5 subsystem with FW: asm2bin + genram + compile"
-	@echo "9.  make build_synth                                            -- To generate a basic synthesis setup for Xilinx Vivado"
-	@echo "10. make synth                                                  -- To perform synthesis, implementation, and generate bitfile"
-	@echo "11. make burn                                                   -- To write the generated bitfile to the target FPGA"
-	@echo "12. make flash SP=<port> BAUD=<baudrate> PQF=<>                 -- To flash the program binary via serial port to the target"
-	@echo "13. make clean                                                  -- To clean sim + dump files"
-	@echo "14. make deep_clean                                             -- To clean sim + dump + generated RAM files"
-	@echo "15. make asm_clean                                              -- To clean ASM build files"
-	@echo "16. make cmk_clean                                              -- To clean CoreMark build files"
-	@echo "17. make build_clean                                            -- To perform deep_clean + asm_clean + cmk_clean"
-	@echo "18. make synth_clean                                            -- To clean synth files"
-	@echo "19. make full_clean                                             -- To perform full clean = build_clean + synth_clean"
-	@echo "20. make regress                                                -- To run regressions and dump the results"
-	@echo "21. make diff                                                   -- To diff simulation dumps wrt golden reference"
-	@echo "22. make listasm                                                -- To display the list of example ASM programs"
-	@echo "23. make sweep                                                  -- To perform full_clean + clear left over regression dumps"
+	@echo "5.  make asm2bin ASM=<assembly file> ASMF=<>                    -- To compile an eg. ASM program with assembler and generate the binaries"
+	@echo "6.  make coremark ISZ=<IRAM size> DSZ=<DRAM size>               -- To build and run CoreMark® CPU Benchmark"
+	@echo "7.  make rvtest ISZ=<IRAM size> DSZ=<DRAM size> PGM=<Program>   -- To build and run RISC-V Test Programs in C"
+	@echo "8.  make genram ISZ=<IRAM size> DSZ=<DRAM size> OFT=<PC_INIT>   -- To generate IRAM & DRAM with binaries initialized"
+	@echo "9.  make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To build the PQR5 subsystem with FW: asm2bin + genram + compile"
+	@echo "10. make build_synth                                            -- To generate a basic synthesis setup for Xilinx Vivado"
+	@echo "11. make synth                                                  -- To perform synthesis, implementation, and generate bitfile"
+	@echo "12. make burn                                                   -- To write the generated bitfile to the target FPGA"
+	@echo "13. make flash SP=<port> BAUD=<baudrate> PQF=<>                 -- To flash the program binary via serial port to the target"
+	@echo "14. make clean                                                  -- To clean sim + dump files"
+	@echo "15. make deep_clean                                             -- To clean sim + dump + generated RAM files"
+	@echo "16. make asm_clean                                              -- To clean ASM build files"
+	@echo "17. make cmk_clean                                              -- To clean CoreMark build files"
+	@echo "18. make rvt_clean                                              -- To clean RISC-V Test Program build files"
+	@echo "19. make build_clean                                            -- To perform deep_clean + asm_clean + cmk_clean + rvt_clean"
+	@echo "20. make synth_clean                                            -- To clean synth files"
+	@echo "21. make full_clean                                             -- To perform full clean = build_clean + synth_clean"
+	@echo "22. make regress                                                -- To run regressions and dump the results"
+	@echo "23. make diff                                                   -- To diff simulation dumps wrt golden reference"
+	@echo "24. make listasm                                                -- To display the list of example ASM programs"
+	@echo "25. make listrvtest                                             -- To display the list of supported RISC-V Test Programs in C"
+	@echo "26. make sweep                                                  -- To perform full_clean + clear left over regression dumps"
 	@echo ""
 	@echo "NOTES:"
 	@echo "1) Pay attention to all errors/warnings of build before proceeding ahead..."
 	@echo "2) Default values of flags: ASM=01_test_regfile.s ISZ/DSZ=1024, OFT=0, GUI=0"
-	@echo "   OFT, PC_INIT, program (text section) base address are related, refer to: readme_database.html"
+	@echo "   OFT, PC_INIT, program (text section) base address are related, refer to: build_notes.txt"
 	@echo "3) ASM flags (ASMF) available are: -pcrel. It is added by default for relocatable program binary."
 	@echo "   Override ASMF=<empty> to create non-relocatable program binary"
 	@echo "   For more details, refer to: pqr5asm_imanual.pdf"
@@ -296,9 +305,9 @@ cmk2bin: asm_clean cmk_clean
 	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
 	@echo "2. Configure CoreMark linker.ld." 
 	@echo "   . IRAM ORIGIN = 0x00000000"
-	@echo "   . IRAM LENGTH = <IRAM size>"
+	@echo "   . IRAM LENGTH = <IRAM size>, min. 24 kB"
 	@echo "   . DRAM ORIGIN = 0x80000000"
-	@echo "   . DRAM LENGTH = <DRAM size>"
+	@echo "   . DRAM LENGTH = <DRAM size>, min. 4 kB"
 	@echo "3. Configure the PQR5 subsystem macros:"
 	@echo "   . BENCHMARK     = Enabled"
 	@echo "   . DBGUART       = Enabled"
@@ -313,7 +322,7 @@ cmk2bin: asm_clean cmk_clean
 	@echo ""
 	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
 	@echo ""
-	@echo "| MAKE_PQR5: Building CoreMark CPU for the system..."
+	@echo "| MAKE_PQR5: Building CoreMark for the system..."
 	@echo ""
 	@set -e
 	@master_dir=$$(pwd); \
@@ -331,6 +340,55 @@ cmk2bin: asm_clean cmk_clean
 	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_baseaddr.txt
 	@echo ""
 	@echo "| MAKE_PQR5: Finished building the CoreMark !!!"
+	@echo ""
+
+# rvt2bin
+rvt2bin: asm_clean rvt_clean
+	@echo ""
+	@echo "RISC-V Test Program Build"
+	@echo "-------------------------"
+	@echo "This will compile the test program and build the Pequeno subsystem with the binaries initialized on RAMs."
+	@echo ""
+	@echo "PRE-REQUISITES to build the test program for Pequeno subsystem"
+	@echo "1. Configure the test parameters and environment in the program's Makefile."
+	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
+	@echo "2. Configure the program's linker.ld." 
+	@echo "   . IRAM ORIGIN = 0x00000000"
+	@echo "   . IRAM LENGTH = <IRAM size>, min. 16 kB"
+	@echo "   . DRAM ORIGIN = 0x80000000"
+	@echo "   . DRAM LENGTH = <DRAM size>, min. 16 kB (assumes data set <= 1024)"
+	@echo "3. Configure the PQR5 subsystem macros:"
+	@echo "   . BENCHMARK     = Enabled"
+	@echo "   . DBGUART       = Enabled"
+	@echo "   . DBGUART_BRATE = <Targetted baudrate>"
+	@echo "   . FCLK          = CLOCKS_PER_SEC"
+	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH"
+	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH"	
+	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation required"
+	@echo "4. Configure CPU Core macros:"
+	@echo "   . PC_INIT           = 0x00000000"
+	@echo "   . SIMEXIT_INSTR_END = Enabled if you require RTL simulation with exit on END"
+	@echo ""
+	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
+	@echo ""
+	@echo "| MAKE_PQR5: Building the test program for the system..."
+	@echo ""
+	@set -e
+	@master_dir=$$(pwd); \
+	cd $(RVTEST_DIR)/$(PGM); \
+	make all ; \
+	cd "$$master_dir"
+	@echo ""
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -baseaddr 0x0
+	@echo ""
+	bash $(SCRIPT_DIR)/bin2hextxt.sh $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin $(ASM_DIR)/sample_imem_hex.txt
+	bash $(SCRIPT_DIR)/bin2hextxt.sh $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_dram.bin $(ASM_DIR)/sample_dmem_hex.txt
+	@echo "The program built by the Make is: Standard RISC-V Test Program - $(PGM) " > $(ASM_DIR)/asm_pgm_info.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_imem_baseaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_baseaddr.txt
+	@echo ""
+	@echo "| MAKE_PQR5: Finished building the RISC-V Test Program - $(PGM) !!!"
 	@echo ""
 
 # genram
@@ -390,6 +448,22 @@ coremark: cmk2bin genram compile
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
 
+# rvtest
+rvtest: rvt2bin genram compile
+	@echo ""
+	@echo "| MAKE_PQR5: Built the system with the RISC-V test program successfully!!"
+	@echo ""
+	@echo "  SUMMARY"
+	@echo "  -------"
+	@echo ". Compiled the RISC-V test program - $(PGM) and generated the binary for PQR5."
+	@echo ". Generated IRAM and DRAM with the program binary initialized."
+	@echo "  IRAM size = $(ISZ_2n) Bytes"
+	@echo "  DRAM size = $(DSZ_2n) Bytes"
+	@echo "  Program binary base address = 0x00000000 @IRAM"
+	@echo "  Data binary base address    = 0x00000000 @DRAM"
+	@echo ". Compiled the PQR5 subsystem successfully."
+	@echo ""
+
 # synth
 synth: check_synth
 	@echo ""
@@ -424,6 +498,13 @@ listasm:
 	@echo "List of Example ASM Programs"
 	@echo "----------------------------"
 	@ls $(ASM_DIR)/example_programs/*.s | sed -r 's/^.+\///'
+
+# listrvtest
+listrvtest:
+	@echo ""
+	@echo "List of RISC-V Test Programs"
+	@echo "----------------------------"
+	@ls $(RVTEST_DIR) | sed -r 's/^.+\///'
 
 # regress
 regress:
@@ -497,8 +578,18 @@ cmk_clean:
 	make clean ; \
 	cd "$$master_dir"
 
+# rvt_clean
+rvt_clean:
+	@echo "| MAKE_PQR5: Cleaning any RISC-V Test Program build files..."
+	@echo ""
+	@master_dir=$$(pwd); \
+	for d in $(RVTESTS); do \
+		cd "$(RVTEST_DIR)/$$d" && make clean; \
+	done; \
+	cd "$$master_dir"
+
 # build_clean
-build_clean: deep_clean asm_clean cmk_clean
+build_clean: deep_clean asm_clean cmk_clean rvt_clean
 	@echo "| MAKE_PQR5: Full build clean finished..."
 	@echo ""
 

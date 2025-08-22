@@ -115,9 +115,9 @@
 |
 |   2) Configure coremark/linker.ld.
 |      . IRAM ORIGIN = 0x00000000
-|      . IRAM LENGTH = <IRAM size>
-|      . DRAM ORIGIN = 0x80000000"
-|      . DRAM LENGTH = <DRAM size>
+|      . IRAM LENGTH = <IRAM size>, min. 24 kB
+|      . DRAM ORIGIN = 0x80000000
+|      . DRAM LENGTH = <DRAM size>, min. 4 kB
 |
 |   3) Configure the PQR5 subsystem macros:
 |      . BENCHMARK     = Enable
@@ -138,6 +138,42 @@
 |      At the end of the execution of all iterations of CoreMark, a benchmark report is generated,
 |      which is serially sent through the Debug UART. Serial terminal is required to view this report.
 |      Please note that simulation can be slow and produces no dump.
+|
+|
+|   Building RISC-V Test Programs
+|   ==============================
+|   Steps to compile Standard RISC-V Test Programs from riscv.org and build the Pequeno subsystem 
+|   with the the binaries initialized on RAMs.
+|
+|   STEPS
+|   -----
+|   1) Configure the test parameters and environment in riscv_tests/<pgm>/Makefile.
+|      . CLOCKS_PER_SEC = <Core clock speed>
+|
+|   2) Configure riscv_tests/<pgm>/linker.ld.
+|      . IRAM ORIGIN = 0x00000000
+|      . IRAM LENGTH = <IRAM size>, min. 16 kB
+|      . DRAM ORIGIN = 0x80000000
+|      . DRAM LENGTH = <DRAM size>, min. 16 kB (assumes data set <= 1024)
+|
+|   3) Configure the PQR5 subsystem macros:
+|      . BENCHMARK     = Enable
+|      . DBGUART       = Enable
+|      . DBGUART_BRATE = <Targetted baudrate>
+|      . FCLK          = CLOCKS_PER_SEC
+|      . IRAM_SIZE     = IRAM LENGTH
+|      . DRAM_SIZE     = DRAM LENGTH
+|      . SUBSYS_DBG    = Enable if RTL simulation required	
+|
+|   4) Configure CPU core macros:
+|      . PC_INIT           = 0x00000000
+|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END
+|
+|   5) Run CoreMark: make coremark ISZ=<IRAM size> DSZ=<DRAM size> 
+|
+|   6) After successful compilation, the design can be simulated or synthesised for on-board. 
+|      At the end of the execution, the test result is generated,
+|      which is serially sent through the Debug UART. Serial terminal is required to view this result.
 |
 |
 |   NOTE: run "make help" to understand the full list of Makefile recipes & parameters
