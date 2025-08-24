@@ -20,7 +20,7 @@
 |                 v1.0        [Sept 2024] -- * Full features tested, minor bug fixes/improvements
 |                 v1.0.1      [Apr  2025] -- * Added CoreMark support, Optimized hardware
 |                                            * Updated the LICENSE to Apache 2.0
-|                 v1.0.2      [Aug  2025] -- * Dynamic Branch Predictor
+|                 v1.0.2      [Aug  2025] -- * Dynamic Branch Predictor option
 |                                            * Optimized hardware, support for Block RAM
 |                                              based Regfile on FPGAs.
 |                                            * Verified by RISC-V test programs from riscv.org
