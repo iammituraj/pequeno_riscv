@@ -14,7 +14,7 @@ The core is bare RTL designed in System Verilog, balanced for area/performance, 
 </p>
 
 ## Overview
-- RV32I ISA v2.2
+- RV32I User-level ISA ![v2.2](https://cs.brown.edu/courses/csci1952y/2024/assets/docs/riscv-spec-v2.2.pdf)
 - Single-core, Single-issue, In-order execution
 - Classic 5-stage RISC-V pipeline
 - Intended for baremetal embedded applications, not OS & interrupt capable.
