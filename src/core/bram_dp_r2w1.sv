@@ -24,7 +24,7 @@
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
 //----%% Description      : Dual-port Block RAM which can be mapped to FPGA BRAMs.
-//----%%                    ## Two Read ports with common read enable, one Write port
+//----%%                    ## Two Read ports, one Write port
 //----%%                    ## Synchronous read & write, 1-cycle access
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
@@ -65,10 +65,13 @@ module bram_dp_r2w1#(
    input  logic [ADW-1:0] i_waddr ,  // Write address
    input  logic [DTW-1:0] i_wdata ,  // Write data
 
-   // Read Ports
-   input  logic           i_rden   ,  // Read enable
+   // Read Port-0
+   input  logic           i_rden0  ,  // Read enable to port-0
    input  logic [ADW-1:0] i_raddr0 ,  // Read address to port-0
    output logic [DTW-1:0] o_rdata0 ,  // Read data from port-0
+
+   // Read Port-1
+   input  logic           i_rden1  ,  // Read enable to port-1
    input  logic [ADW-1:0] i_raddr1 ,  // Read address to port-1
    output logic [DTW-1:0] o_rdata1    // Read data from port-1
 );
@@ -93,7 +96,7 @@ end
 // Synchronous logic to read from Read port-0
 //===================================================================================================================================================
 always_ff @(posedge clk) begin
-   if (i_rden) begin      
+   if (i_rden0) begin      
       rdata0_rg <= ram[i_raddr0];
    end
 end
@@ -102,7 +105,7 @@ end
 // Synchronous logic to read from Read port-1
 //===================================================================================================================================================
 always_ff @(posedge clk) begin
-   if (i_rden) begin      
+   if (i_rden1) begin      
       rdata1_rg <= ram[i_raddr1];
    end
 end

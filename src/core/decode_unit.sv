@@ -30,7 +30,7 @@
 //----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : May-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -49,7 +49,8 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module decode_unit #(
    // Configurable parameters
-   parameter PC_INIT = `PC_INIT  // Init PC on reset
+   parameter PC_INIT = `PC_INIT,  // Init PC on reset
+   parameter GHRW    = `GHRW      // GHR width
 )
 (
    // Clock and Reset
@@ -64,8 +65,11 @@ module decode_unit #(
    // Interface with Fetch Unit (FU)
    input  logic [`XLEN-1:0] i_fu_pc            ,  // PC from FU
    input  logic [`ILEN-1:0] i_fu_instr         ,  // Instruction from FU
-   input  logic             i_fu_bubble        ,  // Bubble from FU
    input  logic             i_fu_br_taken      ,  // Branch taken status from FU
+   `ifdef BPREDICT_DYN
+   input  logic [GHRW-1:0]  i_fu_ghr_snapshot  ,  // GHR snapshot from FU
+   `endif
+   input  logic             i_fu_bubble        ,  // Bubble from FU
    output logic             o_fu_stall         ,  // Stall signal to FU
 
    // Interface with Register File (RF)
@@ -76,6 +80,9 @@ module decode_unit #(
    // Interface with Execution Unit (EXU)
    input  logic             i_exu_bu_flush     ,  // Flush signal from EXU-BU
    output logic             o_exu_bu_br_taken  ,  // Branch taken status to EXU-BU
+   `ifdef BPREDICT_DYN
+   output logic [GHRW-1:0]  o_exu_ghr_snapshot ,  // GHR snapshot to EXU-BU
+   `endif
 
    output logic [`XLEN-1:0] o_exu_pc           ,  // PC to EXU
    `ifdef DBG
@@ -342,7 +349,16 @@ always_ff @(posedge clk or negedge aresetn) begin
    else if (!stall)   begin du_br_taken_rg <= i_fu_br_taken ; end  // Pipe forward...
 end
 
-assign o_exu_bu_br_taken = du_br_taken_rg ;
+//===================================================================================================================================================
+// Synchronous logic to pipe GHR snapshot
+//===================================================================================================================================================
+`ifdef BPREDICT_DYN
+logic [GHRW-1:0] du_ghr_snapshot_rg ;  // GHR snapshot
+always_ff @(posedge clk or negedge aresetn) begin
+   if      (!aresetn) begin du_ghr_snapshot_rg <= '0 ; end
+   else if (!stall)   begin du_ghr_snapshot_rg <= i_fu_ghr_snapshot ; end  // Pipe forward...
+end
+`endif
 
 //===================================================================================================================================================
 // Synchronous logic to generate rs0/rs1 copies to relax fanout & timing at opfwd block
@@ -397,11 +413,11 @@ assign funct3     = du_instr_rg[14:12] ;
 assign funct7     = du_instr_rg[31:25] ;
 
 // Read-side control signals to Register File (RF)
-assign o_rf_rden    = ~i_fu_bubble & ~stall ;  // DU and RF (read-side) are at the same stage of pipeline, so they should stall together always
-assign rf_reg_src0  = i_fu_instr[19:15] ; 
-assign rf_reg_src1  = i_fu_instr[24:20] ;
-assign o_rf_rs0     = rf_reg_src0       ;  // Combi routing to sync the read-data from RF with DU payload to EXU 
-assign o_rf_rs1     = rf_reg_src1       ;  // Combi routing to sync the read-data from RF with DU payload to EXU
+assign o_rf_rden   = ~i_fu_bubble      ;  // DU and RF (read-side) are at the same stage of pipeline
+assign rf_reg_src0 = i_fu_instr[19:15] ; 
+assign rf_reg_src1 = i_fu_instr[24:20] ;
+assign o_rf_rs0    = rf_reg_src0       ;  // Combi routing to sync the read-data from RF with DU payload to EXU 
+assign o_rf_rs1    = rf_reg_src1       ;  // Combi routing to sync the read-data from RF with DU payload to EXU
 
 // Payload to Execution Unit (EXU)
 assign o_exu_pc           = du_pc_rg        ;
@@ -410,7 +426,10 @@ assign o_exu_instr        = du_instr_rg     ;
 `endif
 assign o_exu_bubble       = du_bubble_rg    ;
 assign o_exu_pkt_valid    = du_pkt_valid_rg ;
-                                                                                                
+assign o_exu_bu_br_taken  = du_br_taken_rg  ;
+`ifdef BPREDICT_DYN
+assign o_exu_ghr_snapshot = du_ghr_snapshot_rg ;
+`endif                                                                                 
 assign o_exu_is_alu_op    = is_alu_op_rg  ;
 assign o_exu_alu_opcode   = alu_opcode_rg ;
 assign o_exu_rs0          = reg_src0      ;

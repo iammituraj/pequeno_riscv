@@ -43,7 +43,7 @@
 // Generic constants - DO NOT MODIFY
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define CPU           "Pequeno RISC-V (PQR5)"
-`define VERS          "v1.1"
+`define VERS          "v1.0.2"
 `define ISA           "RV32I"
 
 `define XLEN          32                   // Size of register
@@ -60,11 +60,21 @@
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
-//`define RF_IN_BRAM                        // Define this macro to generate Block RAM based Register File
-                                          // Undefining this macro will generate Flip-flop/LUT RAM based Register File 
-//`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
+//`define RF_ON_BRAM                        // Define this macro to generate Block RAM based Register File, 
+                                          // Else Flops/LUT RAM based Register File is generated
 
+`define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor
+                                          // Else generate Static Branch Predictor (backward always taken strategy)
+`define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries. This macro is qualified by IS_BPREDICT_DYN = 1
+`define BHT_TYPE          "lutram"        // Branch History Table (BHT) target configuration. This macro is qualified by IS_BPREDICT_DYN = 1
+                                          // "blkram" - BHT is generated on Block RAMs on FPGAs
+                                          // "lutram" - BHT is generated on LUT RAMs on FPGAs
+                                          // "flops"  - BHT is generated on flip-flops; ideal for ASIC
+`define GHRW              (`BHT_IDW+2)    // Global History Register (GHR) width
+
+//`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
 //`define CORE_SYNTH                        // Define this macro to configure the core for SYNTHESIS
+
 `define DBG                               // Define this macro to generate all Debug interfaces for simulation         ; OVERRIDEN FOR SYNTHESIS
 //`define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages  ; OVERRIDEN FOR SYNTHESIS
 `define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END sim instruction ; OVERRIDEN FOR SYNTHESIS
@@ -80,6 +90,20 @@
 `define REGFILE_DUMP 0
 `endif
 // SYNTHESIS override ............ //
+
+// PARAM Macro generation ........ //
+`ifdef RF_ON_BRAM
+`define IS_RF_ON_BRAM 1
+`else 
+`define IS_RF_ON_BRAM 0
+`endif
+
+`ifdef BPREDICT_DYN
+`define IS_BPREDICT_DYN 1
+`else 
+`define IS_BPREDICT_DYN 0
+`endif
+// PARAM Macro generation ........ //
 
 `endif
 //###################################################################################################################################################

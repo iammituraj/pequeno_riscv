@@ -312,8 +312,8 @@ dmem_top #(
    `endif
 
    .i_wen   (cpu_dmem_wen)    ,
-   `ifdef COREMARK
-   .i_addr  ({1'b0, cpu_dmem_addr[30:0]}),  // For Coremark, Linker reserved the baseaddr 0x8000_0000 for Data Memory 
+   `ifdef BENCHMARK
+   .i_addr  ({1'b0, cpu_dmem_addr[30:0]}),  // For Benchmark programs, Linker reserved the baseaddr 0x8000_0000 for Data Memory 
    `else
    .i_addr  (cpu_dmem_addr)   ,
    `endif
@@ -365,11 +365,13 @@ assign halt_cpu        = (i_halt_cpu === 1'bz)? 1'b0 :        // Connect pull-do
                          (i_halt_cpu == 1'b0)? 1'b0 : 1'b1 ;  // User can still drive to '1' or '0' if reqd during simulation... 
 `endif 
 
+`ifdef DUMPVCD
 // VCD dump
 initial begin
    $dumpfile("sim.vcd");
    $dumpvars(0, pqr5_subsystem_top);
 end
+`endif
 
 `endif
 

@@ -50,10 +50,10 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Features
 //`define EN_LOADER                    // Define this macro to generate Loader to program the core on the fly via UART
-//`define COREMARK                     // Define this macro to enable Coremark Benchmarking
+`define BENCHMARK                     // Define this macro to enable Coremark/RISC-V tests Benchmarking
 
 // On-board Test/Simulation environment INFO - define the parameters here
-`define FCLK                 10                         // System clock speed targetted for on-board testing/simulation; in MHz
+`define FCLK                 12                         // System clock speed targetted for on-board testing/simulation; in MHz
 `define TCLK                 (1000.0/`FCLK)             // System clock period targetted for on-board testing/simulation; in ns
 `define IRAM_SIZE            1024                       // Size of the generated IRAM; in bytes
 `define IRAM_DW              32                         // Data width of the generated IRAM [CONSTANT]
@@ -80,6 +80,7 @@
 `define SYSRST_LEN           20        // TB reset length in clock cycles
 `define SIMLIMIT                       // Define this macro if subsystem simulation should be cycles limited
 `define SIMCYCLES            100000    // If SIMLIMIT is enabled: Max. no. of clock cycles of simulation 
+//`define DUMPVCD                        // Define this macro dump VCD of simulation
 
 // Memory Dump during simulation
 `define MEM_DBG                      // Define this macro to generate all debug ports in DMEM/IMEM for simulation; OVERRIDEN FOR SYNTHESIS
@@ -108,8 +109,8 @@
 `endif
 // SYNTHESIS override ............ //
 
-// COREMARK override ..............//
-`ifdef COREMARK
+// BENCHMARK override ..............//
+`ifdef BENCHMARK
 `undef SIMLIMIT
 `undef DMEM_IS_ZERO_LAT
 `define DMEM_IS_ZERO_LAT     1 
@@ -120,7 +121,7 @@
 `define DBGUART_BRATE        115200 
 `endif
 `endif
-// COREMARK override ..............//
+// BENCHMARK override ..............//
 
 `endif
 //###################################################################################################################################################

@@ -27,7 +27,7 @@
 //----%%                    branch status signals.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : May-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -46,7 +46,10 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module exu_branch_unit #(
    // Configurable parameters
-   parameter PC_INIT = `PC_INIT  // Init PC on reset
+   parameter PC_INIT         = `PC_INIT,          // Init PC on reset
+   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter GHRW            = `GHRW,             // GHR width
+   parameter BPCW            = `BHT_IDW+2         // PC width to index BHT
 )
 (
    // Clock and Reset
@@ -68,6 +71,22 @@ module exu_branch_unit #(
    input  logic             i_op0_lt_op1     ,  // Unsigned comparison flag: op0 < op1 ? from ALU
    input  logic             i_sign_op0_lt_op1,  // Signed comparison flag: signed(op0) < signed(op1) ? from ALU
    input  logic             i_branch_taken   ,  // Branch taken status from Branch Predictor
+
+   `ifdef DBG
+   // Debug signals
+   output logic             o_dbg_is_b_instr    ,  // Branch instruction flag
+   output logic             o_dbg_is_pred_wrong ,  // Prediction wrong?
+   `endif
+
+   `ifdef BPREDICT_DYN
+   // Branch Predictor Interface
+   input  logic [GHRW-1:0]  i_bp_ghr_snapshot,  // GHR snapshot for which prediction was done...
+   output logic             o_bp_upd_ghr     ,  // Update GHR signal
+   output logic             o_bp_upd_bht     ,  // Update BHT signal
+   output logic [BPCW-1:0]  o_bp_idx_pc      ,  // PC to index BHT
+   output logic [GHRW-1:0]  o_bp_idx_ghr     ,  // GHR to index BHT
+   output logic             o_bp_sts_btaken  ,  // Branch taken status after branch resolution
+   `endif
 
    // Status signals
    output logic [`XLEN-1:0] o_nxt_instr_pc   ,  // Next instruction PC; address used to return from subroutines after JAL/JALR
@@ -107,7 +126,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       bubble_rg          <= 1'b1      ;
       branch_taken_rg    <= 1'b0      ;
       bp_branch_taken_rg <= 1'b0      ;
-      en_branch_comp_rg  <= 1'b0      ;
       branch_pc_rg       <= PC_INIT   ;   
    end
    // Out of reset
@@ -116,9 +134,18 @@ always_ff @(posedge clk or negedge aresetn) begin
       bubble_rg          <= bubble         ;  
       branch_taken_rg    <= branch_taken   ;
       bp_branch_taken_rg <= i_branch_taken ;
-      en_branch_comp_rg  <= ~i_bubble      ;
       branch_pc_rg       <= branch_pc      ;
    end
+end
+// Branch compare signal generation
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      en_branch_comp_rg  <= 1'b0;
+   end
+   // Out of reset
+   else if (flush)    begin en_branch_comp_rg <= 1'b0      ; end  // Compare signal should always de-assert in the next cycle to make flush = pulse...
+   else if (!i_stall) begin en_branch_comp_rg <= ~i_bubble ; end
 end
 
 //===================================================================================================================================================
@@ -186,6 +213,73 @@ assign o_branch_taken = branch_taken_rg ;
 assign o_branch_pc    = branch_pc_rg    ;
 assign o_bubble       = bubble_rg       ;
 assign o_flush        = flush           ;
+
+///////////////////////////////////////////////////////////////////////////////
+// Branch Predictor control
+///////////////////////////////////////////////////////////////////////////////
+`ifdef BPREDICT_DYN
+logic is_legal_branch     ;  // Flags legal branch instruction
+logic upd_ghr, upd_ghr_ff ;  // Update GHR signal
+logic upd_bht, upd_bht_ff ;  // Update BHT signal
+
+assign is_legal_branch = i_is_b_type && (i_funct3 != 3'b010) && (i_funct3 != 3'b011);
+
+assign upd_ghr = (i_is_j_or_jalr || is_legal_branch) & ~i_bubble ;  // GHR must be updated on every jump/branch instr resolution
+assign upd_bht = is_legal_branch & ~i_bubble ;                      // BHT must be updated on every branch instr resolution
+
+// Update signals to Branch Predictor
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      upd_ghr_ff <= 1'b0 ;
+      upd_bht_ff <= 1'b0 ;
+   end
+   // Out of reset
+   else begin 
+      upd_ghr_ff <= i_stall ? 1'b0 : upd_ghr ;  // If stalling, drive 0 so that GHR is not updated multiple times wrongly...
+      upd_bht_ff <= i_stall ? 1'b0 : upd_bht ;  // If stalling, drive 0 so that BHT is not updated multiple times wrongly...
+   end
+end
+
+// PC, GHR piped to BHT to index and update
+logic [BPCW-1:0] bp_idx_pc_rg  ;
+logic [GHRW-1:0] bp_idx_ghr_rg ;
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      bp_idx_pc_rg  <= '0 ;
+      bp_idx_ghr_rg <= '0 ;
+   end
+   // Out of reset
+   else if (!i_stall) begin 
+      bp_idx_pc_rg  <= i_pc[BPCW-1:0]    ; 
+      bp_idx_ghr_rg <= i_bp_ghr_snapshot ;
+   end
+end
+
+// Outputs to Branch Predictor
+assign o_bp_upd_ghr    = upd_ghr_ff      ;
+assign o_bp_upd_bht    = upd_bht_ff      ;
+assign o_bp_idx_pc     = bp_idx_pc_rg    ;
+assign o_bp_idx_ghr    = bp_idx_ghr_rg   ;
+assign o_bp_sts_btaken = branch_taken_rg ;
+
+`endif//BPREDICT_DYN
+
+// Debug signals
+`ifdef DBG
+logic is_b_type_rg ;  // Branch instr flag
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      is_b_type_rg  <= '0 ;
+   end
+   // Out of reset
+   else if (!i_stall) begin is_b_type_rg <= i_is_b_type & ~i_bubble ; end
+end
+assign o_dbg_is_b_instr    = is_b_type_rg ;
+assign o_dbg_is_pred_wrong = flush ;
+`endif//DBG
 
 endmodule
 //###################################################################################################################################################

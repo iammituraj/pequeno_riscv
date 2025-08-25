@@ -8,9 +8,10 @@
 start:
     li   x2, 0x400         # sp = 0x400 (top of 1KB DRAM stack)
 
-    li   x9, 1000          # total iterations
+    li   x9, 1000          # total iterations+1
     addi x10, x0, 0        # iteration counter
-
+    
+    li   x5, 0             # sensor value
     li   x11, 5            # event interval
     li   x12, 3            # service interval
     li   x13, 0            # event counter

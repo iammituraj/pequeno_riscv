@@ -42,8 +42,21 @@ mvi x16, 0x000
 add x16, x8, x16
 mvi x16, 0x400           # x16 = 0x0000_0400
 add x15, x16, x16        # EXU/MACCU/WBU hit for x16, EXU -> EXU data fwd for x16, x15 = 0x0000_0800
-bnez x16, END            # MACCU -> EXU data fwd for x16, branch hit
+bnez x16, FIN            # MACCU -> EXU data fwd for x16, branch hit
 mvi x14, 0x7FF           # Won't execute
+
+FIN:
+mvi x27, 0x004
+mvi x28, 0x005
+mvi x29, 0x001
+mvi x30, 0x000
+sw x27, 0(x0)
+sw x28, 4(x0)
+lw x30, 4(x0) 
+NOP
+lw x29, 0(x0)
+bge x30, x29, END  # Triggers pipeline interlock scenario + blocks data forwarding from WBU for x30. RF needs to be re-read to get the latest data (corner case from sorting benchmark)
+mvi x26, 0xEEE     # This should never get executed
 
 END: 
 #NOP

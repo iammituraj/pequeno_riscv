@@ -46,7 +46,7 @@
 |
 |   3) Configure PQR5 Core and Subsystem macros in src/include/ for RTL elaboration & simulation
 |   
-|   4) Compile PQR5 Core and Subsystem with the generated memory models
+|   4) Compile PQR5 Core and Subsystem with the generated memories, IRAM and DRAM
 |      >> make compile
 |
 |   5) The processes in (1, 2, 4) can also be combined by running "build":
@@ -83,7 +83,7 @@
 |   Running Regressions in the CPU
 |   ===============================
 |   Running regressions validate the functionality of the PQR5 subsystem built.
-|   This will run all example programs in the CPU and dump the results in dump/regress_run_dump.
+|   This will execute all example assembly programs and dump the results in dump/regress_run_dump.
 |
 |   Following configuration should be set before running regression.
 |
@@ -115,28 +115,103 @@
 |
 |   2) Configure coremark/linker.ld.
 |      . IRAM ORIGIN = 0x00000000
-|      . IRAM LENGTH = <IRAM size>
-|      . DRAM ORIGIN = 0x80000000"
-|      . DRAM LENGTH = <DRAM size>
+|      . IRAM LENGTH = <IRAM size>, min. 32 kB
+|      . DRAM ORIGIN = 0x80000000
+|      . DRAM LENGTH = <DRAM size>, min. 8 kB
 |
 |   3) Configure the PQR5 subsystem macros:
-|      . COREMARK      = Enable
+|      . BENCHMARK     = Enable
 |      . DBGUART       = Enable
 |      . DBGUART_BRATE = <Targetted baudrate>
 |      . FCLK          = CLOCKS_PER_SEC
 |      . IRAM_SIZE     = IRAM LENGTH
 |      . DRAM_SIZE     = DRAM LENGTH
-|      . SUBSYS_DBG    = Enable if RTL simulation required	
+|      . SUBSYS_DBG    = Enable if RTL simulation is required	
 |
 |   4) Configure CPU core macros:
 |      . PC_INIT           = 0x00000000
 |      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END
 |
-|   5) Run CoreMark: make coremark ISZ=<IRAM size> DSZ=<DRAM size> 
+|   5) Build CoreMark: make coremark ISZ=<IRAM size> DSZ=<DRAM size> 
 |
 |   6) After successful compilation, the design can be simulated or synthesised for on-board. 
 |      At the end of the execution of all iterations of CoreMark, a benchmark report is generated,
 |      which is serially sent through the Debug UART. Serial terminal is required to view this report.
+|      Please note that simulation can be slow and produces no dump.
+|
+|
+|   Building Dhrystone CPU Benchmark
+|   ================================
+|   Steps to compile Dhrystone and build the Pequeno subsystem with the Dhrystone binaries 
+|   initialized on RAMs.
+|
+|   STEPS
+|   -----
+|   1) Configure the test parameters and environment in dhrystone/Makefile.
+|      . ITERATIONS     = <no. of Dhrystone runs to be performed>
+|      . CLOCKS_PER_SEC = <Core clock speed>
+|
+|   2) Configure dhrystone/linker.ld.
+|      . IRAM ORIGIN = 0x00000000
+|      . IRAM LENGTH = <IRAM size>, min. 32 kB
+|      . DRAM ORIGIN = 0x80000000
+|      . DRAM LENGTH = <DRAM size>, min. 32 kB
+|
+|   3) Configure the PQR5 subsystem macros:
+|      . BENCHMARK     = Enable
+|      . DBGUART       = Enable
+|      . DBGUART_BRATE = <Targetted baudrate>
+|      . FCLK          = CLOCKS_PER_SEC
+|      . IRAM_SIZE     = IRAM LENGTH
+|      . DRAM_SIZE     = DRAM LENGTH
+|      . SUBSYS_DBG    = Enable if RTL simulation is required	
+|
+|   4) Configure CPU core macros:
+|      . PC_INIT           = 0x00000000
+|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END
+|
+|   5) Build Dhrystone: make dhrystone ISZ=<IRAM size> DSZ=<DRAM size> 
+|
+|   6) After successful compilation, the design can be simulated or synthesised for on-board. 
+|      At the end of the execution of all iterative runs of Dhrystone, a benchmark report is generated,
+|      which is serially sent through the Debug UART. Serial terminal is required to view this report.
+|      Please note that simulation can be slow and produces no dump.
+|
+|
+|   Building RISC-V Test Programs
+|   ==============================
+|   Steps to compile Standard RISC-V Test Programs by riscv.org and build the Pequeno subsystem 
+|   with the the binaries initialized on RAMs.
+|
+|   STEPS
+|   -----
+|   1) Configure the test parameters and environment in riscv_tests/<pgm>/Makefile.
+|      . CLOCKS_PER_SEC = <Core clock speed>
+|
+|   2) Configure riscv_tests/<pgm>/linker.ld.
+|      . IRAM ORIGIN = 0x00000000
+|      . IRAM LENGTH = <IRAM size>, min. 16 kB
+|      . DRAM ORIGIN = 0x80000000
+|      . DRAM LENGTH = <DRAM size>, min. 16 kB (assumes data set <= 1024)
+|
+|   3) Configure the PQR5 subsystem macros:
+|      . BENCHMARK     = Enable
+|      . DBGUART       = Enable
+|      . DBGUART_BRATE = <Targetted baudrate>
+|      . FCLK          = CLOCKS_PER_SEC
+|      . IRAM_SIZE     = IRAM LENGTH
+|      . DRAM_SIZE     = DRAM LENGTH
+|      . SUBSYS_DBG    = Enable if RTL simulation is required	
+|
+|   4) Configure CPU core macros:
+|      . PC_INIT           = 0x00000000
+|      . SIMEXIT_INSTR_END = Enable if you require RTL simulation with exit on END
+|
+|   5) Build the test program: make rvtest ISZ=<IRAM size> DSZ=<DRAM size> 
+|
+|   6) After successful compilation, the design can be simulated or synthesised for on-board. 
+|      At the end of the execution, the test result is generated,
+|      which is serially sent through the Debug UART. Serial terminal is required to view this result.
 |      Please note that simulation can be slow and produces no dump.
 |
 |
