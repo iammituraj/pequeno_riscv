@@ -50,8 +50,19 @@ The core is bare RTL designed in System Verilog, balanced for area/performance, 
 ## Configuration options
 | Parameter / Macro                          |                                           |
 |--------------------------------------------|-------------------------------------------|
-| RF_IN_BRAM                                 | Maps Register File to Block RAM instead of LUT RAM/Flops
-| PC_INIT                                    | Reset PC vector
+| **RF_ON_BRAM**                             | Maps Register File to Block RAM instead of LUT RAM/Flops
+| **BPREDICT_DYN**                           | Enable Dynamic Branch Predictor (GShare)
+| **BHT_IDW**                                | Branch History Table (BHT) ID width
+| **BHT_TYPE**                               | BHT target (Block RAM/LUTRAM/Flops)
+| **PC_INIT**                                | Reset PC vector
+
+## Configuration examples
+| Configuration                              |                                           |
+|--------------------------------------------|-------------------------------------------|
+| **Light-B**                                | RF_ON_BRAM=1, BPREDICT_DYN=0
+| **Light**                                  | RF_ON_BRAM=0, BPREDICT_DYN=0
+| **Performance**                            | RF_ON_BRAM=0, BPREDICT_DYN=1, BHT_IDW=10, BHT_TYPE=LUTRAM
+| **Performance-B**                          | RF_ON_BRAM=1, BPREDICT_DYN=1, BHT_IDW=10, BHT_TYPE=Block RAM
 
 ## Functional Block Diagram
 
@@ -74,18 +85,19 @@ _The validation was done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
 ## FPGA Resource Utilization
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
-| **Core version** | v1.1_beta
-| **Configuration**| Register File in LUT RAMs
+| **Core version** | v1.0.2
+| **Configuration**| Performance
 | **Target** | Artix-7, xc7a35tcpg236-1
-| **LUTs** | 1060
-| **Registers** | 551
+| **LUTs** | 1217
+| **Registers** | 629
 | **Max clock freq** | 115 MHz
 | **Max clock freq in fastest Artix-7 speed grade** | 165 MHz
 
 ## CoreMark®
 | **Performance Validation**                 |                                           |
 |--------------------------------------------|-------------------------------------------|
-| **Core version** | v1.1_beta
+| **Core version** | v1.0.2
+| **Configuration**| Performance
 | **CoreMark score** | 0.75 CoreMark/MHz 
 | **Iterations** | 400
 | **Iterations per second** | 9
@@ -93,8 +105,20 @@ _The validation was done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
 | **Test platform** | FPGA
 | **Full Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
 
+## Dhrystone
+| **Performance Validation**                 |                                           |
+|--------------------------------------------|-------------------------------------------|
+| **Core version** | v1.0.2
+| **Configuration**| Performance
+| **CoreMark score** | 0.93 DMIPS/MHz 
+| **Iterations** | 5000
+| **Iterations per second** | 19607
+| **Test clock freq** | 12 MHz
+| **Test platform** | FPGA
+| **Full Report** | [dhrystone/dhrystone_run.png](https://raw.githack.com/iammituraj/pequeno_riscv/main/dhrystone/dhrystone_run.png)
+
 # Pequeno in Blog
-Follow the journey of Pequeno in my blog, how this RISC-V CPU was designed in RTL from scratch: [pequeno blogs in chipmunklogic.com](https://chipmunklogic.com/category/pequeno-cpu/)
+Follow the journey of the Pequeno in my blog, how this RISC-V CPU was designed in RTL from scratch: [pequeno blogs in chipmunklogic.com](https://chipmunklogic.com/category/pequeno-cpu/)
 
 # Important
 Please go through [readme_database](readme_database) for complete info about this repo database and how to setup the PQR5 build environment.
