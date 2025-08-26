@@ -23,6 +23,7 @@
 |                 v1.0.2      [Aug  2025] -- * Dynamic Branch Predictor option
 |                                            * Optimized hardware, support for Block RAM
 |                                              based Regfile on FPGAs.
+|                                            * Added Dhrystone support
 |                                            * Verified by RISC-V test programs from riscv.org
 |                
 | Developer     : Mitu Raj, Chipmunk Logic ™ 
