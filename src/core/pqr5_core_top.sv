@@ -723,7 +723,10 @@ final begin
    $display("| Jump/Branch = %0d cycles", jb_cycles);
    $display("| BP Flush    = %0d cycles", bp_flush_cycles);
    $display("| BU Flush    = %0d cycles ", bu_flush_cycles);
-   $display("| Hit rate    = %0.2f %%", (((jb_cycles - bu_flush_cycles)*1.0)/jb_cycles)*100);
+   if (jb_cycles == 0)
+      $display("| Hit rate    = NA");
+   else
+      $display("| Hit rate    = %0.2f %%", (((jb_cycles - bu_flush_cycles)*1.0)/jb_cycles)*100);
    $display("+============================+");
    $display(""); 
    $display("+============================+");
@@ -731,7 +734,10 @@ final begin
    $display("+============================+");
    $display("| Branch      = %0d cycles", b_cycles);
    $display("| BU Flush    = %0d cycles ", bu_b_flush_cycles);
-   $display("| Hit rate    = %0.2f %%", (((b_cycles - bu_b_flush_cycles)*1.0)/b_cycles)*100);
+   if (b_cycles == 0)
+      $display("| Hit rate    = NA");
+   else
+      $display("| Hit rate    = %0.2f %%", (((b_cycles - bu_b_flush_cycles)*1.0)/b_cycles)*100);
    $display("+============================+");
    $display(""); 
    $display("///////////// SUMMARY ENDS   //////////////");   
@@ -829,7 +835,10 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("+===========================+");
       $display("| Jump/Branch = %0d cycles", jb_cycles);
       $display("| BU Flush    = %0d cycles ", bu_flush_cycles);
-      $display("| Hit rate    = %0.2f %%", (((jb_cycles - bu_flush_cycles)*1.0)/jb_cycles)*100);
+      if (jb_cycles == 0)
+         $display("| Hit rate    = NA");
+      else
+         $display("| Hit rate    = %0.2f %%", (((jb_cycles - bu_flush_cycles)*1.0)/jb_cycles)*100);
       $display("+===========================+");
       $display("");
       $display("+=====================================================================================+");
