@@ -95,6 +95,7 @@ module pqr5_core_top #(
    parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
    parameter BHT_IDW         = `BHT_IDW,          // Branch History Table (BHT) index width
    parameter BHT_TYPE        = `BHT_TYPE,         // BHT target configuration (for Dynamic Branch Predictor)
+   parameter BHT_BIAS        = `BHT_BIAS,         // BHT entries reset value
    parameter GHRW            = `GHRW              // Global History Register (GHR) width
 )
 (   
@@ -306,6 +307,7 @@ fetch_unit #(
    .IS_BPREDICT_DYN (IS_BPREDICT_DYN),
    .BHT_IDW         (BHT_IDW),
    .BHT_TYPE        (BHT_TYPE),
+   .BHT_BIAS        (BHT_BIAS),
    .GHRW            (GHRW)
 )  inst_fetch_unit (
    .clk                 (clk),

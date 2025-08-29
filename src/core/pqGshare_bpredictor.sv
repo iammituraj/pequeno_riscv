@@ -23,8 +23,8 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : PQGBP is a dynamic branch predictor based on global branch history logged in a 8-bit Global History Register (GHR)
-//----%%                    and a 64-entry Branch History Table (BHT). For indexing, 6-bit hash function(PC, GHR) is used.
+//----%% Description      : PQGBP is a dynamic branch predictor based on global branch history logged in a Global History Register (GHR)
+//----%%                    and Branch History Table (BHT). For indexing, hash function(PC, GHR) is used.
 //----%%
 //----%%                    Branch History Table (BHT) 
 //----%%                    ==========================
@@ -61,6 +61,7 @@ module pqGshare_bpredictor#(
    parameter  GHRW     = `GHRW,      // GHR width
    parameter  BHT_IDW  = `BHT_IDW,   // Index width of BHT
    parameter  BHT_TYPE = `BHT_TYPE,  // BHT configuration
+   parameter  BHT_BIAS = `BHT_BIAS,  // BHT entries reset value
 
    // Derived Parameters
    localparam BHT_DPT  = 2**BHT_IDW, // BHT size (no. of entries)
@@ -129,7 +130,7 @@ logic [GHRW-1:0]    ghr_p1_ff       ;  // GHR piped by 1 cycle
 bhistory_table#(
    .TGT    (BHT_TYPE),
    .DPT    (BHT_DPT) ,
-   .RSTVAL (2'b01)  // 2'b01 is the best bias for embedded applications, it adapts quickly even if makes a few mispredictions initially...
+   .RSTVAL (BHT_BIAS) 
 ) inst_bhistory_table (
    .clk       (clk),
    .aresetn   (aresetn),

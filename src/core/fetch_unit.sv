@@ -54,6 +54,7 @@ module fetch_unit #(
    parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
    parameter BHT_IDW         = `BHT_IDW        ,  // BHT index width
    parameter BHT_TYPE        = `BHT_TYPE       ,  // BHT target configuration (for Dynamic Branch Predictor)
+   parameter BHT_BIAS        = `BHT_BIAS       ,  // BHT entries reset value
    parameter GHRW            = `GHRW           ,  // GHR width
 
    // Derived parameters
@@ -223,7 +224,8 @@ end else begin : GEN_BPREDICT_DYN
    pqGshare_bpredictor#(
       .GHRW     (GHRW),
       .BHT_IDW  (BHT_IDW),
-      .BHT_TYPE (BHT_TYPE)
+      .BHT_TYPE (BHT_TYPE),
+      .BHT_BIAS (BHT_BIAS)
    ) inst_pqGshare_bpredictor (
       .clk            (clk)          ,
       .aresetn        (aresetn)      ,

@@ -59,10 +59,12 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Configurable macros
 //---------------------------------------------------------------------------------------------------------------------------------------------------
+// PC 
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
 //`define RF_ON_BRAM                        // Define this macro to generate Block RAM based Register File, 
                                           // Else Flops/LUT RAM based Register File is generated
 
+// Branch Predictor & RAS
 `define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor
                                           // Else generate Static Branch Predictor (backward always taken strategy)
 `define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries. This macro is qualified by IS_BPREDICT_DYN = 1
@@ -70,11 +72,19 @@
                                           // "blkram" - BHT is generated on Block RAMs on FPGAs
                                           // "lutram" - BHT is generated on LUT RAMs on FPGAs
                                           // "flops"  - BHT is generated on flip-flops; ideal for ASIC
+`define BHT_BIAS          2'b10           // BHT entries reset value = BIAS for 2-bit saturating counters, 2'b10 - best for embedded applications
 `define GHRW              (`BHT_IDW+2)    // Global History Register (GHR) width
 
+`define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
+`define RAS_DPT           8               // RAS depth, size = Nx4 bytes
+
+// Test & Debug
 //`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
+
+// Synthesis related
 //`define CORE_SYNTH                        // Define this macro to configure the core for SYNTHESIS
 
+// Simulation related
 `define DBG                               // Define this macro to generate all Debug interfaces for simulation         ; OVERRIDEN FOR SYNTHESIS
 //`define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages  ; OVERRIDEN FOR SYNTHESIS
 `define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END sim instruction ; OVERRIDEN FOR SYNTHESIS
