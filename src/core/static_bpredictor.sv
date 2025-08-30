@@ -27,6 +27,7 @@
 //----%%                    The predictor is static in nature and doesn't keep track of branch resolution history.
 //----%%                    # Unconditional Jumps are always taken (JAL)
 //----%%                    # If Branch instruction, the branch is taken if backward jump, else not taken. 
+//----%%                    # Flush is generated on predicting branch taken.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Apr-2025

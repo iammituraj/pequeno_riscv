@@ -41,6 +41,8 @@
 //----%%                    3. On branch resolution - GHR is updated with the actual branch outcome.
 //----%%                                            - BHT is updated to bias towards the actual branch outcome.
 //----%%
+//----%%                    Flush is generated on predicting branch taken.
+//----%%                    
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : May-2025
 //----%% Notes            : -
