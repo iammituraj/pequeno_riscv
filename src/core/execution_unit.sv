@@ -55,7 +55,7 @@ import pqr5_core_pkg :: * ;
 module execution_unit #(
    // Configurable parameters
    parameter PC_INIT         = `PC_INIT,          // Init PC on reset
-   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
    parameter GHRW            = `GHRW ,            // GHR width
    parameter BPCW            = `BHT_IDW+2         // PC width to index BHT
 )
@@ -210,7 +210,7 @@ logic             sign_op0_lt_op1 ;  // Signed comparison flag
 // Branch Unit (EXU-BU)
 exu_branch_unit #(
    .PC_INIT         (PC_INIT),
-   .IS_BPREDICT_DYN (IS_BPREDICT_DYN),
+   .EN_BPREDICT_DYN (EN_BPREDICT_DYN),
    .GHRW            (GHRW),
    .BPCW            (BPCW)
 )  inst_exu_branch_unit (

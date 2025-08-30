@@ -113,6 +113,12 @@
 `else 
 `define IS_BPREDICT_DYN 0
 `endif
+
+`ifdef RAS
+`define EN_RAS 1
+`else 
+`define EN_RAS 0
+`endif
 // PARAM Macro generation ........ //
 
 `endif

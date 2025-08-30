@@ -92,11 +92,12 @@ module pqr5_core_top #(
    // Configurable parameters
    parameter PC_INIT         = `PC_INIT,          // Init PC on reset
    parameter IS_RF_ON_BRAM   = `IS_RF_ON_BRAM,    // Register File target = Block RAM?
-   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
    parameter BHT_IDW         = `BHT_IDW,          // Branch History Table (BHT) index width
    parameter BHT_TYPE        = `BHT_TYPE,         // BHT target configuration (for Dynamic Branch Predictor)
    parameter BHT_BIAS        = `BHT_BIAS,         // BHT entries reset value
-   parameter GHRW            = `GHRW              // Global History Register (GHR) width
+   parameter GHRW            = `GHRW,             // Global History Register (GHR) width
+   parameter EN_RAS          = `EN_RAS            // RAS enabled?
 )
 (   
    // Clock and Reset  
@@ -304,11 +305,12 @@ logic boot_flag_rg          ;  // Boot flag
 // Fetch Unit (FU)
 fetch_unit #(
    .PC_INIT         (PC_INIT),
-   .IS_BPREDICT_DYN (IS_BPREDICT_DYN),
+   .EN_BPREDICT_DYN (EN_BPREDICT_DYN),
    .BHT_IDW         (BHT_IDW),
    .BHT_TYPE        (BHT_TYPE),
    .BHT_BIAS        (BHT_BIAS),
-   .GHRW            (GHRW)
+   .GHRW            (GHRW),
+   .EN_RAS          (EN_RAS)
 )  inst_fetch_unit (
    .clk                 (clk),
    .aresetn             (aresetn),
@@ -499,7 +501,7 @@ opfwd_control inst_opfwd_control (
 // Execution Unit (EXU)
 execution_unit #(
    .PC_INIT         (PC_INIT),
-   .IS_BPREDICT_DYN (IS_BPREDICT_DYN),
+   .EN_BPREDICT_DYN (EN_BPREDICT_DYN),
    .GHRW            (GHRW), 
    .BPCW            (BPCW)
 )  inst_execution_unit (

@@ -51,11 +51,12 @@ import pqr5_core_pkg :: * ;
 module fetch_unit #(
    // Configurable parameters
    parameter PC_INIT         = `PC_INIT        ,  // Init PC on reset
-   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
    parameter BHT_IDW         = `BHT_IDW        ,  // BHT index width
    parameter BHT_TYPE        = `BHT_TYPE       ,  // BHT target configuration (for Dynamic Branch Predictor)
    parameter BHT_BIAS        = `BHT_BIAS       ,  // BHT entries reset value
    parameter GHRW            = `GHRW           ,  // GHR width
+   parameter EN_RAS          = `EN_RAS         ,  // RAS enabled?
 
    // Derived parameters
    localparam BPCW           = BHT_IDW+2          // PC width to index BHT
@@ -201,7 +202,7 @@ end
 // Generates branch taken status, which is later validated during branch resolution at Execution Unit (EXU).
 //===================================================================================================================================================
 generate
-if (!IS_BPREDICT_DYN) begin : GEN_BPREDICT_STT
+if (!EN_BPREDICT_DYN) begin : GEN_BPREDICT_STT
    // Static Branch Predictor
    static_bpredictor inst_static_bpredictor(
       .clk            (clk)          ,
@@ -251,6 +252,18 @@ end else begin : GEN_BPREDICT_DYN
    );
 end  //GEN_BPREDICT
 endgenerate
+
+//===================================================================================================================================================
+// RAS prediction logic
+// --------------------
+// Handles all CALL, RET instructions.
+// Generates RET taken status, which is later validated during RET resolution at Execution Unit (EXU).
+//===================================================================================================================================================
+//generate
+//if (EN_RAS) begin : GEN_RAS
+
+//end
+//endgenerate
 
 assign instr        = i_imem_pkt        ;
 assign instr_valid  = i_imem_pkt_valid  ;

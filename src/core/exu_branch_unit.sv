@@ -47,7 +47,7 @@ import pqr5_core_pkg :: * ;
 module exu_branch_unit #(
    // Configurable parameters
    parameter PC_INIT         = `PC_INIT,          // Init PC on reset
-   parameter IS_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor?
+   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
    parameter GHRW            = `GHRW,             // GHR width
    parameter BPCW            = `BHT_IDW+2         // PC width to index BHT
 )
