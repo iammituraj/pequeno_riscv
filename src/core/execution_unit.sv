@@ -98,7 +98,14 @@ module execution_unit #(
    input  logic             i_du_bubble         ,  // Bubble from DU    
    input  logic             i_du_pkt_valid      ,  // Packet valid from DU
    output logic             o_du_stall          ,  // Stall signal to DU
-
+   `ifdef RAS
+   input  logic             i_du_is_call        ,  // CALL flag from DU
+   input  logic             i_du_is_ret         ,  // RET flag from DU
+   input  logic [`XLEN-1:0] i_du_ras_ret_addr   ,  // RAS predicted RET address from DU
+   input  logic             i_du_ras_ret_taken  ,  // RAS predicted RET taken status from DU
+   input  logic [`RPTW-1:0] i_du_ras_snap_ptr   ,  // RAS pointer snapshot from DU
+   input  logic [`RPTW-0:0] i_du_ras_snap_cnt   ,  // RAS counter snapshot from DU
+   `endif
    input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU     
    input  logic [3:0]       i_du_alu_opcode     ,  // ALU opcode from DU    
    input  logic [4:0]       i_du_rs0            ,  // rs0 (source register-0) address from DU

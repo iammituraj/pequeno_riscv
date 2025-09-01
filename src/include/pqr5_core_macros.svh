@@ -76,7 +76,7 @@
 `define GHRW              (`BHT_IDW+2)    // Global History Register (GHR) width
 
 `define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
-`define RAS_DPT           8               // RAS depth, size = Nx4 bytes
+`define RAS_DPT           8               // RAS depth, size = (N x 32) bits
 
 // Test & Debug
 //`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
@@ -85,10 +85,17 @@
 //`define CORE_SYNTH                        // Define this macro to configure the core for SYNTHESIS
 
 // Simulation related
-`define DBG                               // Define this macro to generate all Debug interfaces for simulation         ; OVERRIDEN FOR SYNTHESIS
+`define DBG                               // Define this macro to generate all Debug interfaces                        ; OVERRIDEN FOR SYNTHESIS
 //`define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages  ; OVERRIDEN FOR SYNTHESIS
-`define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END sim instruction ; OVERRIDEN FOR SYNTHESIS
-`define REGFILE_DUMP  1                   // If DBG is enabled: '1'- Dump Register File @end of sim, '0'- No dump  ; OVERRIDEN to 0 for SYNTHESIS
+`define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END sim instruction     ; OVERRIDEN FOR SYNTHESIS
+`define REGFILE_DUMP  1                   // If DBG is enabled: '1'- Dump Register File @end of sim, '0'- No dump      ; OVERRIDEN to 0 for SYNTHESIS
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+// Derived macros - DO NOT MODIFY
+//---------------------------------------------------------------------------------------------------------------------------------------------------
+`define BPCW   (`BHT_IDW+2)         // PC width to index BHT
+`define RPTW   ($clog2(`RAS_DPT))   // RAS pointer size
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 
 // SYNTHESIS override ............ //

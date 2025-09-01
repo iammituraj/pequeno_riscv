@@ -63,8 +63,9 @@ module call_stack #(
                                           // 2'b11 = {ret, call}
                                           // bit[1]= instr @DU->EXU, bit[0] = instr @FU->DU
    // Status interface
-   output logic [PTRW:0]   o_stack_cnt ,  // Stack items count
-   output logic [PTRW-1:0] o_stack_ptr ,  // Stack top pointer
+   output logic [PTRW-1:0] o_stack_ptr ,  // Stack pointer
+   output logic [PTRW-0:0] o_stack_cnt ,  // Stack counter
+
 
    // Push interface
    input  logic            i_push_en   ,  // Push enable
@@ -86,7 +87,9 @@ logic [PTRW:0]   count_ff;         // Counter
 logic            push_en, pop_en;  // Conditioned push & pop enable
 logic [DW-1:0]   spare_buff[2];    // Spare buffers. Max. outstanding speculative calls/returns = 2 in the pipeline
 
+//=============================================================================
 // Logic to update stack pointer/counter
+//=============================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
@@ -110,7 +113,9 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
 end
 
+//=============================================================================
 // Logic to push data
+//=============================================================================
 // No reset of stack array, for FPGA friendly implementation on LUT RAMs
 always_ff @(posedge clk) begin
    // Rollback
@@ -141,9 +146,12 @@ assign pop_en      = i_pop_en & ~o_empty ;  // Pop is allowed only if not empty
 assign o_full  = (count_ff[PTRW] == 1'b1);  // Equivalent to count_ff == DPT; Overflow bit => max count reached...
 assign o_empty = (count_ff == 0);
 
+//===================================================================
 // Logic to update spare buffers
+//-------------------------------------------------------------------
 // spare_buff[0] = latest push data
 // spare_buff[1] = older data
+//===================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin

@@ -64,7 +64,9 @@ module static_bpredictor (
    output logic             o_flush              // Flush generated on branch taken
 );
 
+//---------------------------------------------------------------------------------------
 // Branch PC computation
+//---------------------------------------------------------------------------------------
 logic [`XLEN-1:0] pc_offset ;  // Offset to be added to PC after prediction
 logic [`XLEN-1:0] branch_pc ;  // Branch PC
 always_comb begin   
@@ -74,14 +76,19 @@ always_comb begin
 end
 assign branch_pc = i_pc + pc_offset ;
 
+//---------------------------------------------------------------------------------------
 // Branch Prediction
+//---------------------------------------------------------------------------------------
 // - If Jump instruction, branch is always taken
 // - If Branch instruction, branch is taken if backward jump 
 // - Branch taken status is never set if the instruction is not Branch/Jump   
+//---------------------------------------------------------------------------------------
 logic branch_taken ;
 assign branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_valid ;  
 
+//---------------------------------------------------------------------------------------
 // Synchronous logic to register Branch taken status, Branch PC and pipe it forward
+//---------------------------------------------------------------------------------------
 logic             branch_taken_rg ;  // Branch taken status registered
 logic [`XLEN-1:0] branch_pc_rg    ;  // Branch PC registered
 always_ff @(posedge clk or negedge aresetn) begin
@@ -99,7 +106,9 @@ end
 assign o_branch_taken = branch_taken_rg ;
 assign o_branch_pc    = branch_pc_rg    ;
 
+//---------------------------------------------------------------------------------------
 // Synchronous logic to generate Branch Predict Flush
+//---------------------------------------------------------------------------------------
 logic bp_flush_rg ;
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
