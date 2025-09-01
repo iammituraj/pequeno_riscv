@@ -25,13 +25,15 @@
 //----%%
 //----%% Description      : Instruction Fetch Unit (FU) of PQR5 Core. 
 //----%%                    # Supports interface to fetch instructions from instruction memory/cache controller in-order.
-//----%%                    # Branch prediction is supported, supports basic branch, stall, and flush mechanisms on branching.
-//----%%                    # Sends the fetched instruction and branch prediction signals as payload to Decode Unit (DU).
+//----%%                    # Branch prediction is supported.
+//----%%                    # RAS prediction is supported, supports speculative RET address prediction.
+//----%%                    # Generates Branch prediction and RAS prediction flushes in the pipeline.
+//----%%                    # Sends the fetched instruction and branch, RAS prediction signals as payload to Decode Unit (DU).
 //----%%                    # Inserts bubbles (NOPs) into pipelines when idle ie., when no instruction is available to be fetched.
-//----%%                    # Pipeline latency = 2 cycles
+//----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : May-2025
+//----%% Last modified on : Sept-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.

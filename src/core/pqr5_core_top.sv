@@ -66,11 +66,11 @@
 //----%%                    -- Register File target (Block RAM/LUT RAM/Flops)
 //----%%                    -- Static/Dynamic Branch predictor
 //----%%                    -- Branch History Table target (Block RAM/LUT RAM/Flops)
-//----%%                    -- RAS predictor
+//----%%                    -- Speculative RAS predictor
 //----%%                    -- Debug interfaces/modules to probe internal CPU signals during simulation can be generated using DBG macro.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : August-2025
+//----%% Last modified on : Sept-2025
 //----%% Notes            : -
 //----%%
 //----%% User Guide       : [TBD]
