@@ -50,7 +50,8 @@ import pqr5_core_pkg :: * ;
 module decode_unit #(
    // Configurable parameters
    parameter PC_INIT = `PC_INIT,  // Init PC on reset
-   parameter GHRW    = `GHRW      // GHR width
+   parameter GHRW    = `GHRW,     // GHR width
+   parameter RPTW    = `RPTW      // RAS pointer size
 )
 (
    // Clock and Reset
@@ -69,14 +70,16 @@ module decode_unit #(
    `ifdef BPREDICT_DYN
    input  logic [GHRW-1:0]  i_fu_ghr_snapshot  ,  // GHR snapshot from FU
    `endif
+
    `ifdef RAS
    input  logic             i_fu_is_call       ,  // CALL flag from FU
    input  logic             i_fu_is_ret        ,  // RET flag from FU
    input  logic [`XLEN-1:0] i_fu_ras_ret_addr  ,  // RAS predicted RET address from FU
    input  logic             i_fu_ras_ret_taken ,  // RAS predicted RET taken status from FU
-   input  logic [`RPTW-1:0] i_fu_ras_snap_ptr  ,  // RAS pointer snapshot from FU
-   input  logic [`RPTW-0:0] i_fu_ras_snap_cnt  ,  // RAS counter snapshot from FU
+   input  logic [RPTW-1:0]  i_fu_ras_snap_ptr  ,  // RAS pointer snapshot from FU
+   input  logic [RPTW-0:0]  i_fu_ras_snap_cnt  ,  // RAS counter snapshot from FU
    `endif
+
    input  logic             i_fu_bubble        ,  // Bubble from FU
    output logic             o_fu_stall         ,  // Stall signal to FU
 
@@ -99,14 +102,16 @@ module decode_unit #(
    output logic             o_exu_bubble       ,  // Bubble to EXU
    output logic             o_exu_pkt_valid    ,  // Packet valid to EXU
    input  logic             i_exu_stall        ,  // Stall signal from EXU   
+
    `ifdef RAS
    output logic             o_exu_is_call      ,  // CALL flag to EXU; Tapped by RAS predictor in FU
    output logic             o_exu_is_ret       ,  // RET flag to EXU
    output logic [`XLEN-1:0] o_exu_ras_ret_addr ,  // RAS predicted RET address to EXU
    output logic             o_exu_ras_ret_taken,  // RAS predicted RET taken status to EXU
-   output logic [`RPTW-1:0] o_exu_ras_snap_ptr ,  // RAS pointer snapshot to EXU
-   output logic [`RPTW-0:0] o_exu_ras_snap_cnt ,  // RAS counter snapshot to EXU
+   output logic [RPTW-1:0]  o_exu_ras_snap_ptr ,  // RAS pointer snapshot to EXU
+   output logic [RPTW-0:0]  o_exu_ras_snap_cnt ,  // RAS counter snapshot to EXU
    `endif
+
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
@@ -383,8 +388,8 @@ logic             du_is_call_rg      ;  // CALL flag
 logic             du_is_ret_rg       ;  // RET flag
 logic [`XLEN-1:0] du_ras_ret_addr_rg ;  // RAS predicted RET address
 logic             du_ras_ret_taken_rg;  // RAS predicted RET taken status
-logic [`RPTW-1:0] du_ras_snap_ptr_rg ;  // RAS pointer snapshot
-logic [`RPTW-0:0] du_ras_snap_cnt_rg ;  // RAS counter snapshot
+logic [RPTW-1:0]  du_ras_snap_ptr_rg ;  // RAS pointer snapshot
+logic [RPTW-0:0]  du_ras_snap_cnt_rg ;  // RAS counter snapshot
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin

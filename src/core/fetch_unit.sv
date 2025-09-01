@@ -60,7 +60,8 @@ module fetch_unit #(
    parameter RAS_DPT         = `RAS_DPT        ,  // RAS depth
 
    // Derived parameters
-   localparam BPCW           = BHT_IDW+2          // PC width to index BHT
+   localparam BPCW           = BHT_IDW+2       ,  // PC width to index BHT
+   localparam RPTW           = $clog2(RAS_DPT)    // RAS pointer size 
 )
 (   
    // Clock and Reset  
@@ -90,14 +91,16 @@ module fetch_unit #(
    `ifdef BPREDICT_DYN
    output logic [GHRW-1:0]  o_du_ghr_snapshot  ,  // GHR snapshot to DU
    `endif
+
    `ifdef RAS
    output logic             o_du_is_call       ,  // CALL flag to DU
    output logic             o_du_is_ret        ,  // RET flag to DU
    output logic [`XLEN-1:0] o_du_ras_ret_addr  ,  // RAS predicted RET address to DU
    output logic             o_du_ras_ret_taken ,  // RAS predicted RET taken status to DU
-   output logic [`RPTW-1:0] o_du_ras_snap_ptr  ,  // RAS pointer snapshot to DU
-   output logic [`RPTW-0:0] o_du_ras_snap_cnt  ,  // RAS counter snapshot to DU
+   output logic [RPTW-1:0]  o_du_ras_snap_ptr  ,  // RAS pointer snapshot to DU
+   output logic [RPTW-0:0]  o_du_ras_snap_cnt  ,  // RAS counter snapshot to DU
    `endif
+
    output logic             o_du_bubble        ,  // Bubble to DU
    input  logic             i_du_stall         ,  // Stall signal from DU
 
@@ -339,9 +342,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       is_ret_rg  <= is_ret  ;              
    end
 end
-assign o_du_is_call = is_call_rg ;
-assign o_du_is_ret  = is_ret_rg  ;
-
 end  //GEN_RAS
 endgenerate
 
@@ -391,6 +391,8 @@ assign o_du_instr    =  instr_rg[0]       ;
 assign o_du_br_taken =  branch_taken      ;
 assign o_du_bubble   = ~instr_valid_rg[0] ;  // Insert bubble if invalid instruction
 `ifdef RAS
+assign o_du_is_call       = is_call_rg    ;
+assign o_du_is_ret        = is_ret_rg     ;
 assign o_du_ras_ret_addr  = ras_ret_addr  ;
 assign o_du_ras_ret_taken = ras_ret_taken ;
 `endif

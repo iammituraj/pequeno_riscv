@@ -66,10 +66,11 @@
 //----%%                    -- Register File target (Block RAM/LUT RAM/Flops)
 //----%%                    -- Static/Dynamic Branch predictor
 //----%%                    -- Branch History Table target (Block RAM/LUT RAM/Flops)
+//----%%                    -- RAS predictor
 //----%%                    -- Debug interfaces/modules to probe internal CPU signals during simulation can be generated using DBG macro.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : May-2025
+//----%% Last modified on : August-2025
 //----%% Notes            : -
 //----%%
 //----%% User Guide       : [TBD]
@@ -141,7 +142,8 @@ module pqr5_core_top #(
 //===================================================================================================================================================
 // Localparams
 //===================================================================================================================================================
-localparam BPCW  = BHT_IDW+2 ;  // PC width to index BHT
+localparam BPCW  = BHT_IDW+2 ;        // PC width to index BHT
+localparam RPTW  = $clog2(RAS_DPT) ;  // RAS pointer size
 
 //===================================================================================================================================================
 // Internal Registers/Signals
@@ -157,8 +159,8 @@ logic             fu_du_is_call      ;  // CALL flag from FU to DU
 logic             fu_du_is_ret       ;  // RET flag from FU to DU
 logic [`XLEN-1:0] fu_du_ras_ret_addr ;  // RAS predicted RET address from FU to DU
 logic             fu_du_ras_ret_taken;  // RAS predicted RET taken status from FU to DU
-logic [`RPTW-1:0] fu_du_ras_snap_ptr ;  // RAS pointer snapshot from FU to DU
-logic [`RPTW-0:0] fu_du_ras_snap_cnt ;  // RAS counter snapshot from FU to DU
+logic [RPTW-1:0]  fu_du_ras_snap_ptr ;  // RAS pointer snapshot from FU to DU
+logic [RPTW-0:0]  fu_du_ras_snap_cnt ;  // RAS counter snapshot from FU to DU
 `endif
 
 // DU-RF Interface
@@ -223,8 +225,8 @@ logic             du_exu_is_call      ;  // CALL flag from DU to EXU
 logic             du_exu_is_ret       ;  // RET flag from DU to EXU
 logic [`XLEN-1:0] du_exu_ras_ret_addr ;  // RAS predicted RET address from DU to EXU
 logic             du_exu_ras_ret_taken;  // RAS predicted RET taken status from DU to EXU
-logic [`RPTW-1:0] du_exu_ras_snap_ptr ;  // RAS pointer snapshot from DU to EXU
-logic [`RPTW-0:0] du_exu_ras_snap_cnt ;  // RAS counter snapshot from DU to EXU
+logic [RPTW-1:0]  du_exu_ras_snap_ptr ;  // RAS pointer snapshot from DU to EXU
+logic [RPTW-0:0]  du_exu_ras_snap_cnt ;  // RAS counter snapshot from DU to EXU
 `endif
 logic [11:0]      du_exu_i_type_imm   ;  // I-type immediate from DU to EXU
 logic [11:0]      du_exu_s_type_imm   ;  // S-type immediate from DU to EXU
@@ -353,6 +355,7 @@ fetch_unit #(
    `ifdef BPREDICT_DYN
    .o_du_ghr_snapshot   (fu_du_ghr_snapshot),
    `endif
+
    `ifdef RAS
    .o_du_is_call        (fu_du_is_call),
    .o_du_is_ret         (fu_du_is_ret),
@@ -361,6 +364,7 @@ fetch_unit #(
    .o_du_ras_snap_ptr   (fu_du_ras_snap_ptr),
    .o_du_ras_snap_cnt   (fu_du_ras_snap_cnt),
    `endif
+
    .o_du_bubble         (fu_du_bubble),
    .i_du_stall          (du_fu_stall),
    
@@ -394,6 +398,7 @@ decode_unit #(
    `ifdef BPREDICT_DYN
    .i_fu_ghr_snapshot (fu_du_ghr_snapshot),
    `endif
+
    `ifdef RAS
    .i_fu_is_call      (fu_du_is_call),
    .i_fu_is_ret       (fu_du_is_ret),     
@@ -402,6 +407,7 @@ decode_unit #(
    .i_fu_ras_snap_ptr (fu_du_ras_snap_ptr),
    .i_fu_ras_snap_cnt (fu_du_ras_snap_cnt),
    `endif
+
    .i_fu_bubble       (fu_du_bubble),
    .o_fu_stall        (du_fu_stall),
    
@@ -422,6 +428,7 @@ decode_unit #(
    .o_exu_bubble      (du_exu_bubble),  
    .o_exu_pkt_valid   (du_exu_pkt_valid),
    .i_exu_stall       (exu_du_stall),
+
     `ifdef RAS
    .o_exu_is_call      (du_exu_is_call),
    .o_exu_is_ret       (du_exu_is_ret),
@@ -430,6 +437,7 @@ decode_unit #(
    .o_exu_ras_snap_ptr (du_exu_ras_snap_ptr),
    .o_exu_ras_snap_cnt (du_exu_ras_snap_cnt),
    `endif  
+
    .o_exu_is_alu_op   (du_exu_is_alu_op),
    .o_exu_alu_opcode  (du_exu_alu_opcode),
    .o_exu_rs0         (du_exu_rs0),
@@ -578,6 +586,7 @@ execution_unit #(
    .i_du_bubble        (du_exu_bubble),
    .i_du_pkt_valid     (du_exu_pkt_valid),
    .o_du_stall         (exu_du_stall),
+
    `ifdef RAS
    .i_du_is_call       (du_exu_is_call), 
    .i_du_is_ret        (du_exu_is_ret),
@@ -586,6 +595,7 @@ execution_unit #(
    .i_du_ras_snap_ptr  (du_exu_ras_snap_ptr),
    .i_du_ras_snap_cnt  (du_exu_ras_snap_cnt),
    `endif
+
    .i_du_is_alu_op     (du_exu_is_alu_op),
    .i_du_alu_opcode    (du_exu_alu_opcode),
    .i_du_rs0           (du_exu_rs0),
