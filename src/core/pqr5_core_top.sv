@@ -156,7 +156,6 @@ logic             fu_du_bubble      ;  // Bubble from FU to DU
 logic             du_fu_stall       ;  // Stall signal from DU to FU
 `ifdef RAS
 logic             fu_du_is_call      ;  // CALL flag from FU to DU
-logic             fu_du_is_ret       ;  // RET flag from FU to DU
 logic [`XLEN-1:0] fu_du_ras_ret_addr ;  // RAS predicted RET address from FU to DU
 logic             fu_du_ras_ret_taken;  // RAS predicted RET taken status from FU to DU
 logic [RPTW-1:0]  fu_du_ras_snap_ptr ;  // RAS pointer snapshot from FU to DU
@@ -222,7 +221,6 @@ logic             du_exu_is_load      ;  // Load flag from DU to EXU
 logic             du_exu_is_lui       ;  // LUI flag from DU to EXU; Tapped by opfwd block...
 `ifdef RAS
 logic             du_exu_is_call      ;  // CALL flag from DU to EXU
-logic             du_exu_is_ret       ;  // RET flag from DU to EXU
 logic [`XLEN-1:0] du_exu_ras_ret_addr ;  // RAS predicted RET address from DU to EXU
 logic             du_exu_ras_ret_taken;  // RAS predicted RET taken status from DU to EXU
 logic [RPTW-1:0]  du_exu_ras_snap_ptr ;  // RAS pointer snapshot from DU to EXU
@@ -280,6 +278,10 @@ logic [`XLEN-1:0] wbu_rf_rdt_data  ;  // rdt data from WBU to RF
 `ifdef DBG
 logic [`XLEN-1:0] wbu_pc_out           ;  // PC from WBU
 logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
+`else
+`ifdef SIMEXIT_INSTR_END
+logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
+`endif
 `endif
 logic             wbu_is_riuj_out      ;  // RIUJ flag from WBU
 logic             wbu_pkt_valid_out    ;  // Packet valid from WBU
@@ -291,7 +293,11 @@ logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
 
 // Debug signals
 `ifdef DBG
-logic [2:0]       fu_dbg                ;  // Debug signal from FU  : {branch_taken, is_op_branch, is_op_jal}
+`ifdef RAS
+logic [5:0]       fu_dbg                ;  // Debug signal from FU  : {ras_flush, is_call, is_ret, bp_flush, is_op_branch, is_op_jal}
+`else
+logic [2:0]       fu_dbg                ;  // Debug signal from FU  : {bp_flush, is_op_branch, is_op_jal}
+`endif
 logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
 logic [4:0]       exu_dbg               ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
 logic             exu_dbg_is_b_instr    ;  // Branch instruction flag from EXU  
@@ -310,6 +316,13 @@ logic [BPCW-1:0] exu_bp_upd_pc       ;  // PC to index BHT from EXU to Branch Pr
 logic            exu_bp_sts_btaken   ;  // Branch taken status from EXU to Branch Predictor
 logic [BPCW-1:0] exu_bp_idx_pc       ;  // PC index from EXU-BU to predictor
 logic [GHRW-1:0] exu_bp_idx_ghr      ;  // GHR index from EXU-BU to predictor
+`endif
+
+// RAS rollback related
+`ifdef RAS
+logic             ras_rbk_en  ;  // RAS roll back enable
+logic [RPTW-1:0]  ras_rbk_ptr ;  // RAS roll back pointer
+logic [RPTW-0:0]  ras_rbk_cnt ;  // RAS roll back counter
 `endif
 
 // Test signals
@@ -357,8 +370,13 @@ fetch_unit #(
    `endif
 
    `ifdef RAS
+   .i_ras_rbk_en        (ras_rbk_en),
+   .i_ras_rbk_ptr       (ras_rbk_ptr),
+   .i_ras_rbk_cnt       (ras_rbk_cnt),
+   .i_du_is_call        (du_exu_is_call       & ~du_exu_bubble),  // This flag must be qualified by instr valid DU->EXU
+   .i_du_is_ret_taken   (du_exu_ras_ret_taken & ~du_exu_bubble),  // This flag must be qualified by instr valid DU->EXU
+
    .o_du_is_call        (fu_du_is_call),
-   .o_du_is_ret         (fu_du_is_ret),
    .o_du_ras_ret_addr   (fu_du_ras_ret_addr),
    .o_du_ras_ret_taken  (fu_du_ras_ret_taken),
    .o_du_ras_snap_ptr   (fu_du_ras_snap_ptr),
@@ -401,7 +419,6 @@ decode_unit #(
 
    `ifdef RAS
    .i_fu_is_call      (fu_du_is_call),
-   .i_fu_is_ret       (fu_du_is_ret),     
    .i_fu_ras_ret_addr (fu_du_ras_ret_addr),
    .i_fu_ras_ret_taken(fu_du_ras_ret_taken),
    .i_fu_ras_snap_ptr (fu_du_ras_snap_ptr),
@@ -431,7 +448,6 @@ decode_unit #(
 
     `ifdef RAS
    .o_exu_is_call      (du_exu_is_call),
-   .o_exu_is_ret       (du_exu_is_ret),
    .o_exu_ras_ret_addr (du_exu_ras_ret_addr),
    .o_exu_ras_ret_taken(du_exu_ras_ret_taken),
    .o_exu_ras_snap_ptr (du_exu_ras_snap_ptr),
@@ -550,7 +566,6 @@ opfwd_control inst_opfwd_control (
 // Execution Unit (EXU)
 execution_unit #(
    .PC_INIT         (PC_INIT),
-   .EN_BPREDICT_DYN (EN_BPREDICT_DYN),
    .GHRW            (GHRW), 
    .BPCW            (BPCW)
 )  inst_execution_unit (
@@ -588,12 +603,15 @@ execution_unit #(
    .o_du_stall         (exu_du_stall),
 
    `ifdef RAS
-   .i_du_is_call       (du_exu_is_call), 
-   .i_du_is_ret        (du_exu_is_ret),
+   .i_du_is_call       (du_exu_is_call),
    .i_du_ras_ret_addr  (du_exu_ras_ret_addr),
    .i_du_ras_ret_taken (du_exu_ras_ret_taken),
    .i_du_ras_snap_ptr  (du_exu_ras_snap_ptr),
    .i_du_ras_snap_cnt  (du_exu_ras_snap_cnt),
+
+   .o_ras_rbk_en       (ras_rbk_en),
+   .o_ras_rbk_ptr      (ras_rbk_ptr),
+   .o_ras_rbk_cnt      (ras_rbk_cnt),
    `endif
 
    .i_du_is_alu_op     (du_exu_is_alu_op),
@@ -725,6 +743,10 @@ writeback_unit #(
    `ifdef DBG  
    .o_pc                  (wbu_pc_out),  
    .o_instr               (wbu_instr_out),  
+   `else
+   `ifdef SIMEXIT_INSTR_END
+   .o_instr               (wbu_instr_out),
+   `endif
    `endif
    .o_is_riuj             (wbu_is_riuj_out),  
    .o_pkt_valid           (wbu_pkt_valid_out),
@@ -780,7 +802,11 @@ final begin
    $display("+============================+");
    $display("");
    $display("+============================+");
+   `ifdef RAS
+   $display("| BRANCH+RAS PREDICT MONITOR (J/B)");
+   `else
    $display("| BRANCH PREDICT MONITOR (J/B)");
+   `endif
    $display("+============================+");
    $display("| Jump/Branch = %0d cycles", jb_cycles);
    $display("| BP Flush    = %0d cycles", bp_flush_cycles);
@@ -839,8 +865,15 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("| FETCH - DEBUG");
       $display("+------------------------------------------------");
       $display("| BP flush      : %s", ynstatus(fu_dbg[2]));
+      $display("| JAL instr     : %s", ynstatus(fu_dbg[0] & ~fu_du_bubble));
+      $display("| Branch instr  : %s", ynstatus(fu_dbg[1] & ~fu_du_bubble));
+      `ifdef RAS
+      $display("| RAS flush     : %s", ynstatus(fu_dbg[5]));
+      $display("| CALL instr    : %s", ynstatus(fu_dbg[4] & ~fu_du_bubble));
+      $display("| RET instr     : %s", ynstatus(fu_dbg[3] & ~fu_du_bubble));      
+      `endif
       $write  ("| Flush to IMEM : %s", ynstatus(o_imem_flush));
-      if (fu_dbg[2] && !exu_bu_flush) $write(", by %s", ynstatus(fu_dbg[0], "JAL instr", "Branch instr")); 
+      //if (fu_dbg[2] && !exu_bu_flush) $write(", by %s", ynstatus(fu_dbg[0], "JAL instr", "Branch instr")); 
       $write("\n");
       $display("| Stall generated : %s", ynstatus(o_imem_stall));
       $display("+================================================");
@@ -893,7 +926,11 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("+===========================+");
       $display("");
       $display("+===========================+");
+      `ifdef RAS
+      $display("| BRANCH+RAS PREDICT MONITOR");
+      `else
       $display("| BRANCH PREDICT MONITOR");
+      `endif
       $display("+===========================+");
       $display("| Jump/Branch = %0d cycles", jb_cycles);
       $display("| BU Flush    = %0d cycles ", bu_flush_cycles);

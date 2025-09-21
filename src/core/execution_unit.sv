@@ -55,7 +55,6 @@ import pqr5_core_pkg :: * ;
 module execution_unit #(
    // Configurable parameters
    parameter PC_INIT         = `PC_INIT,          // Init PC on reset
-   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
    parameter GHRW            = `GHRW ,            // GHR width
    parameter BPCW            = `BHT_IDW+2,        // PC width to index BHT
    parameter RPTW            = `RPTW              // RAS pointer size
@@ -102,11 +101,14 @@ module execution_unit #(
 
    `ifdef RAS
    input  logic             i_du_is_call        ,  // CALL flag from DU
-   input  logic             i_du_is_ret         ,  // RET flag from DU
    input  logic [`XLEN-1:0] i_du_ras_ret_addr   ,  // RAS predicted RET address from DU
    input  logic             i_du_ras_ret_taken  ,  // RAS predicted RET taken status from DU
    input  logic [RPTW-1:0]  i_du_ras_snap_ptr   ,  // RAS pointer snapshot from DU
    input  logic [RPTW-0:0]  i_du_ras_snap_cnt   ,  // RAS counter snapshot from DU
+   
+   output logic             o_ras_rbk_en        ,  // RAS roll back enable
+   output logic [RPTW-1:0]  o_ras_rbk_ptr       ,  // RAS roll back pointer
+   output logic [RPTW-0:0]  o_ras_rbk_cnt       ,  // RAS roll back counter
    `endif
 
    input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU     
@@ -220,7 +222,6 @@ logic             sign_op0_lt_op1 ;  // Signed comparison flag
 // Branch Unit (EXU-BU)
 exu_branch_unit #(
    .PC_INIT         (PC_INIT),
-   .EN_BPREDICT_DYN (EN_BPREDICT_DYN),
    .GHRW            (GHRW),
    .BPCW            (BPCW)
 )  inst_exu_branch_unit (
@@ -241,6 +242,10 @@ exu_branch_unit #(
    .i_op0_lt_op1      (op0_lt_op1)        ,  
    .i_sign_op0_lt_op1 (sign_op0_lt_op1)   ,
    .i_branch_taken    (i_exu_bu_pred_btaken) ,
+   `ifdef RAS
+   .i_ras_ret_addr    (i_du_ras_ret_addr) ,
+   .i_ras_ret_taken   (i_du_ras_ret_taken),
+   `endif
 
    `ifdef DBG
    .o_dbg_is_b_instr    (o_dbg_is_b_instr)    ,
@@ -368,6 +373,28 @@ always_ff @(posedge clk or negedge aresetn) begin
       exu_rdt_not_x0_rg <= i_du_rdt_not_x0 ;
    end 
 end
+
+//===================================================================================================================================================
+// Rollback generation logic
+//===================================================================================================================================================
+`ifdef RAS
+logic [RPTW-1:0] ras_rbk_ptr_rg ;  // RAS roll back pointer
+logic [RPTW-0:0] ras_rbk_cnt_rg ;  // RAS roll back counter
+always_ff @(posedge clk or negedge aresetn) begin
+   if (!aresetn) begin 
+      ras_rbk_ptr_rg <= '0;
+      ras_rbk_cnt_rg <= '0;
+   end
+   else if (!stall) begin  // Pipe forward...
+      ras_rbk_ptr_rg <= i_du_ras_snap_ptr;
+      ras_rbk_cnt_rg <= i_du_ras_snap_cnt;
+   end 
+end
+assign o_ras_rbk_en  = bu_flush       ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
+                                         // All of the cases, it should rollback the RAS
+assign o_ras_rbk_ptr = ras_rbk_ptr_rg ;
+assign o_ras_rbk_cnt = ras_rbk_cnt_rg ;
+`endif//RAS
 
 //===================================================================================================================================================
 // Combinatorial logic to insert bubble and compute EXU result for writeback

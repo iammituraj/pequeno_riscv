@@ -58,7 +58,7 @@ module call_stack #(
    input  logic [PTRW-0:0] i_rbk_cnt   ,  // Roll back counter
    input  logic [1:0]      i_spec_state,  // Speculative state of the CPU pipeline
                                           // 2'b00 = {other/ret, other/ret} 
-                                          // 2'b01 = {other, call} or {call, other} or {call, ret}
+                                          // 2'b01 = {other, call} or {call, other/ret}
                                           // 2'b10 = {call, call}
                                           // 2'b11 = {ret, call}
                                           // bit[1]= instr @DU->EXU, bit[0] = instr @FU->DU
@@ -114,11 +114,10 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 //=============================================================================
-// Logic to push data
+// Logic to push data/rollback
 //=============================================================================
-// No reset of stack array, for FPGA friendly implementation on LUT RAMs
 always_ff @(posedge clk) begin
-   // Rollback
+   // Rollback (higher priority)
    if (i_rbk_en) begin
       case (i_spec_state)
          2'b01  : begin stack[i_rbk_ptr+0] <= spare_buff[0];                                      end
@@ -149,7 +148,10 @@ assign o_empty = (count_ff == 0);
 //===================================================================
 // Logic to update spare buffers
 //-------------------------------------------------------------------
-// spare_buff[0] = latest push data
+// On every push, there is a potential data overwrite at the top,
+// This data is stored on spare buffs in case rollback is reqd later.
+//
+// spare_buff[0] = latest data
 // spare_buff[1] = older data
 //===================================================================
 always_ff @(posedge clk or negedge aresetn) begin

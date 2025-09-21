@@ -28,7 +28,7 @@
 //----%%                    - RAS prediction on every RET - If the stack is not empty, return address is popped out and flush is generated.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : August-2025
+//----%% Last modified on : Sept-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -57,10 +57,9 @@ module ras_predictor #(
    input  logic [ST_PTRW-0:0] i_st_rbk_cnt  ,  // Roll back counter
 
    // CPU pipeline state
-   input  logic               i_is_call_fu  ,  // CALL instr flag at FU output
-   input  logic               i_is_ret_fu   ,  // RET instr flag at DU output
-   input  logic               i_is_call_du  ,  // CALL instr flag at DU output
-   input  logic               i_is_ret_du   ,  // RET instruction flag at DU output
+   input  logic               i_is_call_fu        ,  // CALL instr flag at FU output
+   input  logic               i_is_call_du        ,  // CALL instr flag at DU output
+   input  logic               i_is_ret_taken_du   ,  // RET taken flag at DU output
 
    // Fetch Unit Interface
    input  logic [`XLEN-1:0]   i_pc          ,  // PC in
@@ -142,8 +141,8 @@ assign ret_addr_on_call = i_pc + `XLEN'(4);  // Return address after exiting a s
 // Encode speculative state of the CPU pipeline
 //===================================================================
 always_comb begin
-   if   (i_is_ret_du && i_is_call_fu) cpu_spec_state = 2'b11;
-   else                               cpu_spec_state = {1'b0, i_is_call_du} + {1'b0, i_is_call_fu};
+   if   (i_is_ret_taken_du && i_is_call_fu) cpu_spec_state = 2'b11;
+   else                                     cpu_spec_state = {1'b0, i_is_call_du} + {1'b0, i_is_call_fu};
 end
 
 //===================================================================

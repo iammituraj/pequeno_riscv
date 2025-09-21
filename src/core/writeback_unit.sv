@@ -30,7 +30,7 @@
 //----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : Sept-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -95,6 +95,10 @@ module writeback_unit #(
    `ifdef DBG
    output logic [`XLEN-1:0] o_pc                  ,  // PC from WBU
    output logic [`ILEN-1:0] o_instr               ,  // Instruction from WBU
+   `else
+   `ifdef SIMEXIT_INSTR_END
+   output logic [`ILEN-1:0] o_instr               ,  // Instruction from WBU
+   `endif
    `endif
    output logic             o_is_riuj             ,  // RIUJ flag from WBU
    output logic             o_rdt_wren            ,  // rdt write enable from WBU
@@ -112,6 +116,10 @@ module writeback_unit #(
 `ifdef DBG
 logic [`XLEN-1:0] wbu_pc_rg         ;  // PC
 logic [`ILEN-1:0] wbu_instr_rg      ;  // Instruction
+`else
+`ifdef SIMEXIT_INSTR_END
+logic [`ILEN-1:0] wbu_instr_rg      ;  // Instruction
+`endif
 `endif
 logic             wbu_is_riuj_rg    ;  // RIUJ flag
 logic             wbu_pkt_valid_rg  ;  // Packet valid
@@ -260,6 +268,10 @@ assign o_rf_rdt_data = rdt_data ;
 `ifdef DBG
 assign o_pc          = wbu_pc_rg        ;  
 assign o_instr       = wbu_instr_rg     ;
+`else
+`ifdef SIMEXIT_INSTR_END
+assign o_instr       = wbu_instr_rg     ;
+`endif
 `endif
 assign o_is_riuj     = wbu_is_riuj_rg   ;
 assign o_rdt_wren    = rdt_wren_rg      ;

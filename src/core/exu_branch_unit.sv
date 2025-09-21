@@ -27,7 +27,7 @@
 //----%%                    branch status signals.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : May-2025
+//----%% Last modified on : Sept-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -47,7 +47,6 @@ import pqr5_core_pkg :: * ;
 module exu_branch_unit #(
    // Configurable parameters
    parameter PC_INIT         = `PC_INIT,          // Init PC on reset
-   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
    parameter GHRW            = `GHRW,             // GHR width
    parameter BPCW            = `BHT_IDW+2         // PC width to index BHT
 )
@@ -71,6 +70,10 @@ module exu_branch_unit #(
    input  logic             i_op0_lt_op1     ,  // Unsigned comparison flag: op0 < op1 ? from ALU
    input  logic             i_sign_op0_lt_op1,  // Signed comparison flag: signed(op0) < signed(op1) ? from ALU
    input  logic             i_branch_taken   ,  // Branch taken status from Branch Predictor
+   `ifdef RAS
+   input  logic [`XLEN-1:0] i_ras_ret_addr   ,  // RAS predicted RET address
+   input  logic             i_ras_ret_taken  ,  // RAS predicted RET taken status
+   `endif
 
    `ifdef DBG
    // Debug signals
@@ -111,6 +114,7 @@ logic [`XLEN-1:0] immI, immB                    ;  // J/I/B-type immediates sign
 logic [`XLEN-1:0] pc_plus_4                     ;  // PC+4           
 logic [`XLEN-1:0] pc_plus_immB                  ;  // PC+immJ and PC+immB  
 logic [`XLEN-1:0] op0_plus_immI                 ;  // op0+immI  
+logic [`XLEN-1:0] jalr_branch_addr              ;  // JALR branch addr
 
 logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Equality, Unsigned comparison flags 
 logic             is_sign_op0_lt_op1            ;  // Signed comparison flag 
@@ -152,14 +156,28 @@ end
 // Combinatorial logic for branch decoding & resolution
 //===================================================================================================================================================
 // - JAL never generates flush because it is already resolved by the Branch Predictor in FU correctly, and the branch is always taken.
-// - JALR always generates flush, cz the Branch predictor is static and hence can never resolve the branch address.
-//   The branch is always taken, while the Branch predictor always resolves it wrongly as not taken always.
-// - Branch instructions: flush iff current branch status != status computed after execution .
+// - JALR (other than RAS-predicted RET) always generates flush, cz the Branch predictor can never resolve the branch address.
+//   The branch is always resolved as taken, while the Branch predictor always predicts it as NOT taken.
+// - Branch instructions: flush iff resolved branch status != predicted status.
 //===================================================================================================================================================
 always_comb begin
    case ({i_is_j_or_jalr, i_is_b_type})
       // JAL or JALR
-      2'b10   : branch_taken = 1'b1 ;
+      2'b10   : begin 
+                   `ifdef RAS
+                  // For RAS-predicted RET instructions:
+                  // Compare RAS-predicted RET addr with JALR branch address, and check if the predicted address matches....
+                  // - If RAS prediction is FALSE --> branch_taken must be set as 1, so that flush is generated... cz BP prediction is always 0 for RET
+                  // - If RAS prediction is TRUE  --> branch_taken must be set as 0, so that NO flush is generated... cz BP prediction is always 0 for RET
+                   if (i_ras_ret_taken) begin
+                      branch_taken = (i_ras_ret_addr != jalr_branch_addr);
+                   end else begin
+                      branch_taken = 1'b1 ;  // JAL, JALR, CALL, RAS-unpredicted RET
+                   end
+                   `else
+                   branch_taken = 1'b1 ;
+                   `endif
+                end
       // Branch
       2'b01   : begin
                    // Which branch instruction?
@@ -183,13 +201,16 @@ assign is_op0_lt_op1        = i_op0_lt_op1      ;  // Computed from ALU
 assign is_sign_op0_lt_op1   = i_sign_op0_lt_op1 ;  // Computed from ALU
 
 // Combinatorial logic for Branch PC resolution
+// JAL is not considered here cz branch_pc is relevant only when misprediction happens and flush is generated
+// and JAL never causes mispredictions!
 always_comb begin
    case ({i_is_jalr, i_is_b_type})
-      2'b10   : branch_pc = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
+      2'b10   : branch_pc = jalr_branch_addr ;
       2'b01   : branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
       default : branch_pc = pc_plus_4 ;
    endcase
 end
+assign jalr_branch_addr = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
 
 // Flush generation logic
 assign is_branch_taken_diff = branch_taken_rg ^ bp_branch_taken_rg     ;  // Compare the predicted and resolved branch taken status and flag if different 

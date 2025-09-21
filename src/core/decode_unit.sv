@@ -73,7 +73,6 @@ module decode_unit #(
 
    `ifdef RAS
    input  logic             i_fu_is_call       ,  // CALL flag from FU
-   input  logic             i_fu_is_ret        ,  // RET flag from FU
    input  logic [`XLEN-1:0] i_fu_ras_ret_addr  ,  // RAS predicted RET address from FU
    input  logic             i_fu_ras_ret_taken ,  // RAS predicted RET taken status from FU
    input  logic [RPTW-1:0]  i_fu_ras_snap_ptr  ,  // RAS pointer snapshot from FU
@@ -105,7 +104,6 @@ module decode_unit #(
 
    `ifdef RAS
    output logic             o_exu_is_call      ,  // CALL flag to EXU; Tapped by RAS predictor in FU
-   output logic             o_exu_is_ret       ,  // RET flag to EXU
    output logic [`XLEN-1:0] o_exu_ras_ret_addr ,  // RAS predicted RET address to EXU
    output logic             o_exu_ras_ret_taken,  // RAS predicted RET taken status to EXU
    output logic [RPTW-1:0]  o_exu_ras_snap_ptr ,  // RAS pointer snapshot to EXU
@@ -381,11 +379,10 @@ end
 `endif
 
 //===================================================================================================================================================
-// Synchronous logic to pipe CALL, RET flags, RAS prediction signals
+// Synchronous logic to pipe CALL, RAS prediction signals
 //===================================================================================================================================================
 `ifdef RAS
 logic             du_is_call_rg      ;  // CALL flag
-logic             du_is_ret_rg       ;  // RET flag
 logic [`XLEN-1:0] du_ras_ret_addr_rg ;  // RAS predicted RET address
 logic             du_ras_ret_taken_rg;  // RAS predicted RET taken status
 logic [RPTW-1:0]  du_ras_snap_ptr_rg ;  // RAS pointer snapshot
@@ -394,7 +391,6 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
       du_is_call_rg       <= 1'b0;
-      du_is_ret_rg        <= 1'b0;
       du_ras_ret_addr_rg  <= '0  ;
       du_ras_ret_taken_rg <= 1'b0;
       du_ras_snap_ptr_rg  <= '0  ;
@@ -403,7 +399,6 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else if (!stall) begin  // Pipe forward...
       du_is_call_rg       <= i_fu_is_call       ;
-      du_is_ret_rg        <= i_fu_is_ret        ;  
       du_ras_ret_addr_rg  <= i_fu_ras_ret_addr  ;
       du_ras_ret_taken_rg <= i_fu_ras_ret_taken ;
       du_ras_snap_ptr_rg  <= i_fu_ras_snap_ptr  ;
@@ -504,7 +499,6 @@ assign o_exu_is_load      = is_load_rg ;
 assign o_exu_is_lui       = is_lui_rg  ;
 `ifdef RAS
 assign o_exu_is_call      = du_is_call_rg       ;
-assign o_exu_is_ret       = du_is_ret_rg        ;
 assign o_exu_ras_ret_addr = du_ras_ret_addr_rg  ;
 assign o_exu_ras_ret_taken= du_ras_ret_taken_rg ;
 assign o_exu_ras_snap_ptr = du_ras_snap_ptr_rg  ;
