@@ -784,6 +784,9 @@ int   bubb_cycles ;
 int   jb_cycles   ;
 int   bp_flush_cycles ;
 int   bu_flush_cycles ;
+`ifdef RAS
+int   ras_flush_cycles;
+`endif
 int   b_cycles        ;
 int   bu_b_flush_cycles  ;
 
@@ -810,6 +813,9 @@ final begin
    $display("+============================+");
    $display("| Jump/Branch = %0d cycles", jb_cycles);
    $display("| BP Flush    = %0d cycles", bp_flush_cycles);
+   `ifdef RAS
+   $display("| RAS Flush   = %0d cycles", ras_flush_cycles);
+   `endif
    $display("| BU Flush    = %0d cycles ", bu_flush_cycles);
    if (jb_cycles == 0)
       $display("| Hit rate    = NA");
@@ -1024,13 +1030,19 @@ always @(posedge clk or negedge aresetn) begin
       bu_b_flush_cycles  <= 0 ;
       bu_flush_cycles    <= 0 ;
       bp_flush_cycles    <= 0 ;
+      `ifdef RAS
+      ras_flush_cycles   <= 0 ;
+      `endif
    end
    else begin
       if (!(du_exu_bubble | exu_bu_flush) && is_j_or_b && !exu_du_stall) jb_cycles          <= jb_cycles + 1 ;
       if (exu_dbg_is_b_instr && !maccu_exu_stall)                        b_cycles           <= b_cycles  + 1  ; 
       if (exu_dbg_is_b_instr && exu_dbg_is_pred_wrong)                   bu_b_flush_cycles  <= bu_b_flush_cycles  + 1 ;
-      if (exu_bu_flush)                                                  bu_flush_cycles    <= bu_flush_cycles + 1 ;
-      if (fu_dbg[2])                                                     bp_flush_cycles    <= bp_flush_cycles + 1 ;
+      if (exu_bu_flush)                                                  bu_flush_cycles    <= bu_flush_cycles  + 1 ;
+      if (fu_dbg[2])                                                     bp_flush_cycles    <= bp_flush_cycles  + 1 ;
+      `ifdef RAS
+      if (fu_dbg[5])                                                     ras_flush_cycles   <= ras_flush_cycles + 1 ;
+      `endif
    end
 end
 
