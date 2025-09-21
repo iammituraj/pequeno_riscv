@@ -22,7 +22,7 @@
 #                    - Compile and build Dhrystone CPU Benchmark and generate the binary for on-board validation/simulation.
 #                    - Compile and build Standard RISC-V Test pgms (by riscv.org) with GCC for on-board validation/simulation.
 #
-# Last Modified on : Aug-2025
+# Last Modified on : Sept-2025
 # Compatibility    : Linux/Unix, Windows require terminal programs like MSYS/Gitbash
 #                    ModelSim/QuestaSim for RTL simulation
 #                    Pequeno SW toolchain for ASM compiling, flashing Pequeno

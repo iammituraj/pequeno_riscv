@@ -41,9 +41,10 @@ en_run17=1
 en_run18=1
 en_run19=1
 en_run20=1
+en_run21=1
 
 # TESTS
-total_tests=20
+total_tests=21
 
 run01=01_test_regfile
 run02=02_test_alu
@@ -65,6 +66,7 @@ run17=19_bpredict_test2
 run18=20_bpredict_test3
 run19=21_bpredict_test4
 run20=22_test_swap
+run21=23_test_recursive
 
 # Set Error capturing
 set -e
@@ -79,7 +81,8 @@ if [ "$en_run01" -eq 0 ] && [ "$en_run02" -eq 0 ] && \
    [ "$en_run13" -eq 0 ] && [ "$en_run14" -eq 0 ] && \
    [ "$en_run15" -eq 0 ] && [ "$en_run16" -eq 0 ] && \
    [ "$en_run17" -eq 0 ] && [ "$en_run18" -eq 0 ] && \
-   [ "$en_run19" -eq 0 ] && [ "$en_run20" -eq 0 ]; then
+   [ "$en_run19" -eq 0 ] && [ "$en_run20" -eq 0 ] && \
+   [ "$en_run21" -eq 0 ]; then
    echo ""
    echo "| PQR5: No tests enabled! REGRESSION RUN ABORTED..."
    echo ""
@@ -96,7 +99,7 @@ rm -rf ./dump/regress_run_dump
 mkdir -v ./regress_run_dump
 
 # RUN ALL ENABLED TESTS
-for i in $(seq -w 01 20); do
+for i in $(seq -w 01 $total_tests); do
   en_var="en_run$i"
   run_var="run$i"
   if [ "${!en_var}" -eq 1 ]; then
