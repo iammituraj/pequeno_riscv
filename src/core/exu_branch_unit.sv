@@ -73,6 +73,7 @@ module exu_branch_unit #(
    `ifdef RAS
    input  logic [`XLEN-1:0] i_ras_ret_addr   ,  // RAS predicted RET address
    input  logic             i_ras_ret_taken  ,  // RAS predicted RET taken status
+   output logic             o_is_ras_mispred ,  // RAS misprediction flag
    `endif
 
    `ifdef DBG
@@ -174,7 +175,13 @@ end
 //   The branch is always resolved as taken, while the Branch predictor always predicts it as NOT taken.
 // - Branch instructions: flush iff resolved branch status != predicted status.
 //===================================================================================================================================================
+`ifdef RAS
+logic is_ras_mispred ;  // RAS misprediction flag
+`endif
 always_comb begin
+   `ifdef RAS
+   is_ras_mispred = 1'b0 ;
+   `endif
    case ({i_is_j_or_jalr, i_is_b_type})
       // JAL or JALR
       2'b10   : begin 
@@ -184,7 +191,8 @@ always_comb begin
                   // - If RAS prediction is FALSE --> branch_taken must be set as 1, so that flush is generated... cz BP prediction is always 0 for RET
                   // - If RAS prediction is TRUE  --> branch_taken must be set as 0, so that NO flush is generated... cz BP prediction is always 0 for RET
                    if (i_ras_ret_taken) begin
-                      branch_taken = (i_ras_ret_addr != jalr_branch_addr);
+                      branch_taken   = (i_ras_ret_addr != jalr_branch_addr);
+                      is_ras_mispred = (i_ras_ret_addr != jalr_branch_addr);
                    end else begin
                       branch_taken = 1'b1 ;  // JAL, JALR other than RET/CALL, CALL, RAS-unpredicted RET
                    end
@@ -209,6 +217,9 @@ always_comb begin
       default : branch_taken = 1'b0 ;  // Never leads to flush cz Branch Predictor should have the same branch taken status = 0
    endcase
 end
+`ifdef RAS
+assign o_is_ras_mispred = is_ras_mispred ;
+`endif
 
 assign is_op0_eq_op1        = (i_op0 == i_op1)  ;  // Not implemented this in ALU as it's unused by ALU instructions, so implemented here for locality, and reduce routing delays...
 assign is_op0_lt_op1        = i_op0_lt_op1      ;  // Computed from ALU
