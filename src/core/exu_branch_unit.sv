@@ -119,7 +119,11 @@ logic [`XLEN-1:0] jalr_branch_addr              ;  // JALR branch addr
 logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Equality, Unsigned comparison flags 
 logic             is_sign_op0_lt_op1            ;  // Signed comparison flag 
 logic             is_branch_taken_diff          ;  // Branch taken difference flag
-
+`ifdef RAS
+`ifdef BPREDICT_DYN
+logic             ovr_bp_sts_btaken_rg          ;  // Branch taken status override to Branch predictor
+`endif
+`endif 
 //===================================================================================================================================================
 // Synchronous logic to register instruction, PC, branch status signals
 //===================================================================================================================================================
@@ -130,7 +134,12 @@ always_ff @(posedge clk or negedge aresetn) begin
       bubble_rg          <= 1'b1      ;
       branch_taken_rg    <= 1'b0      ;
       bp_branch_taken_rg <= 1'b0      ;
-      branch_pc_rg       <= PC_INIT   ;   
+      branch_pc_rg       <= PC_INIT   ;  
+      `ifdef RAS
+      `ifdef BPREDICT_DYN
+      ovr_bp_sts_btaken_rg <= 1'b0    ;
+      `endif 
+      `endif
    end
    // Out of reset
    else if (!i_stall) begin 
@@ -139,6 +148,11 @@ always_ff @(posedge clk or negedge aresetn) begin
       branch_taken_rg    <= branch_taken   ;
       bp_branch_taken_rg <= i_branch_taken ;
       branch_pc_rg       <= branch_pc      ;
+      `ifdef RAS
+      `ifdef BPREDICT_DYN
+      ovr_bp_sts_btaken_rg <= i_ras_ret_taken;  // RET taken to override the branch taken status to Branch predictor
+      `endif 
+      `endif
    end
 end
 // Branch compare signal generation
@@ -172,7 +186,7 @@ always_comb begin
                    if (i_ras_ret_taken) begin
                       branch_taken = (i_ras_ret_addr != jalr_branch_addr);
                    end else begin
-                      branch_taken = 1'b1 ;  // JAL, JALR, CALL, RAS-unpredicted RET
+                      branch_taken = 1'b1 ;  // JAL, JALR other than RET/CALL, CALL, RAS-unpredicted RET
                    end
                    `else
                    branch_taken = 1'b1 ;
@@ -283,7 +297,11 @@ assign o_bp_upd_ghr    = upd_ghr_ff      ;
 assign o_bp_upd_bht    = upd_bht_ff      ;
 assign o_bp_idx_pc     = bp_idx_pc_rg    ;
 assign o_bp_idx_ghr    = bp_idx_ghr_rg   ;
+`ifdef RAS
+assign o_bp_sts_btaken = ovr_bp_sts_btaken_rg? 1'b1 : branch_taken_rg;  // If RAS-predicted as RET taken => always update Branch predictor as branch taken = 1
+`else
 assign o_bp_sts_btaken = branch_taken_rg ;
+`endif
 
 `endif//BPREDICT_DYN
 
