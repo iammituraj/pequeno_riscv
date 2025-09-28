@@ -169,7 +169,7 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 `ifdef RAS
 assign is_ras_pred_true = (i_ras_ret_addr == jalr_branch_addr);
-assign o_is_ras_mispred = i_ras_ret_taken & ~is_ras_pred_true ;
+assign o_is_ras_mispred = i_ras_ret_taken & ~is_ras_pred_true ;  // Unpredicted RET (stack was empty) can cause flush & rollback, but not treated as mispredicted.
 `endif
 
 // Branch compare signal generation

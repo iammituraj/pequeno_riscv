@@ -395,10 +395,9 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
    else if (!stall) begin
       // If RAS misprediction on RET is detected-
-      // The rollback stack pointer, ptr must be adjusted by -1, cz the stack was popped by the RET!
-      // This ensures that the stack entries are restored correctly at potentially affected locations: ptr-1, ptr-2
-      // But in the above case, the stack should be rolled back to pointer = ptr, not ptr-1, hence the increment flag must be set!
-      ras_rbk_ptr_rg      <= is_ras_mispred? (i_du_ras_snap_ptr - 1) : i_du_ras_snap_ptr;
+      // Rollback pointer in the snapshot = ptr-1, cz the stack was popped by the RET, hence spare buffers use that as the reference to rollback
+      // But the stack should be rolled back to top pointer = ptr, not ptr-1, hence the increment flag must be set!
+      ras_rbk_ptr_rg      <= i_du_ras_snap_ptr;
       ras_rbk_full_rg     <= i_du_ras_snap_full;
       ras_rbk_incr_ptr_rg <= is_ras_mispred;  // Set increment flag on RET misprediction
    end 

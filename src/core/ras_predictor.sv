@@ -149,6 +149,7 @@ end
 // Stack Snapshot
 //===================================================================
 logic [ST_PTRW-1:0] curr_st_ptr_p1;
+logic [ST_PTRW-1:0] curr_st_ptr_m1;
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
@@ -157,11 +158,14 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
    // Out of reset
    else if (!i_stall) begin 
-      o_st_snap_ptr <= i_is_call? curr_st_ptr_p1 : curr_st_ptr;  // Pipe forward next pointer on CALLs cz potential push may have happened...
+      // Pipe forward ptr+1 on CALLs cz potential push may have happened... so rollback of stack contents must use reference = ptr+1
+      // Pipe forward ptr-1 on RET taken cz pop has happened... so rollback of stack contents must use reference =  ptr-1
+      o_st_snap_ptr <= i_is_call? curr_st_ptr_p1 : (ret_taken? curr_st_ptr_m1 : curr_st_ptr);
       o_st_snap_full<= st_full ;
    end
 end
 assign curr_st_ptr_p1 = curr_st_ptr + 1;
+assign curr_st_ptr_m1 = curr_st_ptr - 1;
 
 //===================================================================
 // RET address prediction
