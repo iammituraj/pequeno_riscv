@@ -52,9 +52,10 @@ module ras_predictor #(
    input  logic               aresetn       ,  // Asynchronous Reset; active-low
 
    // Stack Rollback Interface
-   input  logic               i_st_rbk_en   ,  // Roll back enable
-   input  logic [ST_PTRW-1:0] i_st_rbk_ptr  ,  // Roll back pointer
-   input  logic [ST_PTRW-0:0] i_st_rbk_cnt  ,  // Roll back counter
+   input  logic               i_st_rbk_en       ,  // Roll back enable
+   input  logic [ST_PTRW-1:0] i_st_rbk_ptr      ,  // Roll back pointer
+   input  logic               i_st_rbk_full     ,  // Roll back to full state
+   input  logic               i_st_rbk_incr_ptr ,  // Roll back pointer increment flag
 
    // CPU pipeline state
    input  logic               i_is_call_fu        ,  // CALL instr flag at FU output
@@ -70,7 +71,7 @@ module ras_predictor #(
    
    // Stack snapshot
    output logic [ST_PTRW-1:0] o_st_snap_ptr ,  // Stack pointer
-   output logic [ST_PTRW-0:0] o_st_snap_cnt ,  // Stack counter
+   output logic               o_st_snap_full,  // Stack full flag
 
    // Prediction signals
    output logic [`XLEN-1:0]   o_ret_addr    ,  // Return address predicted
@@ -93,7 +94,6 @@ logic [`XLEN-1:0]   ret_addr_on_ret_rg  ;  // Return address popped from the sta
 logic               push_en, pop_en     ;  // Push and pop signals to stack
 logic               st_full,st_empty    ;  // Stack Full, Empty flags
 logic [ST_PTRW-1:0] curr_st_ptr         ;  // Stack pointer
-logic [ST_PTRW-0:0] curr_st_cnt         ;  // Stack counter
 
 logic [1:0]         cpu_spec_state      ;  // Speculative state of the CPU pipeline
 
@@ -104,24 +104,24 @@ call_stack #(
    .DPT (ST_DPT),
    .DW  (ST_DW)
 )  inst_call_stack (
-   .clk          (clk),
-   .aresetn      (aresetn),
+   .clk            (clk),
+   .aresetn        (aresetn),
 
-   .i_rbk_en     (i_st_rbk_en),
-   .i_rbk_ptr    (i_st_rbk_ptr),
-   .i_rbk_cnt    (i_st_rbk_cnt),
-   .i_spec_state (cpu_spec_state),
+   .i_rbk_en       (i_st_rbk_en),
+   .i_rbk_ptr      (i_st_rbk_ptr),
+   .i_rbk_full     (i_st_rbk_full),
+   .i_rbk_incr_ptr (i_st_rbk_incr_ptr),
+   .i_spec_state   (cpu_spec_state),
 
-   .o_stack_ptr  (curr_st_ptr),
-   .o_stack_cnt  (curr_st_cnt),
+   .o_stack_ptr    (curr_st_ptr),
 
-   .i_push_en    (push_en),
-   .i_push_data  (ret_addr_on_call),
-   .o_full       (st_full),
+   .i_push_en      (push_en),
+   .i_push_data    (ret_addr_on_call),
+   .o_full         (st_full),
 
-   .i_pop_en     (pop_en),
-   .o_pop_data   (ret_addr_on_ret),
-   .o_empty      (st_empty)
+   .i_pop_en       (pop_en),
+   .o_pop_data     (ret_addr_on_ret),
+   .o_empty        (st_empty)
 );
 
 //===================================================================
@@ -149,21 +149,19 @@ end
 // Stack Snapshot
 //===================================================================
 logic [ST_PTRW-1:0] curr_st_ptr_p1;
-logic [ST_PTRW-0:0] curr_st_cnt_p1;
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
       o_st_snap_ptr <= '0;
-      o_st_snap_cnt <= '0;
+      o_st_snap_full<= 1'b0;
    end
    // Out of reset
    else if (!i_stall) begin 
       o_st_snap_ptr <= i_is_call? curr_st_ptr_p1 : curr_st_ptr;  // Pipe forward next pointer on CALLs cz potential push may have happened...
-      o_st_snap_cnt <= i_is_call? curr_st_cnt_p1 : curr_st_cnt;  // Pipe forward next count on CALLs cz potential push may have happened...          
+      o_st_snap_full<= st_full ;
    end
 end
 assign curr_st_ptr_p1 = curr_st_ptr + 1;
-assign curr_st_cnt_p1 = st_full? curr_st_cnt : (curr_st_cnt + 1);  // If stack is full, then count is saturated...
 
 //===================================================================
 // RET address prediction

@@ -104,11 +104,12 @@ module execution_unit #(
    input  logic [`XLEN-1:0] i_du_ras_ret_addr   ,  // RAS predicted RET address from DU
    input  logic             i_du_ras_ret_taken  ,  // RAS predicted RET taken status from DU
    input  logic [RPTW-1:0]  i_du_ras_snap_ptr   ,  // RAS pointer snapshot from DU
-   input  logic [RPTW-0:0]  i_du_ras_snap_cnt   ,  // RAS counter snapshot from DU
+   input  logic             i_du_ras_snap_full  ,  // RAS full flag snapshot from DU
    
    output logic             o_ras_rbk_en        ,  // RAS roll back enable
    output logic [RPTW-1:0]  o_ras_rbk_ptr       ,  // RAS roll back pointer
-   output logic [RPTW-0:0]  o_ras_rbk_cnt       ,  // RAS roll back counter
+   output logic             o_ras_rbk_full      ,  // RAS roll back to full
+   output logic             o_ras_rbk_incr_ptr  ,  // RAS roll back pointer increment flag
    `endif
 
    input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU     
@@ -383,23 +384,30 @@ end
 // Rollback generation logic
 //===================================================================================================================================================
 `ifdef RAS
-logic [RPTW-1:0] ras_rbk_ptr_rg ;  // RAS roll back pointer
-logic [RPTW-0:0] ras_rbk_cnt_rg ;  // RAS roll back counter
+logic [RPTW-1:0] ras_rbk_ptr_rg      ;  // RAS roll back pointer
+logic            ras_rbk_full_rg     ;  // RAS roll back to full
+logic            ras_rbk_incr_ptr_rg ;  // RAS roll back pointer increment flag
 always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin 
-      ras_rbk_ptr_rg <= '0;
-      ras_rbk_cnt_rg <= '0;
+      ras_rbk_ptr_rg      <= '0;
+      ras_rbk_full_rg     <= 1'b0;
+      ras_rbk_incr_ptr_rg <= 1'b0;
    end
    else if (!stall) begin
-      // If RAS misprediction on RET is detected, then the stack pointer and count must be adjusted by -1, cz stack was popped by the RET
-      ras_rbk_ptr_rg <= is_ras_mispred? (i_du_ras_snap_ptr - 1) : i_du_ras_snap_ptr;  // Pointer cannot underflow as it will be >0 always on this condition.
-      ras_rbk_cnt_rg <= is_ras_mispred? (i_du_ras_snap_cnt - 1) : i_du_ras_snap_cnt;  // Counter cannot underflow as it will be >0 always on this condition.
+      // If RAS misprediction on RET is detected-
+      // The rollback stack pointer, ptr must be adjusted by -1, cz the stack was popped by the RET!
+      // This ensures that the stack entries are restored correctly at potentially affected locations: ptr-1, ptr-2
+      // But in the above case, the stack should be rolled back to pointer = ptr, not ptr-1, hence the increment flag must be set!
+      ras_rbk_ptr_rg      <= is_ras_mispred? (i_du_ras_snap_ptr - 1) : i_du_ras_snap_ptr;
+      ras_rbk_full_rg     <= i_du_ras_snap_full;
+      ras_rbk_incr_ptr_rg <= is_ras_mispred;  // Set increment flag on RET misprediction
    end 
 end
-assign o_ras_rbk_en  = bu_flush       ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
-                                         // All of the cases, it should rollback the RAS
-assign o_ras_rbk_ptr = ras_rbk_ptr_rg ;
-assign o_ras_rbk_cnt = ras_rbk_cnt_rg ;
+assign o_ras_rbk_en       = bu_flush             ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
+                                                    // All of the cases, it should rollback the RAS
+assign o_ras_rbk_ptr      = ras_rbk_ptr_rg      ;
+assign o_ras_rbk_full     = ras_rbk_full_rg     ; 
+assign o_ras_rbk_incr_ptr = ras_rbk_incr_ptr_rg ;
 `endif//RAS
 
 //===================================================================================================================================================

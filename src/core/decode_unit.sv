@@ -76,7 +76,7 @@ module decode_unit #(
    input  logic [`XLEN-1:0] i_fu_ras_ret_addr  ,  // RAS predicted RET address from FU
    input  logic             i_fu_ras_ret_taken ,  // RAS predicted RET taken status from FU
    input  logic [RPTW-1:0]  i_fu_ras_snap_ptr  ,  // RAS pointer snapshot from FU
-   input  logic [RPTW-0:0]  i_fu_ras_snap_cnt  ,  // RAS counter snapshot from FU
+   input  logic             i_fu_ras_snap_full ,  // RAS full flag snapshot from FU
    `endif
 
    input  logic             i_fu_bubble        ,  // Bubble from FU
@@ -107,7 +107,7 @@ module decode_unit #(
    output logic [`XLEN-1:0] o_exu_ras_ret_addr ,  // RAS predicted RET address to EXU
    output logic             o_exu_ras_ret_taken,  // RAS predicted RET taken status to EXU
    output logic [RPTW-1:0]  o_exu_ras_snap_ptr ,  // RAS pointer snapshot to EXU
-   output logic [RPTW-0:0]  o_exu_ras_snap_cnt ,  // RAS counter snapshot to EXU
+   output logic             o_exu_ras_snap_full,  // RAS full flag snapshot to EXU
    `endif
 
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
@@ -386,7 +386,7 @@ logic             du_is_call_rg      ;  // CALL flag
 logic [`XLEN-1:0] du_ras_ret_addr_rg ;  // RAS predicted RET address
 logic             du_ras_ret_taken_rg;  // RAS predicted RET taken status
 logic [RPTW-1:0]  du_ras_snap_ptr_rg ;  // RAS pointer snapshot
-logic [RPTW-0:0]  du_ras_snap_cnt_rg ;  // RAS counter snapshot
+logic             du_ras_snap_full_rg;  // RAS full flag snapshot
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
@@ -394,7 +394,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       du_ras_ret_addr_rg  <= '0  ;
       du_ras_ret_taken_rg <= 1'b0;
       du_ras_snap_ptr_rg  <= '0  ;
-      du_ras_snap_cnt_rg  <= '0  ;
+      du_ras_snap_full_rg <= 1'b0;
    end
    // Out of reset
    else if (!stall) begin  // Pipe forward...
@@ -402,7 +402,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       du_ras_ret_addr_rg  <= i_fu_ras_ret_addr  ;
       du_ras_ret_taken_rg <= i_fu_ras_ret_taken ;
       du_ras_snap_ptr_rg  <= i_fu_ras_snap_ptr  ;
-      du_ras_snap_cnt_rg  <= i_fu_ras_snap_cnt  ;           
+      du_ras_snap_full_rg <= i_fu_ras_snap_full ;           
    end
 end
 `endif
@@ -502,7 +502,7 @@ assign o_exu_is_call      = du_is_call_rg       ;
 assign o_exu_ras_ret_addr = du_ras_ret_addr_rg  ;
 assign o_exu_ras_ret_taken= du_ras_ret_taken_rg ;
 assign o_exu_ras_snap_ptr = du_ras_snap_ptr_rg  ;
-assign o_exu_ras_snap_cnt = du_ras_snap_cnt_rg  ;
+assign o_exu_ras_snap_full= du_ras_snap_full_rg ;
 `endif
 assign o_exu_i_type_imm   = {du_instr_rg[31:20]}                                                       ;
 assign o_exu_s_type_imm   = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;

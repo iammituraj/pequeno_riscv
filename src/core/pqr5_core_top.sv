@@ -159,7 +159,7 @@ logic             fu_du_is_call      ;  // CALL flag from FU to DU
 logic [`XLEN-1:0] fu_du_ras_ret_addr ;  // RAS predicted RET address from FU to DU
 logic             fu_du_ras_ret_taken;  // RAS predicted RET taken status from FU to DU
 logic [RPTW-1:0]  fu_du_ras_snap_ptr ;  // RAS pointer snapshot from FU to DU
-logic [RPTW-0:0]  fu_du_ras_snap_cnt ;  // RAS counter snapshot from FU to DU
+logic             fu_du_ras_snap_full;  // RAS full flag snapshot from FU to DU
 `endif
 
 // DU-RF Interface
@@ -224,7 +224,7 @@ logic             du_exu_is_call      ;  // CALL flag from DU to EXU
 logic [`XLEN-1:0] du_exu_ras_ret_addr ;  // RAS predicted RET address from DU to EXU
 logic             du_exu_ras_ret_taken;  // RAS predicted RET taken status from DU to EXU
 logic [RPTW-1:0]  du_exu_ras_snap_ptr ;  // RAS pointer snapshot from DU to EXU
-logic [RPTW-0:0]  du_exu_ras_snap_cnt ;  // RAS counter snapshot from DU to EXU
+logic             du_exu_ras_snap_full;  // RAS full flag snapshot from DU to EXU
 `endif
 logic [11:0]      du_exu_i_type_imm   ;  // I-type immediate from DU to EXU
 logic [11:0]      du_exu_s_type_imm   ;  // S-type immediate from DU to EXU
@@ -320,9 +320,10 @@ logic [GHRW-1:0] exu_bp_idx_ghr      ;  // GHR index from EXU-BU to predictor
 
 // RAS rollback related
 `ifdef RAS
-logic             ras_rbk_en  ;  // RAS roll back enable
-logic [RPTW-1:0]  ras_rbk_ptr ;  // RAS roll back pointer
-logic [RPTW-0:0]  ras_rbk_cnt ;  // RAS roll back counter
+logic             ras_rbk_en       ;  // RAS roll back enable
+logic [RPTW-1:0]  ras_rbk_ptr      ;  // RAS roll back pointer
+logic             ras_rbk_full     ;  // RAS roll back to full
+logic             ras_rbk_incr_ptr ;  // RAS roll back pointer increment flag
 `endif
 
 // Test signals
@@ -372,7 +373,8 @@ fetch_unit #(
    `ifdef RAS
    .i_ras_rbk_en        (ras_rbk_en),
    .i_ras_rbk_ptr       (ras_rbk_ptr),
-   .i_ras_rbk_cnt       (ras_rbk_cnt),
+   .i_ras_rbk_full      (ras_rbk_full),
+   .i_ras_rbk_incr_ptr  (ras_rbk_incr_ptr),
    .i_du_is_call        (du_exu_is_call       & ~du_exu_bubble),  // This flag must be qualified by instr valid DU->EXU
    .i_du_is_ret_taken   (du_exu_ras_ret_taken & ~du_exu_bubble),  // This flag must be qualified by instr valid DU->EXU
 
@@ -380,7 +382,7 @@ fetch_unit #(
    .o_du_ras_ret_addr   (fu_du_ras_ret_addr),
    .o_du_ras_ret_taken  (fu_du_ras_ret_taken),
    .o_du_ras_snap_ptr   (fu_du_ras_snap_ptr),
-   .o_du_ras_snap_cnt   (fu_du_ras_snap_cnt),
+   .o_du_ras_snap_full  (fu_du_ras_snap_full),
    `endif
 
    .o_du_bubble         (fu_du_bubble),
@@ -422,7 +424,7 @@ decode_unit #(
    .i_fu_ras_ret_addr (fu_du_ras_ret_addr),
    .i_fu_ras_ret_taken(fu_du_ras_ret_taken),
    .i_fu_ras_snap_ptr (fu_du_ras_snap_ptr),
-   .i_fu_ras_snap_cnt (fu_du_ras_snap_cnt),
+   .i_fu_ras_snap_full(fu_du_ras_snap_full),
    `endif
 
    .i_fu_bubble       (fu_du_bubble),
@@ -451,7 +453,7 @@ decode_unit #(
    .o_exu_ras_ret_addr (du_exu_ras_ret_addr),
    .o_exu_ras_ret_taken(du_exu_ras_ret_taken),
    .o_exu_ras_snap_ptr (du_exu_ras_snap_ptr),
-   .o_exu_ras_snap_cnt (du_exu_ras_snap_cnt),
+   .o_exu_ras_snap_full(du_exu_ras_snap_full),
    `endif  
 
    .o_exu_is_alu_op   (du_exu_is_alu_op),
@@ -607,11 +609,12 @@ execution_unit #(
    .i_du_ras_ret_addr  (du_exu_ras_ret_addr),
    .i_du_ras_ret_taken (du_exu_ras_ret_taken),
    .i_du_ras_snap_ptr  (du_exu_ras_snap_ptr),
-   .i_du_ras_snap_cnt  (du_exu_ras_snap_cnt),
+   .i_du_ras_snap_full (du_exu_ras_snap_full),
 
    .o_ras_rbk_en       (ras_rbk_en),
    .o_ras_rbk_ptr      (ras_rbk_ptr),
-   .o_ras_rbk_cnt      (ras_rbk_cnt),
+   .o_ras_rbk_full     (ras_rbk_full),
+   .o_ras_rbk_incr_ptr (ras_rbk_incr_ptr),
    `endif
 
    .i_du_is_alu_op     (du_exu_is_alu_op),

@@ -53,19 +53,18 @@ module call_stack #(
    input  logic            aresetn     ,  // Asynchronous Reset; active-low
 
    // Rollback interface
-   input  logic            i_rbk_en    ,  // Roll back enable
-   input  logic [PTRW-1:0] i_rbk_ptr   ,  // Roll back pointer
-   input  logic [PTRW-0:0] i_rbk_cnt   ,  // Roll back counter
-   input  logic [1:0]      i_spec_state,  // Speculative state of the CPU pipeline
-                                          // 2'b00 = {other/ret, other/ret} 
-                                          // 2'b01 = {other, call} or {call, other/ret}
-                                          // 2'b10 = {call, call}
-                                          // 2'b11 = {ret, call}
-                                          // bit[1]= instr @DU->EXU, bit[0] = instr @FU->DU
+   input  logic            i_rbk_en       ,  // Roll back enable
+   input  logic [PTRW-1:0] i_rbk_ptr      ,  // Roll back pointer
+   input  logic            i_rbk_full     ,  // Roll back to full
+   input  logic            i_rbk_incr_ptr ,  // Roll back pointer increment flag
+   input  logic [1:0]      i_spec_state   ,  // Speculative state of the CPU pipeline
+                                             // 2'b00 = {other/ret, other/ret} 
+                                             // 2'b01 = {other, call} or {call, other/ret}
+                                             // 2'b10 = {call, call}
+                                             // 2'b11 = {ret, call}
+                                             // bit[1]= instr @DU->EXU, bit[0] = instr @FU->DU
    // Status interface
    output logic [PTRW-1:0] o_stack_ptr ,  // Stack pointer
-   output logic [PTRW-0:0] o_stack_cnt ,  // Stack counter
-
 
    // Push interface
    input  logic            i_push_en   ,  // Push enable
@@ -77,6 +76,9 @@ module call_stack #(
    output logic [DW-1:0]   o_pop_data  ,  // Pop data
    output logic            o_empty        // Empty flag
 );
+
+// localparams
+localparam [PTRW:0] MAX_CNT = 2**(PTRW);
 
 // Internal Registers/Signals
 logic [DW-1:0]   stack [DPT];      // Stack array
@@ -90,6 +92,8 @@ logic [DW-1:0]   spare_buff[2];    // Spare buffers. Max. outstanding speculativ
 //=============================================================================
 // Logic to update stack pointer/counter
 //=============================================================================
+logic [PTRW-1:0] rbk_ptr_p1;
+logic [PTRW-1:0] top_ptr_post_rbk;
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
@@ -98,8 +102,8 @@ always_ff @(posedge clk or negedge aresetn) begin
    end  
    // Rollback
    else if (i_rbk_en) begin
-      top_ptr_ff <= i_rbk_ptr ;
-      count_ff   <= i_rbk_cnt ;   
+      top_ptr_ff <= top_ptr_post_rbk ;
+      count_ff   <= i_rbk_full? MAX_CNT : {1'b0, top_ptr_post_rbk} ;
    end
    // Push/Pop when no rollback is enabled
    else begin
@@ -112,6 +116,8 @@ always_ff @(posedge clk or negedge aresetn) begin
       else if (pop_en)             count_ff <= count_ff - 1 ;  // Counter decrements on every pop
    end
 end
+assign rbk_ptr_p1       = i_rbk_ptr + 1 ;
+assign top_ptr_post_rbk = i_rbk_incr_ptr? rbk_ptr_p1 : i_rbk_ptr ;
 
 //=============================================================================
 // Logic to push data/rollback
@@ -168,7 +174,6 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 // Status output
-assign o_stack_cnt = count_ff   ;
 assign o_stack_ptr = top_ptr_ff ;
 
 endmodule

@@ -101,7 +101,8 @@ module fetch_unit #(
    `ifdef RAS
    input  logic             i_ras_rbk_en       ,  // RAS roll back enable
    input  logic [RPTW-1:0]  i_ras_rbk_ptr      ,  // RAS roll back pointer
-   input  logic [RPTW-0:0]  i_ras_rbk_cnt      ,  // RAS roll back counter
+   input  logic             i_ras_rbk_full     ,  // RAS roll back to full
+   input  logic             i_ras_rbk_incr_ptr ,  // RAS roll back pointer increment flag
    input  logic             i_du_is_call       ,  // CALL flag from DU
    input  logic             i_du_is_ret_taken  ,  // RET taken flag from DU
 
@@ -109,7 +110,7 @@ module fetch_unit #(
    output logic [`XLEN-1:0] o_du_ras_ret_addr  ,  // RAS predicted RET address to DU
    output logic             o_du_ras_ret_taken ,  // RAS predicted RET taken status to DU
    output logic [RPTW-1:0]  o_du_ras_snap_ptr  ,  // RAS pointer snapshot to DU
-   output logic [RPTW-0:0]  o_du_ras_snap_cnt  ,  // RAS counter snapshot to DU
+   output logic             o_du_ras_snap_full ,  // RAS full flag snapshot to DU
    `endif
 
    output logic             o_du_bubble        ,  // Bubble to DU
@@ -312,7 +313,8 @@ ras_predictor #(
 
    .i_st_rbk_en       (i_ras_rbk_en),
    .i_st_rbk_ptr      (i_ras_rbk_ptr),
-   .i_st_rbk_cnt      (i_ras_rbk_cnt),
+   .i_st_rbk_full     (i_ras_rbk_full),
+   .i_st_rbk_incr_ptr (i_ras_rbk_incr_ptr),
 
    .i_is_call_fu      (is_call_rg & instr_valid_rg[0]),  // CALL flag is qualified by instr valid at FU output
    .i_is_call_du      (i_du_is_call),                    // Flag is assumed to be qualified by instr valid at DU output
@@ -326,7 +328,7 @@ ras_predictor #(
                                                         // RAS flush need not invalidate, as it won't cause another spurious RAS flush in the next clk cycle...
                                                         // RAS flush internally gates push/pop in the RAS predictor
    .o_st_snap_ptr     (o_du_ras_snap_ptr),
-   .o_st_snap_cnt     (o_du_ras_snap_cnt),
+   .o_st_snap_full    (o_du_ras_snap_full),
 
    .o_ret_addr        (ras_ret_addr),
    .o_ret_taken       (ras_ret_taken),
