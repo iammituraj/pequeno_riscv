@@ -67,7 +67,7 @@
 // Branch Predictor & RAS
 `define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor
                                           // Else generate Static Branch Predictor (backward always taken strategy)
-`define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries. This macro is qualified by IS_BPREDICT_DYN = 1
+`define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries of 2-bit. This macro is qualified by IS_BPREDICT_DYN = 1
 `define BHT_TYPE          "lutram"        // Branch History Table (BHT) target configuration. This macro is qualified by IS_BPREDICT_DYN = 1
                                           // "blkram" - BHT is generated on Block RAMs on FPGAs
                                           // "lutram" - BHT is generated on LUT RAMs on FPGAs

@@ -85,6 +85,8 @@ logic [DW-1:0]   stack [DPT];      // Stack array
 logic [PTRW-1:0] top_ptr_ff;       // Stack pointer @top --> points to next free slot 
 logic [PTRW-1:0] top_ptr_m1;       // Stack pointer-1
 logic [PTRW-1:0] wr_ptr;           // Write pointer
+logic            wr_en;            // Write enable
+logic [DW-1:0]   wr_data;          // Write data
 logic [PTRW:0]   count_ff;         // Counter
 logic            push_en, pop_en;  // Conditioned push & pop enable
 logic [DW-1:0]   spare_buff[2];    // Spare buffers. Max. outstanding speculative calls/returns = 2 in the pipeline
@@ -120,24 +122,109 @@ assign rbk_ptr_p1       = i_rbk_ptr + 1 ;
 assign top_ptr_post_rbk = i_rbk_incr_ptr? rbk_ptr_p1 : i_rbk_ptr ;
 
 //=============================================================================
-// Logic to push data/rollback
+// Rollback control signals
 //=============================================================================
-always_ff @(posedge clk) begin
-   // Rollback (higher priority)
-   if (i_rbk_en) begin
+logic rbk_en_ff    ;  // Rollback enable registered
+logic rbk_en_gated ;  // Rollback enable gated
+logic rbk_en_extnd ;  // Rollback enable extended
+logic rbk_cyc_ff   ;  // Rollback cycle no.
+
+// 2-cycle rollback?
+logic is_rbk_2cyc;
+assign is_rbk_2cyc = (i_spec_state == 2'b10);
+
+// Rollback enable & cycle
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset
+   if (!aresetn) begin
+      rbk_en_ff  <= 1'b0;
+      rbk_cyc_ff <= 1'b0;
+   end  
+   // Out of Reset
+   else begin
+      rbk_en_ff  <= is_rbk_2cyc? i_rbk_en : 1'b0 ;  // Latch only on 2-cycle rollback
+      rbk_cyc_ff <= i_rbk_en? 1'b1 : 1'b0 ;         // Alternating counter 010... for every rollback pulse
+   end 
+end
+assign rbk_en_gated = i_rbk_en && (i_spec_state != 2'b00);  // Disable rollback of stack entries on CPU speculative state 2'b00
+assign rbk_en_extnd = rbk_en_gated | rbk_en_ff   ;  // 1-cycle extension of the rollback enable pulse for 2-cycle rollback...
+
+// Current rollback pointer & spare buffer
+logic [PTRW-1:0] curr_rbk_ptr;           // Current pointer used for rollback
+logic            curr_rbk_sbuff_addr;    // Current spare buffer address used for rollback
+logic [DW-1:0]   curr_rbk_sbuff;         // Current spare buffer used for rollback
+logic [PTRW-1:0] nxt_rbk_ptr_ff;         // Next pointer used for rollback
+logic            nxt_rbk_sbuff_addr_ff;  // Next spare buffer address used for rollback
+
+always_comb begin
+   // First cycle of rollback
+   if (~rbk_cyc_ff) begin
       case (i_spec_state)
-         2'b01  : begin stack[i_rbk_ptr+0] <= spare_buff[0];                                      end
-         2'b10  : begin stack[i_rbk_ptr+0] <= spare_buff[1]; stack[i_rbk_ptr+1] <= spare_buff[0]; end
-         2'b11  : begin stack[i_rbk_ptr-1] <= spare_buff[0];                                      end
-         default: ;  // No change in stack state
-      endcase
+         2'b01  : begin curr_rbk_ptr = i_rbk_ptr+0; curr_rbk_sbuff_addr = 1'b0; end
+         2'b10  : begin curr_rbk_ptr = i_rbk_ptr+0; curr_rbk_sbuff_addr = 1'b1; end
+         2'b11  : begin curr_rbk_ptr = i_rbk_ptr-1; curr_rbk_sbuff_addr = 1'b0; end
+         default: begin curr_rbk_ptr = i_rbk_ptr+0; curr_rbk_sbuff_addr = 1'b0; end
+      endcase  
    end
-   // Push to Stack when no rollback is enabled
-   else if (push_en) stack[wr_ptr] <= i_push_data ;
+   // Second cycle of rollback
+   else begin
+      curr_rbk_ptr        = nxt_rbk_ptr_ff        ;
+      curr_rbk_sbuff_addr = nxt_rbk_sbuff_addr_ff ;
+   end 
+end
+assign curr_rbk_sbuff = spare_buff[curr_rbk_sbuff_addr];
+
+// Next rollback pointer & spare buffer address
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset
+   if (!aresetn) begin
+      nxt_rbk_ptr_ff        <= '0 ;
+      nxt_rbk_sbuff_addr_ff <= '0 ;
+   end  
+   // Updating the next values only on rollback enable to save switching power...
+   else if (i_rbk_en) begin
+      nxt_rbk_ptr_ff        <= is_rbk_2cyc? rbk_ptr_p1 : nxt_rbk_ptr_ff ;  // Next pointer = ptr++ if 2-cycle rollback
+      nxt_rbk_sbuff_addr_ff <= 1'b0 ;  // Next spare_buff address = addr--, and is always 0, cz sbuff[1], sbuff[0] is the order for 2-cycle rollback!
+   end
 end
 
-// Write pointer
-assign wr_ptr = top_ptr_ff;
+//=============================================================================
+// Logic to push data/rollback
+//=============================================================================
+//always_ff @(posedge clk) begin
+//   // Rollback (higher priority)
+//   if (i_rbk_en) begin
+//      case (i_spec_state)
+//         2'b01  : begin stack[i_rbk_ptr+0] <= spare_buff[0];                                      end
+//         2'b10  : begin stack[i_rbk_ptr+0] <= spare_buff[1]; stack[i_rbk_ptr+1] <= spare_buff[0]; end
+//         2'b11  : begin stack[i_rbk_ptr-1] <= spare_buff[0];                                      end
+//         default: ;  // No change in stack state
+//      endcase
+//   end
+//   // Push to Stack when no rollback is enabled
+//   else if (push_en) stack[wr_ptr] <= i_push_data ;
+//end
+always_ff @(posedge clk) begin
+   if (wr_en) stack[wr_ptr] <= wr_data;
+end
+
+// Write pointer & Write data
+always_comb begin
+   // Rollback phase - 2 cycle pulse on CPU speculative state 2'b10, else single cycle pulse...
+   // By design, it's ensured that the next valid instruction comes @Fetch Unit input atleast after 2 cycles, after the EXU BU flush which initiated the rollback.
+   // So, spare buffers remain clean during this phase.
+   // So, we can do rollback safely in 2 cycles instead of 1
+   if (rbk_en_extnd) begin
+      wr_ptr  = curr_rbk_ptr  ; 
+      wr_data = curr_rbk_sbuff;
+   end
+   // In case of push, or any other case...
+   else begin
+      wr_ptr  = top_ptr_ff ;
+      wr_data = i_push_data;  
+   end
+end
+assign wr_en = rbk_en_extnd | push_en ;  // Rollback / push can write to stack
 
 // Pop data
 assign top_ptr_m1 = top_ptr_ff-1 ;
