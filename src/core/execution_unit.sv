@@ -415,8 +415,8 @@ always_ff @(posedge clk or negedge aresetn) begin
       `endif
    end 
 end
-assign o_ras_rbk_en       = bu_flush             ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
-                                                    // All of the cases, it should rollback the RAS
+assign o_ras_rbk_en       = bu_flush            ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
+                                                   // All of the cases, it should rollback the RAS
 assign o_ras_rbk_ptr      = ras_rbk_ptr_rg      ;
 assign o_ras_rbk_full     = ras_rbk_full_rg     ; 
 assign o_ras_rbk_incr_ptr = ras_rbk_incr_ptr_rg ;
@@ -433,8 +433,8 @@ always_comb begin
    endcase   
 end 
 
-assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble ;             // JAL/JALR/ALU/LUI/AUIPC instructions require writeback
-assign is_exu_result_mem = ~lsu_bubble  ;                         // Load/Store instructions require memory access          
+assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble ;   // JAL/JALR/ALU/LUI/AUIPC instructions require writeback
+assign is_exu_result_mem = ~lsu_bubble  ;               // Load/Store instructions require memory access          
 
 //===================================================================================================================================================
 //  Pipeline Interlock logic

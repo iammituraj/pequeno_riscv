@@ -187,7 +187,7 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 assign o_ret_addr  = ret_addr_on_ret_rg ;
 assign o_ret_taken = ret_taken_rg       ;
-assign ret_taken   = (is_ret_valid && !st_empty);
+assign ret_taken   = (is_ret_valid && !st_empty);  // If stack is not empty and is valid RET instr, then pop from RAS may have happened => RET is taken
 
 //===================================================================
 // RAS flush generation on RET address prediction

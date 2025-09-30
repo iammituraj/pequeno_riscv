@@ -53,7 +53,7 @@ module call_stack #(
    input  logic            aresetn     ,  // Asynchronous Reset; active-low
 
    // Rollback interface
-   input  logic            i_rbk_en       ,  // Roll back enable
+   input  logic            i_rbk_en       ,  // Roll back enable __/''\__
    input  logic [PTRW-1:0] i_rbk_ptr      ,  // Roll back pointer
    input  logic            i_rbk_full     ,  // Roll back to full
    input  logic            i_rbk_incr_ptr ,  // Roll back pointer increment flag
@@ -106,7 +106,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Rollback
    else if (i_rbk_en) begin
       top_ptr_ff <= top_ptr_post_rbk ;
-      count_ff   <= i_rbk_full? MAX_CNT : {1'b0, top_ptr_post_rbk} ;
+      count_ff   <= i_rbk_full? MAX_CNT : {1'b0, top_ptr_post_rbk} ;  // Count = Top pointer unless stack is full
    end
    // Push/Pop when no rollback is enabled
    else begin
@@ -132,9 +132,9 @@ logic rbk_cyc_ff   ;  // Rollback cycle no.
 
 // 2-cycle rollback?
 logic is_rbk_2cyc;
-assign is_rbk_2cyc = (i_spec_state == 2'b10);
+assign is_rbk_2cyc = (i_spec_state == 2'b10);  // Only CPU speculative state 2'b10 requires 2-cycle rollback
 
-// Rollback enable & cycle
+// Rollback enable & Rollback cycle
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
@@ -148,7 +148,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    end 
 end
 assign rbk_en_gated = i_rbk_en && (i_spec_state != 2'b00);  // Disable rollback of stack entries on CPU speculative state 2'b00
-assign rbk_en_extnd = rbk_en_gated | rbk_en_ff   ;  // 1-cycle extension of the rollback enable pulse for 2-cycle rollback...
+assign rbk_en_extnd = rbk_en_gated | rbk_en_ff ;            // Extend rollback enable pulse by one cycle to generate 2-cycle rollback...
 
 // Current rollback pointer & spare buffer
 logic [PTRW-1:0] curr_rbk_ptr;           // Current pointer used for rollback
@@ -157,6 +157,7 @@ logic [DW-1:0]   curr_rbk_sbuff;         // Current spare buffer used for rollba
 logic [PTRW-1:0] nxt_rbk_ptr_ff;         // Next pointer used for rollback
 logic            nxt_rbk_sbuff_addr_ff;  // Next spare buffer address used for rollback
 
+// Based on the CPU spec. state, current rollback pointer & spare buffer address is generated on every cycle of rollback
 always_comb begin
    // First cycle of rollback
    if (~rbk_cyc_ff) begin
@@ -184,8 +185,8 @@ always_ff @(posedge clk or negedge aresetn) begin
    end  
    // Updating the next values only on rollback enable to save switching power...
    else if (i_rbk_en) begin
-      nxt_rbk_ptr_ff        <= is_rbk_2cyc? rbk_ptr_p1 : nxt_rbk_ptr_ff ;  // Next pointer = ptr++ if 2-cycle rollback
-      nxt_rbk_sbuff_addr_ff <= 1'b0 ;  // Next spare_buff address = addr--, and is always 0, cz sbuff[1], sbuff[0] is the order for 2-cycle rollback!
+      nxt_rbk_ptr_ff        <= is_rbk_2cyc? rbk_ptr_p1 : nxt_rbk_ptr_ff ;  // Next pointer = rbk_ptr++ if 2-cycle rollback, all other cases, the next pointer doesn't matter...
+      nxt_rbk_sbuff_addr_ff <= 1'b0 ;  // Next spare_buff address = addr--, therefore it is always 0, cz sbuff[1], sbuff[0] is the order for 2-cycle rollback!
    end
 end
 
@@ -200,8 +201,8 @@ end
 always_comb begin
    // Rollback phase - 2 cycle pulse on CPU speculative state 2'b10, else single cycle pulse...
    // By design, it's ensured that the next valid instruction comes @Fetch Unit input atleast after 2 cycles, after the EXU BU flush which initiated the rollback.
-   // So, spare buffers remain clean during this phase.
-   // So, we can do rollback safely in 2 cycles instead of 1
+   // So, spare buffers remain clean during this phase, and no push/pop happens during the rollback phase.
+   // So, we can do rollback safely in 2 cycles instead of 1.
    if (rbk_en_extnd) begin
       wr_ptr  = curr_rbk_ptr  ; 
       wr_data = curr_rbk_sbuff;
