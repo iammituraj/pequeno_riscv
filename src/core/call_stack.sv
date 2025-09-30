@@ -70,6 +70,7 @@ module call_stack #(
    input  logic            i_push_en   ,  // Push enable
    input  logic [DW-1:0]   i_push_data ,  // Push data
    output logic            o_full      ,  // Full flag
+   output logic            o_alm_full  ,  // Almost Full flag
 
    // Pop interface
    input  logic            i_pop_en    ,  // Pop enable
@@ -191,19 +192,6 @@ end
 //=============================================================================
 // Logic to push data/rollback
 //=============================================================================
-//always_ff @(posedge clk) begin
-//   // Rollback (higher priority)
-//   if (i_rbk_en) begin
-//      case (i_spec_state)
-//         2'b01  : begin stack[i_rbk_ptr+0] <= spare_buff[0];                                      end
-//         2'b10  : begin stack[i_rbk_ptr+0] <= spare_buff[1]; stack[i_rbk_ptr+1] <= spare_buff[0]; end
-//         2'b11  : begin stack[i_rbk_ptr-1] <= spare_buff[0];                                      end
-//         default: ;  // No change in stack state
-//      endcase
-//   end
-//   // Push to Stack when no rollback is enabled
-//   else if (push_en) stack[wr_ptr] <= i_push_data ;
-//end
 always_ff @(posedge clk) begin
    if (wr_en) stack[wr_ptr] <= wr_data;
 end
@@ -235,8 +223,9 @@ assign push_en     = i_push_en           ;  // Push is always allowed even when 
 assign pop_en      = i_pop_en & ~o_empty ;  // Pop is allowed only if not empty
 
 // Full & Empty flags
-assign o_full  = (count_ff[PTRW] == 1'b1);  // Equivalent to count_ff == DPT; Overflow bit => max count reached...
-assign o_empty = (count_ff == 0);
+assign o_full     = (count_ff[PTRW] == 1'b1);  // Equivalent to count_ff == DPT; Overflow bit => max count reached...
+assign o_empty    = (count_ff == 0);
+assign o_alm_full = &count_ff[PTRW-1:0];  // If the counter = (MAX_CNT -1) => Almost full!
 
 //===================================================================
 // Logic to update spare buffers

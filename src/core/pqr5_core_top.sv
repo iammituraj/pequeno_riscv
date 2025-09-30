@@ -295,16 +295,17 @@ logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
 `ifdef DBG
 `ifdef RAS
 logic [5:0]       fu_dbg                ;  // Debug signal from FU  : {ras_flush, is_call, is_ret, bp_flush, is_op_branch, is_op_jal}
+logic [5:0]       exu_dbg               ;  // Debug signal from EXU : {is_ras_mispred, is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
 `else
 logic [2:0]       fu_dbg                ;  // Debug signal from FU  : {bp_flush, is_op_branch, is_op_jal}
-`endif
-logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
 logic [4:0]       exu_dbg               ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+`endif//RAS
+logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
 logic             exu_dbg_is_b_instr    ;  // Branch instruction flag from EXU  
 logic             exu_dbg_is_pred_wrong ;  // Branch prediction wrong flag from EXU
 logic [4:0]       wbu_dbg               ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, is_dir_writeback, pipe_stall, dmem_acc_stall}
 logic [`XLEN-1:0] regf [32]             ;  // Debug signal from REGF: Register File
-`endif
+`endif//DBG
 
 // Dynamic branch prediction related
 `ifdef BPREDICT_DYN
@@ -785,13 +786,14 @@ int   exec_cycles ;
 int   stal_cycles ;
 int   bubb_cycles ;
 int   jb_cycles   ;
-int   bp_flush_cycles ;
-int   bu_flush_cycles ;
+int   bp_flush_cycles;
+int   bu_flush_cycles;
 `ifdef RAS
 int   ras_flush_cycles;
+int   ras_mispred_cycles;
 `endif
-int   b_cycles        ;
-int   bu_b_flush_cycles  ;
+int   b_cycles;
+int   bu_b_flush_cycles;
 
 final begin
    $display("");
@@ -820,6 +822,9 @@ final begin
    $display("| RAS Flush   = %0d cycles", ras_flush_cycles);
    `endif
    $display("| BU Flush    = %0d cycles ", bu_flush_cycles);
+   `ifdef RAS
+   $display("| RAS mispred = %0d cycles ", ras_mispred_cycles);
+   `endif
    if (jb_cycles == 0)
       $display("| Hit rate    = NA");
    else
@@ -1035,16 +1040,18 @@ always @(posedge clk or negedge aresetn) begin
       bp_flush_cycles    <= 0 ;
       `ifdef RAS
       ras_flush_cycles   <= 0 ;
+      ras_mispred_cycles <= 0 ;
       `endif
    end
    else begin
       if (!(du_exu_bubble | exu_bu_flush) && is_j_or_b && !exu_du_stall) jb_cycles          <= jb_cycles + 1 ;
-      if (exu_dbg_is_b_instr && !maccu_exu_stall)                        b_cycles           <= b_cycles  + 1  ; 
-      if (exu_dbg_is_b_instr && exu_dbg_is_pred_wrong)                   bu_b_flush_cycles  <= bu_b_flush_cycles  + 1 ;
-      if (exu_bu_flush)                                                  bu_flush_cycles    <= bu_flush_cycles  + 1 ;
-      if (fu_dbg[2])                                                     bp_flush_cycles    <= bp_flush_cycles  + 1 ;
+      if (exu_dbg_is_b_instr && !maccu_exu_stall)                        b_cycles           <= b_cycles + 1  ; 
+      if (exu_dbg_is_b_instr && exu_dbg_is_pred_wrong)                   bu_b_flush_cycles  <= bu_b_flush_cycles + 1 ;
+      if (exu_bu_flush)                                                  bu_flush_cycles    <= bu_flush_cycles + 1 ;
+      if (fu_dbg[2])                                                     bp_flush_cycles    <= bp_flush_cycles + 1 ;
       `ifdef RAS
       if (fu_dbg[5])                                                     ras_flush_cycles   <= ras_flush_cycles + 1 ;
+      if (exu_bu_flush && exu_dbg[5])                                    ras_mispred_cycles <= ras_mispred_cycles + 1 ;
       `endif
    end
 end

@@ -65,8 +65,12 @@ module execution_unit #(
    input  logic             aresetn             ,  // Asynchronous Reset; active-low
    
    `ifdef DBG
-   // Debug Interface  
+   // Debug Interface 
+   `ifdef RAS 
+   output logic [5:0]       o_exu_dbg           ,  // Debug signal
+   `else
    output logic [4:0]       o_exu_dbg           ,  // Debug signal
+   `endif
    output logic             o_dbg_is_b_instr    ,  // Branch instruction flag
    output logic             o_dbg_is_pred_wrong ,  // Prediction wrong?
    `endif
@@ -387,11 +391,17 @@ end
 logic [RPTW-1:0] ras_rbk_ptr_rg      ;  // RAS roll back pointer
 logic            ras_rbk_full_rg     ;  // RAS roll back to full
 logic            ras_rbk_incr_ptr_rg ;  // RAS roll back pointer increment flag
+`ifdef DBG
+logic            is_ras_mispred_rg   ;  // RAS misprediction flag registered 
+`endif
 always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin 
       ras_rbk_ptr_rg      <= '0;
       ras_rbk_full_rg     <= 1'b0;
       ras_rbk_incr_ptr_rg <= 1'b0;
+      `ifdef DBG
+      is_ras_mispred_rg   <= 1'b0;
+      `endif
    end
    else if (!stall) begin
       // If RAS misprediction on RET is detected-
@@ -400,6 +410,9 @@ always_ff @(posedge clk or negedge aresetn) begin
       ras_rbk_ptr_rg      <= i_du_ras_snap_ptr;
       ras_rbk_full_rg     <= i_du_ras_snap_full;
       ras_rbk_incr_ptr_rg <= is_ras_mispred;  // Set increment flag on RET misprediction
+      `ifdef DBG
+      is_ras_mispred_rg   <= is_ras_mispred;
+      `endif
    end 
 end
 assign o_ras_rbk_en       = bu_flush             ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
@@ -468,7 +481,11 @@ assign o_du_stall    = exu_stall_ext           ;  // Stall signal to DU
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
+`ifdef RAS
+assign o_exu_dbg = {is_ras_mispred_rg, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+`else
 assign o_exu_dbg = {is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+`endif
 `endif
 
 // EXU-BU outputs to the Core pipeline

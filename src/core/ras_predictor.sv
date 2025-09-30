@@ -93,6 +93,7 @@ logic [`XLEN-1:0]   ret_addr_on_ret_rg  ;  // Return address popped from the sta
 
 logic               push_en, pop_en     ;  // Push and pop signals to stack
 logic               st_full,st_empty    ;  // Stack Full, Empty flags
+logic               st_alm_full         ;  // Stack Almost Full flag
 logic [ST_PTRW-1:0] curr_st_ptr         ;  // Stack pointer
 
 logic [1:0]         cpu_spec_state      ;  // Speculative state of the CPU pipeline
@@ -118,6 +119,7 @@ call_stack #(
    .i_push_en      (push_en),
    .i_push_data    (ret_addr_on_call),
    .o_full         (st_full),
+   .o_alm_full     (st_alm_full),
 
    .i_pop_en       (pop_en),
    .o_pop_data     (ret_addr_on_ret),
@@ -159,9 +161,10 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else if (!i_stall) begin 
       // Pipe forward ptr+1 on CALLs cz potential push may have happened... so rollback of stack contents must use reference = ptr+1
+      // Pipe forward almost full on CALLs cz potential push may have happened and stack may have got full!
       // Pipe forward ptr-1 on RET taken cz pop has happened... so rollback of stack contents must use reference =  ptr-1
       o_st_snap_ptr <= i_is_call? curr_st_ptr_p1 : (ret_taken? curr_st_ptr_m1 : curr_st_ptr);
-      o_st_snap_full<= st_full ;
+      o_st_snap_full<= i_is_call? st_alm_full : st_full ;
    end
 end
 assign curr_st_ptr_p1 = curr_st_ptr + 1;
