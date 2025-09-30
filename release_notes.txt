@@ -9,10 +9,10 @@
 |                                   R E L E A S E   N O T E S                                     |
 +=================================================================================================+
 | IP            : Pequeno RISC-V CPU (PQR5)
-| Version       : v1.0.2
+| Version       : v1.0.3
 | Type          : Soft core in SV
 | License       : [see LICENSE]
-| Release Date  : Aug-2025
+| Release Date  : Oct-2025
 | 
 | Documentation : [TBD]
 | 
@@ -25,6 +25,7 @@
 |                                              based Regfile on FPGAs.
 |                                            * Added Dhrystone support
 |                                            * Verified by RISC-V test programs from riscv.org
+|                 v1.0.3      [Oct  2025] -- * RAS predictor option
 |                
 | Developer     : Mitu Raj, Chipmunk Logic ™ 
 | Website       : https://chipmunklogic.com

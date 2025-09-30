@@ -24,7 +24,7 @@
 |
 |   STEPS to build a sample PQR5 SUBSYSTEM with Firmware
 |   ====================================================
-|   1) Compile any ASM program in assembler/example_programs:
+|   1) Compile any ASM program in assembler/example_programs using pqr5asm assembler:
 |      >> make asm2bin ASM=01_test_regfile.s ASMF=<>
 |
 |      This will generate the binaries (raw & ASCII hex text) in assembler/
@@ -67,23 +67,26 @@
 |      a) Build the synth setup in Vivado by running: make build_synth
 |      b) Make target-specific changes to the spawned RTL source files in synth/rtl_src if required
 |         This includes setting SYNTH MACROs, test env & design MACROs, configure I/O ports etc
-|      c) Create a top-level XDC constraints file for the design in synth/
+|      c) Create a top-level XDC constraints file for the design in synth/xdc/
 |      d) Configure the TCL scripts in synth/
 |      e) Run synthesis by running: make_synth
 |         This will run synthesis + implementation + generation of bitfile
 |      f) Verify all the outputs, reports & logs in synth/*_outputs, check errors/warnings, if any
 |      g) Burn the bitfile to the target FPGA by running: make burn
+|      h) The subsystem should boot from the Initialized RAMs
 |
 |  10) Steps to flash the program binary to target
 |      a) Make sure PQR5 subsystem is synthesised and implemented with Loader
 |      b) Generate the bitstream and send to the target
 |      c) Invoke peqFlash to flash the program binary by running: make flash
+|         Go through doc/Programming_Pequeno_with_peqFlash.pdf for more details
 |
 |
 |   Running Regressions in the CPU
 |   ===============================
 |   Running regressions validate the functionality of the PQR5 subsystem built.
-|   This will execute all example assembly programs and dump the results in dump/regress_run_dump.
+|   This will execute all the example assembly programs and dump the results in dump/regress_run_dump.
+|   The dump is then compared with the golden reference and results are published.
 |
 |   Following configuration should be set before running regression.
 |
