@@ -2,7 +2,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/iammituraj/pequeno_riscv?style=social)](https://github.com/iammituraj/pequeno_riscv/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/iammituraj/pequeno_riscv?style=social)](https://github.com/iammituraj/pequeno_riscv/network)
-[![GitHub release](https://img.shields.io/github/v/release/iammituraj/pequeno_riscv?tag=v1.0.0)](https://github.com/iammituraj/pequeno_riscv/releases/tag/v1.0.3)
+[![GitHub release](https://img.shields.io/github/v/release/iammituraj/pequeno_riscv?tag=v1.0.0)](https://github.com/iammituraj/pequeno_riscv/releases/tag/v1.0.3_release_011025)
 [![License](https://img.shields.io/github/license/iammituraj/pequeno_riscv)](https://github.com/iammituraj/pequeno_riscv/blob/main/LICENSE)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Follow-blue?logo=linkedin)](https://www.linkedin.com/in/iammituraj/)
 [![Website](https://img.shields.io/badge/Visit-chipmunklogic.com-green?logo=Google-Chrome)](https://chipmunklogic.com)
