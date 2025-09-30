@@ -22,7 +22,7 @@
 #                    - Compile and build Dhrystone CPU Benchmark and generate the binary for on-board validation/simulation.
 #                    - Compile and build Standard RISC-V Test pgms (by riscv.org) with GCC for on-board validation/simulation.
 #
-# Last Modified on : Aug-2025
+# Last Modified on : Sept-2025
 # Compatibility    : Linux/Unix, Windows require terminal programs like MSYS/Gitbash
 #                    ModelSim/QuestaSim for RTL simulation
 #                    Pequeno SW toolchain for ASM compiling, flashing Pequeno
@@ -40,8 +40,6 @@ SHELL:=/bin/bash
 # [CONFIGURE] Python env path
 PYTHON:=~/my_workspace/python/myenv/bin/python
 #PYTHON:=python
-
-# [CONFIGURE] CoreMark
 
 # Define directories
 SRC_DIR    = $(shell pwd)/src
@@ -114,9 +112,9 @@ help:
 	@echo "3.  make sim GUI=0/1                                            -- To simulate the PQR5 subsystem"
 	@echo "4.  make run_all GUI=0/1                                        -- To clean + compile + simulate"	
 	@echo "5.  make asm2bin ASM=<assembly file> ASMF=<>                    -- To compile an eg. ASM program with assembler and generate the binaries"
-	@echo "6.  make coremark ISZ=<IRAM size> DSZ=<DRAM size>               -- To build and run CoreMark® CPU Benchmark"
-	@echo "7.  make dhryst ISZ=<IRAM size> DSZ=<DRAM size>                 -- To build and run Dhrystone CPU Benchmark"	
-	@echo "8.  make rvtest ISZ=<IRAM size> DSZ=<DRAM size> PGM=<Program>   -- To build and run RISC-V Test Programs in C"
+	@echo "6.  make coremark ISZ=<IRAM size> DSZ=<DRAM size>               -- To build CoreMark® CPU Benchmark"
+	@echo "7.  make dhryst ISZ=<IRAM size> DSZ=<DRAM size>                 -- To build Dhrystone CPU Benchmark"	
+	@echo "8.  make rvtest ISZ=<IRAM size> DSZ=<DRAM size> PGM=<Program>   -- To build RISC-V Test Program in C"
 	@echo "9.  make genram ISZ=<IRAM size> DSZ=<DRAM size> OFT=<PC_INIT>   -- To generate IRAM & DRAM with binaries initialized"
 	@echo "10. make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To build the PQR5 subsystem with FW: asm2bin + genram + compile"
 	@echo "11. make build_synth                                            -- To generate a basic synthesis setup for Xilinx Vivado"
@@ -331,7 +329,7 @@ cmk2bin: asm_clean cmk_clean
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(COREMK_DIR); \
-	make build ; \
+	make all ; \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0

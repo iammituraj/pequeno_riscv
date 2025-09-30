@@ -2,21 +2,21 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 =========================================
 |
 📁 assembler - Assembler related
-├── 📁 example_programs - Contains example programs for testing, and used by regressions
-├── 📄 pqr5asm.py - pqr5asm Assembler for Pequeno (PQR5)
-├── 📄 sample.* - [BUILD GENERATED] Assembler-generated files during build
-├── 📄 asm_pgm_info.txt - [BUILD GENERATED] ASM program info
-└── 📁 asm_pgm_dump_ref - [BUILD GENERATED] Golden reference dump for simulation verification
+├── 📁 example_programs   - Contains example programs for testing, and used by regressions
+├── 📄 pqr5asm.py         - pqr5asm Assembler for Pequeno (PQR5)
+├── 📄 sample.s           - Example assembly program used by the build process
+├── 📄 sample_imem/dmem.* - [BUILD GENERATED] Assembler-generated bin/hex text files for RAMs during build
+├── 📄 asm_pgm_info.txt   - [BUILD GENERATED] ASM program info
+└── 📁 asm_pgm_dump_ref   - [BUILD GENERATED] Contains golden reference dump for simulation verification
 |
 📁 doc - All documentations
-├── 📁 synth_reports - Contains synthesis reports
-├── 📄 pequeno_riscv_v1_0_ug.pdf - PQR5 v1.0 User Guide (YET TO BE RELEASED)
-├── 📄 pqr5asm_imanual.pdf - pqr5asm Assembler Instruction Manual
+├── 📄 pequeno_riscv_v1_0_ug.pdf             - PQR5 v1.0 User Guide (YET TO BE RELEASED)
+├── 📄 pqr5asm_imanual.pdf                   - pqr5asm Assembler Instruction Manual
 └── 📄 Programming_Pequeno_with_peqFlash.pdf - peqFlash User Guide
 |
 📁 dump [RUN-TIME GENERATED]
 ├── 📄 *_dump.txt - IMEM/DMEM/Regfile dumps
-└── 📄 sim.vcd - VCD dump of Subsystem
+└── 📄 sim.vcd    - VCD dump of Subsystem
 |
 📁 filelist
 └── 📄 all_design_src_files.txt - Full list of RTL source files
@@ -25,56 +25,62 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 └── 📄 peqflash.py - Flasher tool for PQR5 Subsystem
 |
 📁 scripts - All scripts used by the Makefile ecosystem
-├── 🧷 pqr5genram.py - Generates IRAM and DRAM from binary
-├── 🧷 pqr5genwrap.py - Generates wrapper for memory
-├── 🧷 opserial.py - Opens debug UART serial port
-├── 🧷 opserial.sh - Runs opserial.py
-├── 🧷 regress_run.sh - Runs regression tests
-├── 🧷 run.do - Used for simulation in VSIM (Linux)
+├── 🧷 pqr5genram.py      - Generates IRAM and DRAM from binary
+├── 🧷 pqr5genwrap.py     - Generates wrapper for memory
+├── 🧷 opserial.py        - Opens debug UART serial port
+├── 🧷 opserial.sh        - Runs opserial.py
+├── 🧷 regress_run.sh     - Runs regression tests
+├── 🧷 regress_check.sh   - Runs regression checker
+├── 🧷 run.do             - Used for simulation in VSIM (Linux)
 ├── 🧷 decode_baseaddr.py - Decodes base address from binary
-├── 🧷 bin2pqr5bin.py - Converts GCC binary to PQR5 format
-└── 🧷 bin2hextxt.sh - Generates Hex Text from GCC binary
+├── 🧷 bin2pqr5bin.py     - Converts GCC binary to PQR5 format
+└── 🧷 bin2hextxt.sh      - Generates Hex Text from GCC binary
 |
 📁 sim [RUN-TIME GENERATED] - Simulation-related files, logs, libs
 |
 📁 synth [SYNTH-TIME GENERATED]
-├── 📁 rtl_src - Synthesis-specific RTL mods
-├── 📁 xdc - For XDC constraint files
-├── 📄 run_synth.tcl - Synthesis + bitfile generation (Vivado)
+├── 📁 rtl_src             - Contains all RTL source files to be used for synthesis
+├── 📁 xdc                 - Contains XDC constraint files
+├── 📄 run_synth.tcl       - Script for synthesis + PAR + bitfile generation (Vivado)
 └── 📄 write_bitstream.tcl - Burns bitfile to FPGA (Vivado HW Manager)
 |
 📁 src - All RTL source files of the CPU & Subsystem
 ├── 📁 common
-│ ├── 📄 areset_sync.sv - Async Reset Synchronizer
-│ ├── 📄 cdc_sync.sv - CDC Synchronizer
-│ ├── 📄 pqr5_core_pkg.sv - PQR5 Core package
+│ ├── 📄 areset_sync.sv        - Async Reset Synchronizer
+│ ├── 📄 cdc_sync.sv           - CDC Synchronizer
+│ ├── 📄 pqr5_core_pkg.sv      - PQR5 Core package
 │ └── 📄 pqr5_subsystem_pkg.sv - PQR5 Subsystem package
 │
 ├── 📁 core
-│ ├── 📄 alu.sv - ALU
-│ ├── 📄 bram_dp_r2w1.sv - Dual-port BRAM
-│ ├── 📄 decode_unit.sv - Decode Unit (DU)
-│ ├── 📄 execution_unit.sv - Execution Unit (EXU)
-│ ├── 📄 exu_branch_unit.sv - EXU Branch Unit (EXU-BU)
-│ ├── 📄 fetch_unit.sv - Fetch Unit (FU)
-│ ├── 📄 loadstore_unit.sv - Load-Store Unit (LSU)
+│ ├── 📄 alu.sv                - ALU
+│ ├── 📄 bhistory_table.sv     - Branch History Table (BHT)
+│ ├── 📄 bram_dp_r2w1.sv       - Dual-port BRAM
+│ ├── 📄 call_stack.sv         - Call Stack
+│ ├── 📄 decode_unit.sv        - Decode Unit (DU)
+│ ├── 📄 execution_unit.sv     - Execution Unit (EXU)
+│ ├── 📄 exu_branch_unit.sv    - EXU Branch Unit (EXU-BU)
+│ ├── 📄 fetch_unit.sv         - Fetch Unit (FU)
+│ ├── 📄 loadstore_unit.sv     - Load-Store Unit (LSU)
 │ ├── 📄 memory_access_unit.sv - Memory Access Unit (MACCU)
-│ ├── 📄 opfwd_control.sv - Operand Forward Control
-│ ├── 📄 pqr5_core_top.sv - PQR5 Core Top // TOP FILE //
-│ ├── 📄 regfile.sv - Register File
-│ ├── 📄 static_bpredictor.sv - Static Branch Predictor
-│ └── 📄 writeback_unit.sv - Writeback Unit (WBU)
+│ ├── 📄 opfwd_control.sv      - Operand Forward Control
+│ ├── 📄 pqGshare_bpredictor.sv- Pequeno Gshare Branch Predictor (PQGBP) 
+│ ├── 📄 pqr5_core_top.sv      - PQR5 Core Top     // TOP FILE //
+│ ├── 📄 ras_predictor.sv      - RAS Predictor
+│ ├── 📄 regfile.sv            - Register File
+│ ├── 📄 rf_rdctl.sv           - Register File Read Control
+│ ├── 📄 static_bpredictor.sv  - Static Branch Predictor
+│ └── 📄 writeback_unit.sv     - Writeback Unit (WBU)
 │
 ├── 📁 include
-│ ├── 📄 pqr5_core_macros.svh - PQR5 Core macros
+│ ├── 📄 pqr5_core_macros.svh      - PQR5 Core macros
 │ └── 📄 pqr5_subsystem_macros.svh - PQR5 Subsystem macros
 │
 ├── 📁 memory
 │ └── 📄 *.sv - [MAKEFILE GENERATED] Synthesizable RAM with bootable binary
 │
 └── 📁 subsystem
-├── 📄 pqr5_subsystem_top.sv - PQR5 Subsystem Top // TOP FILE //
-└── 📄 reset_ctl.sv - Reset Controller
+├── 📄 pqr5_subsystem_top.sv - PQR5 Subsystem Top  // TOP FILE //
+└── 📄 reset_ctl.sv          - Reset Controller
 |
 📁 coremark - All source files to build CoreMark benchmark for the CPU
 |
@@ -84,5 +90,5 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 |
 📄 LICENSE - License info
 📄 release_notes.txt - IP release notes
-📄 build_notes.txt - Build, simulate, synthesize notes
-📄 Makefile - Automates build/sim/synthesis
+📄 build_notes.txt   - Build, simulate, synthesize notes
+📄 Makefile          - Automates build/sim/synthesis

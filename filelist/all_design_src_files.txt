@@ -12,9 +12,11 @@
 
 
 ############################## MEMORY ###############################
+# IMEM
 ./src/memory/iram.sv
 ./src/memory/imem_top.sv
 
+# DMEM
 ./src/memory/dram_b0.sv
 ./src/memory/dram_b1.sv
 ./src/memory/dram_b2.sv
@@ -24,26 +26,33 @@
 
 
 ############################## CORE #################################
+# FU & PREDICTORS
 ./src/core/call_stack.sv
+./src/core/ras_predictor.sv
 ./src/core/bhistory_table.sv
 ./src/core/pqGshare_bpredictor.sv
 ./src/core/static_bpredictor.sv
 ./src/core/fetch_unit.sv
 
+# OPERAND FORWARD
 ./src/core/opfwd_control.sv
 
+# REGFILE & DU
 ./src/core/rf_rdctl.sv
 ./src/core/bram_dp_r2w1.sv
 ./src/core/regfile.sv
 ./src/core/decode_unit.sv
 
+# EXU
 ./src/core/exu_branch_unit.sv
 ./src/core/alu.sv
 ./src/core/loadstore_unit.sv
 ./src/core/execution_unit.sv
 
+# MACCU
 ./src/core/memory_access_unit.sv
 
+# WBU
 ./src/core/writeback_unit.sv
 
 

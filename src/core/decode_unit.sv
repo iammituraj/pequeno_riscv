@@ -30,7 +30,7 @@
 //----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : May-2025
+//----%% Last modified on : Sept-2025
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -50,7 +50,8 @@ import pqr5_core_pkg :: * ;
 module decode_unit #(
    // Configurable parameters
    parameter PC_INIT = `PC_INIT,  // Init PC on reset
-   parameter GHRW    = `GHRW      // GHR width
+   parameter GHRW    = `GHRW,     // GHR width
+   parameter RPTW    = `RPTW      // RAS pointer size
 )
 (
    // Clock and Reset
@@ -69,6 +70,15 @@ module decode_unit #(
    `ifdef BPREDICT_DYN
    input  logic [GHRW-1:0]  i_fu_ghr_snapshot  ,  // GHR snapshot from FU
    `endif
+
+   `ifdef RAS
+   input  logic             i_fu_is_call       ,  // CALL flag from FU
+   input  logic [`XLEN-1:0] i_fu_ras_ret_addr  ,  // RAS predicted RET address from FU
+   input  logic             i_fu_ras_ret_taken ,  // RAS predicted RET taken status from FU
+   input  logic [RPTW-1:0]  i_fu_ras_snap_ptr  ,  // RAS pointer snapshot from FU
+   input  logic             i_fu_ras_snap_full ,  // RAS full flag snapshot from FU
+   `endif
+
    input  logic             i_fu_bubble        ,  // Bubble from FU
    output logic             o_fu_stall         ,  // Stall signal to FU
 
@@ -90,7 +100,15 @@ module decode_unit #(
    `endif
    output logic             o_exu_bubble       ,  // Bubble to EXU
    output logic             o_exu_pkt_valid    ,  // Packet valid to EXU
-   input  logic             i_exu_stall        ,  // Stall signal from EXU
+   input  logic             i_exu_stall        ,  // Stall signal from EXU   
+
+   `ifdef RAS
+   output logic             o_exu_is_call      ,  // CALL flag to EXU; Tapped by RAS predictor in FU
+   output logic [`XLEN-1:0] o_exu_ras_ret_addr ,  // RAS predicted RET address to EXU
+   output logic             o_exu_ras_ret_taken,  // RAS predicted RET taken status to EXU
+   output logic [RPTW-1:0]  o_exu_ras_snap_ptr ,  // RAS pointer snapshot to EXU
+   output logic             o_exu_ras_snap_full,  // RAS full flag snapshot to EXU
+   `endif
 
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
@@ -361,6 +379,35 @@ end
 `endif
 
 //===================================================================================================================================================
+// Synchronous logic to pipe CALL, RAS prediction signals
+//===================================================================================================================================================
+`ifdef RAS
+logic             du_is_call_rg      ;  // CALL flag
+logic [`XLEN-1:0] du_ras_ret_addr_rg ;  // RAS predicted RET address
+logic             du_ras_ret_taken_rg;  // RAS predicted RET taken status
+logic [RPTW-1:0]  du_ras_snap_ptr_rg ;  // RAS pointer snapshot
+logic             du_ras_snap_full_rg;  // RAS full flag snapshot
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset   
+   if (!aresetn) begin
+      du_is_call_rg       <= 1'b0;
+      du_ras_ret_addr_rg  <= '0  ;
+      du_ras_ret_taken_rg <= 1'b0;
+      du_ras_snap_ptr_rg  <= '0  ;
+      du_ras_snap_full_rg <= 1'b0;
+   end
+   // Out of reset
+   else if (!stall) begin  // Pipe forward...
+      du_is_call_rg       <= i_fu_is_call       ;
+      du_ras_ret_addr_rg  <= i_fu_ras_ret_addr  ;
+      du_ras_ret_taken_rg <= i_fu_ras_ret_taken ;
+      du_ras_snap_ptr_rg  <= i_fu_ras_snap_ptr  ;
+      du_ras_snap_full_rg <= i_fu_ras_snap_full ;           
+   end
+end
+`endif
+
+//===================================================================================================================================================
 // Synchronous logic to generate rs0/rs1 copies to relax fanout & timing at opfwd block
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
@@ -450,6 +497,13 @@ assign o_exu_is_jalr      = is_jalr_rg ;
 assign o_exu_is_j_or_jalr = is_j_or_jalr_rg ;
 assign o_exu_is_load      = is_load_rg ;
 assign o_exu_is_lui       = is_lui_rg  ;
+`ifdef RAS
+assign o_exu_is_call      = du_is_call_rg       ;
+assign o_exu_ras_ret_addr = du_ras_ret_addr_rg  ;
+assign o_exu_ras_ret_taken= du_ras_ret_taken_rg ;
+assign o_exu_ras_snap_ptr = du_ras_snap_ptr_rg  ;
+assign o_exu_ras_snap_full= du_ras_snap_full_rg ;
+`endif
 assign o_exu_i_type_imm   = {du_instr_rg[31:20]}                                                       ;
 assign o_exu_s_type_imm   = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;
 assign o_exu_b_type_imm   = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]}   ;
