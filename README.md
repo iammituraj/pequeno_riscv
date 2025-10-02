@@ -83,8 +83,8 @@ Please go through [readme_database](readme_database) for complete info about thi
 ![Pequeno RISC-V CPU Block Diagram](doc/misc/pequeno_block_diagram.png "Block Diagram of PQR5")
 
 ## Validation of the CPU core
-- The CPU core is verified using the standard [RISC-V tests and benchmarks](https://github.com/riscv-software-src/riscv-tests/tree/master/benchmarks).
-- The CPU core is also verified by various regression test suite available in this package
+- The CPU core was verified using the standard [RISC-V tests and benchmarks](https://github.com/riscv-software-src/riscv-tests/tree/master/benchmarks).
+- The CPU core was also verified by the regression tests available in this package
 
 ## PQR5ASM, the tailor-made Assembler
    This RV32I assembler supports all 37 base instructions + 16 pseudo instructions. All the example programs in the repo uses this assembler
