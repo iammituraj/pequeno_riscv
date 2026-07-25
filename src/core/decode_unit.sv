@@ -112,6 +112,13 @@ module decode_unit #(
 
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
+   `ifdef MULTDIV
+   output logic             o_exu_is_mult_op   ,  // MULT operation flag to EXU
+   output logic             o_exu_is_div_op    ,  // DIV operation flag to EXU
+   output logic             o_exu_is_upp_or_rem,  // Upper-word (MUL*) / Remainder (REM*) result select flag to EXU
+   output logic             o_exu_is_signed_rs0,  // rs0 operand signedness flag to EXU; for MULT/DIV
+   output logic             o_exu_is_signed_rs1,  // rs1 operand signedness flag to EXU; for MULT/DIV
+   `endif
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
    output logic [4:0]       o_exu_rs0_cpy_ff   ,  // rs0 copy; Tapped by opfwd block...
    output logic [4:0]       o_exu_rs1          ,  // rs1 (source register-1) address to EXU
@@ -175,6 +182,19 @@ logic             is_alu_op           ;  // ALU operation flag
 logic             is_alu_op_rg        ;  // ALU operation flag (registered)
 logic [3:0]       alu_opcode          ;  // ALU opcode
 logic [3:0]       alu_opcode_rg       ;  // ALU opcode (registered)
+`ifdef MULTDIV
+logic             is_muldiv_op        ;  // MULT/DIV (RV32M) operation flag
+logic             is_mult_op          ;  // MULT operation flag
+logic             is_mult_op_rg       ;  // MULT operation flag (registered)
+logic             is_div_op           ;  // DIV operation flag
+logic             is_div_op_rg        ;  // DIV operation flag (registered)
+logic             is_upp_or_rem       ;  // Upper-word (MUL*) / Remainder (REM*) result select flag
+logic             is_upp_or_rem_rg    ;  // Upper-word (MUL*) / Remainder (REM*) result select flag (registered)
+logic             is_signed_rs0       ;  // rs0 operand signedness flag; for MULT/DIV
+logic             is_signed_rs0_rg    ;  // rs0 operand signedness flag (registered)
+logic             is_signed_rs1       ;  // rs1 operand signedness flag; for MULT/DIV
+logic             is_signed_rs1_rg    ;  // rs1 operand signedness flag (registered)
+`endif
 
 // Decoded from buffered flags/instruction --> Payload to EXU
 logic             is_r_type           ;  // R-type instruction flag
@@ -282,11 +302,16 @@ always_comb begin
    endcase
 end
 
+// Decode instruction flags
 assign is_jal          = (fu_opcode == OP_JAL)  ;
 assign is_jalr         = (fu_opcode == OP_JALR) ;
 assign is_j_or_jalr    = (is_jal || is_jalr)    ;
 assign is_load         = (fu_opcode == OP_LOAD) ;
+`ifdef MULTDIV
+assign is_alur         = (fu_opcode == OP_ALU) && (fu_funct7 != F7_MULDIV);  // Excludes RV32M MUL/DIV/REM encoding
+`else
 assign is_alur         = (fu_opcode == OP_ALU)  ;
+`endif
 assign is_alui         = (fu_opcode == OP_ALUI) ;
 assign is_lui          = (fu_opcode == OP_LUI)  ;
 assign is_auipc        = (fu_opcode == OP_AUIPC);
@@ -320,10 +345,46 @@ assign is_alu_op  = (is_alur || is_alui || is_lui_or_auipc);
 always_comb begin
    case ({is_lui_or_auipc, (is_alui && !is_sli_sri)})
       2'b10   : alu_opcode = ALU_ADD ;                   // LUI/AUIPC requires ADD at ALU
-      2'b01   : alu_opcode = {fu_funct3, 1'b0} ;         // LSb = 0 if ALUI-I but not SLLI/SRLI/SRAI 
+      2'b01   : alu_opcode = {fu_funct3, 1'b0} ;         // LSb = 0 if ALUI-I but not SLLI/SRLI/SRAI
       default : alu_opcode = {fu_funct3, fu_funct7[5]};  // This will cover ALU-R, and ALU-I instructions: SLLI/SRLI/SRAI
    endcase
 end
+
+`ifdef MULTDIV
+//===================================================================================================================================================
+// Synchronous logic to decode MULT/DIV operations
+//===================================================================================================================================================
+// Synchronous logic to register the MULT/DIV operation parameters
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset
+   if (!aresetn) begin
+      is_mult_op_rg    <= 1'b0 ;
+      is_div_op_rg     <= 1'b0 ;
+      is_upp_or_rem_rg <= 1'b0 ;
+      is_signed_rs0_rg <= 1'b0 ;
+      is_signed_rs1_rg <= 1'b0 ;
+   end
+   // Out of reset
+   else begin
+      // If not stalled
+      if (!stall) begin
+         is_mult_op_rg    <= is_mult_op    ;
+         is_div_op_rg     <= is_div_op     ;
+         is_upp_or_rem_rg <= is_upp_or_rem ;
+         is_signed_rs0_rg <= is_signed_rs0 ;
+         is_signed_rs1_rg <= is_signed_rs1 ;
+      end
+   end
+end
+
+// Decode MULT/DIV flags
+assign is_muldiv_op   = (fu_opcode == OP_ALU) && (fu_funct7 == F7_MULDIV) ;
+assign is_mult_op     = is_muldiv_op && ~fu_funct3[2] ;               // funct3 = 000..011 --> MUL/MULH/MULHSU/MULHU
+assign is_div_op      = is_muldiv_op &&  fu_funct3[2] ;               // funct3 = 100..111 --> DIV/DIVU/REM/REMU
+assign is_upp_or_rem  = fu_funct3[1] | (is_mult_op & fu_funct3[0]) ;  // funct3 = 001, 010, 011 --> MULH*, 110, 111 --> REM*
+assign is_signed_rs0  = is_mult_op ? ~(fu_funct3[1] & fu_funct3[0]) : ~fu_funct3[0] ;  // Unsigned only for MULHU / DIVU, REMU
+assign is_signed_rs1  = is_mult_op ? ~(fu_funct3[1])                : ~fu_funct3[0] ;  // Unsigned for MULHSU, MULHU / DIVU, REMU
+`endif
 
 //===================================================================================================================================================
 // Synchronous logic to pipe PC
@@ -435,7 +496,7 @@ assign o_fu_stall   = du_stall_ext ;  // Stall signal to FU
 assign flush = i_exu_bu_flush ;  // Only EXU-BU can flush FU from outside
 
 //===================================================================================================================================================
-// ALl decoded signals
+// All decoded signals
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
@@ -479,6 +540,13 @@ assign o_exu_ghr_snapshot = du_ghr_snapshot_rg ;
 `endif                                                                                 
 assign o_exu_is_alu_op    = is_alu_op_rg  ;
 assign o_exu_alu_opcode   = alu_opcode_rg ;
+`ifdef MULTDIV
+assign o_exu_is_mult_op   = is_mult_op_rg    ;
+assign o_exu_is_div_op    = is_div_op_rg     ;
+assign o_exu_is_upp_or_rem= is_upp_or_rem_rg ;
+assign o_exu_is_signed_rs0= is_signed_rs0_rg ;
+assign o_exu_is_signed_rs1= is_signed_rs1_rg ;
+`endif
 assign o_exu_rs0          = reg_src0      ;
 assign o_exu_rs1          = reg_src1      ;
 assign o_exu_rdt          = reg_dest      ;

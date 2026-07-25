@@ -99,7 +99,8 @@ module pqr5_core_top #(
    parameter BHT_BIAS        = `BHT_BIAS,         // BHT entries reset value
    parameter GHRW            = `GHRW,             // Global History Register (GHR) width
    parameter EN_RAS          = `EN_RAS,           // RAS enabled?
-   parameter RAS_DPT         = `RAS_DPT           // RAS depth
+   parameter RAS_DPT         = `RAS_DPT,          // RAS depth
+   parameter EN_MULTDIV      = `EN_MULTDIV        // Multiplier/Divider enabled?
 )
 (   
    // Clock and Reset  
@@ -459,6 +460,13 @@ decode_unit #(
 
    .o_exu_is_alu_op   (du_exu_is_alu_op),
    .o_exu_alu_opcode  (du_exu_alu_opcode),
+   `ifdef MULTDIV
+   .o_exu_is_mult_op   (),  // Unconnected for now; EXU MULT/DIV datapath not yet integrated
+   .o_exu_is_div_op    (),
+   .o_exu_is_upp_or_rem(),
+   .o_exu_is_signed_rs0(),
+   .o_exu_is_signed_rs1(),
+   `endif
    .o_exu_rs0         (du_exu_rs0),
    .o_exu_rs0_cpy_ff  (du_exu_rs0_cpy),
    .o_exu_rs1         (du_exu_rs1),
