@@ -30,7 +30,7 @@
 //----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Sept-2025
+//----%% Last modified on : July-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -99,8 +99,7 @@ module decode_unit #(
    output logic [`ILEN-1:0] o_exu_instr        ,  // Instruction decoded and sent to EXU
    `endif
    output logic             o_exu_bubble       ,  // Bubble to EXU
-   output logic             o_exu_pkt_valid    ,  // Packet valid to EXU
-   input  logic             i_exu_stall        ,  // Stall signal from EXU   
+   input  logic             i_exu_stall        ,  // Stall signal from EXU
 
    `ifdef RAS
    output logic             o_exu_is_call      ,  // CALL flag to EXU; Tapped by RAS predictor in FU
@@ -127,7 +126,6 @@ module decode_unit #(
    output logic             o_exu_rdt_not_x0   ,  // rdt neq x0
    output logic [2:0]       o_exu_funct3       ,  // Funct3 to EXU
 
-   output logic             o_exu_is_r_type    ,  // R-type instruction flag to EXU
    output logic             o_exu_is_i_type    ,  // I-type instruction flag to EXU
    output logic             o_exu_is_s_type    ,  // S-type instruction flag to EXU
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
@@ -320,7 +318,7 @@ assign is_lui          = (fu_opcode == OP_LUI)  ;
 assign is_auipc        = (fu_opcode == OP_AUIPC);
 assign is_lui_or_auipc = (is_lui || is_auipc)   ;
 assign is_sli_sri      = (fu_funct3 == F3_SLLX || fu_funct3 == F3_SRXX);
-assign is_illegal      = ~|(instr_type);
+assign is_illegal      = ~|(instr_type);  // DBG only, not consumed by any functional logic
 
 //===================================================================================================================================================
 // Synchronous logic to decode ALU operation
@@ -512,7 +510,7 @@ assign fu_funct7  = i_fu_instr[31:25]  ;
 assign reg_src0   = du_instr_rg[19:15] ;
 assign reg_src1   = du_instr_rg[24:20] ;
 assign reg_dest   = du_instr_rg[11:7]  ;
-assign du_opcode  = du_instr_rg[6:0]   ;
+assign du_opcode  = du_instr_rg[6:0]   ;  // DBG only, not consumed by any functional logic
 assign is_r_type  = instr_type_rg[5]   ;
 assign is_i_type  = instr_type_rg[4]   ;
 assign is_s_type  = instr_type_rg[3]   ;
@@ -520,7 +518,7 @@ assign is_b_type  = instr_type_rg[2]   ;
 assign is_u_type  = instr_type_rg[1]   ;
 assign is_j_type  = instr_type_rg[0]   ;
 assign funct3     = du_instr_rg[14:12] ;
-assign funct7     = du_instr_rg[31:25] ;
+assign funct7     = du_instr_rg[31:25] ;  // DBG only, not consumed by any functional logic
 
 // Read-side control signals to Register File (RF)
 assign o_rf_rden   = ~i_fu_bubble      ;  // DU and RF (read-side) are at the same stage of pipeline
@@ -535,7 +533,6 @@ assign o_exu_pc           = du_pc_rg        ;
 assign o_exu_instr        = du_instr_rg     ;
 `endif
 assign o_exu_bubble       = du_bubble_rg    ;
-assign o_exu_pkt_valid    = du_pkt_valid_rg ;
 assign o_exu_bu_br_taken  = du_br_taken_rg  ;
 `ifdef BPREDICT_DYN
 assign o_exu_ghr_snapshot = du_ghr_snapshot_rg ;
@@ -555,7 +552,6 @@ assign o_exu_rdt          = reg_dest      ;
 assign o_exu_rdt_not_x0   = |reg_dest     ;
 assign o_exu_funct3       = funct3        ;
   
-assign o_exu_is_r_type    = is_r_type  ;
 assign o_exu_is_i_type    = is_i_type  ;
 assign o_exu_is_s_type    = is_s_type  ;
 assign o_exu_is_b_type    = is_b_type  ;

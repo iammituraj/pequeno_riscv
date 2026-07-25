@@ -70,7 +70,7 @@
 //----%%                    -- Debug interfaces/modules to probe internal CPU signals during simulation can be generated using DBG macro.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Sept-2025
+//----%% Last modified on : July-2026
 //----%% Notes            : -
 //----%%
 //----%% User Guide       : [TBD]
@@ -195,7 +195,6 @@ logic [`XLEN-1:0] du_exu_pc         ;  // PC from DU to EXU
 logic [`ILEN-1:0] du_exu_instr      ;  // Instruction from DU to EXU
 `endif
 logic             du_exu_bubble     ;  // Bubble from DU to EXU
-logic             du_exu_pkt_valid  ;  // Packet valid from DU to EXU
 logic             exu_du_stall      ;  // Stall signal from EXU to DU
 
 logic [6:0]       du_exu_opcode     ;  // Opcode from DU to EXU
@@ -216,7 +215,6 @@ logic [4:0]       du_exu_rdt        ;  // rdt from DU to EXU
 logic             du_exu_rdt_not_x0 ;  // rdt neq x0
 logic [2:0]       du_exu_funct3     ;  // funct3 from DU to EXU
 
-logic             du_exu_is_r_type    ;  // R-type instruction flag from DU to EXU
 logic             du_exu_is_i_type    ;  // I-type instruction flag from DU to EXU
 logic             du_exu_is_s_type    ;  // S-type instruction flag from DU to EXU
 logic             du_exu_is_b_type    ;  // B-type instruction flag from DU to EXU
@@ -455,8 +453,7 @@ decode_unit #(
    `ifdef DBG
    .o_exu_instr       (du_exu_instr),
    `endif
-   .o_exu_bubble      (du_exu_bubble),  
-   .o_exu_pkt_valid   (du_exu_pkt_valid),
+   .o_exu_bubble      (du_exu_bubble),
    .i_exu_stall       (exu_du_stall),
 
     `ifdef RAS
@@ -484,7 +481,6 @@ decode_unit #(
    .o_exu_rdt_not_x0  (du_exu_rdt_not_x0),
    .o_exu_funct3      (du_exu_funct3), 
    
-   .o_exu_is_r_type   (du_exu_is_r_type),
    .o_exu_is_i_type   (du_exu_is_i_type),
    .o_exu_is_s_type   (du_exu_is_s_type),
    .o_exu_is_b_type   (du_exu_is_b_type),
@@ -621,7 +617,6 @@ execution_unit #(
    .i_du_instr         (du_exu_instr),
    `endif
    .i_du_bubble        (du_exu_bubble),
-   .i_du_pkt_valid     (du_exu_pkt_valid),
    .o_du_stall         (exu_du_stall),
 
    `ifdef RAS
@@ -652,8 +647,6 @@ execution_unit #(
    .i_du_rdt_not_x0    (du_exu_rdt_not_x0),
    .i_du_funct3        (du_exu_funct3),
 
-   .i_du_is_r_type     (du_exu_is_r_type),
-   .i_du_is_i_type     (du_exu_is_i_type),
    .i_du_is_s_type     (du_exu_is_s_type),
    .i_du_is_b_type     (du_exu_is_b_type),
    .i_du_is_riuj       (du_exu_is_riuj),

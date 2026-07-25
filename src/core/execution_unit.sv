@@ -35,7 +35,7 @@
 //----%%                    # Pipeline latency = 1 cycle at all execution units ALU, LSU, EXU-BU.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Sept-2025
+//----%% Last modified on : July-2026
 //----%% Notes            : - 
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -101,8 +101,7 @@ module execution_unit #(
    `ifdef DBG       
    input  logic [`ILEN-1:0] i_du_instr          ,  // Instruction decoded and sent from DU  
    `endif
-   input  logic             i_du_bubble         ,  // Bubble from DU    
-   input  logic             i_du_pkt_valid      ,  // Packet valid from DU
+   input  logic             i_du_bubble         ,  // Bubble from DU
    output logic             o_du_stall          ,  // Stall signal to DU
 
    `ifdef RAS
@@ -133,9 +132,7 @@ module execution_unit #(
    input  logic             i_du_rdt_not_x0     ,  // rdt neq x0   
    input  logic [2:0]       i_du_funct3         ,  // Funct3 from DU    
      
-   input  logic             i_du_is_r_type      ,  // R-type instruction flag from DU 
-   input  logic             i_du_is_i_type      ,  // I-type instruction flag from DU 
-   input  logic             i_du_is_s_type      ,  // S-type instruction flag from DU 
+   input  logic             i_du_is_s_type      ,  // S-type instruction flag from DU
    input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
    input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
    input  logic             i_du_is_risb        ,  // RISB flag from DU
@@ -235,7 +232,6 @@ logic             is_du_rs1_eq_exu_rdt ;  // Flags if DU rs1 == EXU rdt
 logic             is_du_rsx_eq_exu_rdt ;  // Flags if DU rs0/1 == EXU rdt
 logic             is_exu_rdt_not_x0    ;  // Flags if EXU rdt != x0
 logic [3:0]       is_du_instr_risb     ;  // Flags if DU instr = R/I/S/B-type
-logic             is_du_instr_valid    ;  // Flags if DU instr is valid
 logic             is_exu_result_wb     ;  // Flags if EXU result requires writeback; DBG only, not consumed by any functional logic
 logic             is_exu_result_mem    ;  // Flags if EXU result requires memory access
 logic             is_pipe_inlock       ;  // Flags if pipeline interlock required
@@ -551,30 +547,16 @@ assign is_exu_result_mem = ~lsu_bubble  ;               // Load/Store instructio
 //  the data in the next cycle (if available, else MACCU generates stall next cycle). 
 //  Once MACCU registers the result ie., Load data, operand forwarding can take over this data and mitigate the RAW hazard...
 //===================================================================================================================================================
-// Combinatorial logic to flag RAW access
-//always_comb begin
-   //case (is_du_instr_risb)
-      //4'b1000 , //is_src_eq_dest = (is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 ;  // R-type RAW access; x0 never causes hazard
-      //4'b0010 , //is_src_eq_dest = (is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 ;  // S-type RAW access; x0 never causes hazard
-      //4'b0001 : is_src_eq_dest = is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 ;  // B-type RAW access; x0 never causes hazard
-      //4'b0100 : is_src_eq_dest = is_du_rs0_eq_exu_rdt && is_exu_rdt_not_x0 ;  // I-type RAW access; x0 never causes hazard
-      //default : is_src_eq_dest = 1'b0 ;   
-   //endcase
-//end
-
 assign is_du_rs0_eq_exu_rdt = (i_du_rs0 == exu_rdt_rg) ;
 assign is_du_rs1_eq_exu_rdt = (i_du_rs1 == exu_rdt_rg) ;
 assign is_du_rsx_eq_exu_rdt = is_du_rs0_eq_exu_rdt | is_du_rs1_eq_exu_rdt ;
 assign is_exu_rdt_not_x0    = exu_rdt_not_x0_rg ;
-//assign is_du_instr_risb     = {i_du_is_r_type, i_du_is_i_type, i_du_is_s_type, i_du_is_b_type} ;
 assign is_du_instr_risb     = i_du_is_risb;
 assign is_src_eq_dest       = is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 && is_du_instr_risb;
-assign is_du_instr_valid    = i_du_pkt_valid ;
 assign is_exu_instr_load    = ~lsu_mem_cmd  ;
 
 // Valid Load instruction and RAW access detected? => potential RAW hazard => pipeline interlock!
 assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_src_eq_dest) ;
-//assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_du_instr_valid && is_src_eq_dest) ;
 
 //===================================================================================================================================================
 //  Stall logic
