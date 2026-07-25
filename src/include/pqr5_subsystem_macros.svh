@@ -92,7 +92,7 @@
 `define DMEM_IS_RLAT         1       // '1'- Random latency, '0'- Fixed latency --> These settings are only for Non-zero latency model
 `define DMEM_HITRATE         90.0    // Hit rate % --> only for Random latency; latency on hit = 1 cycle
 `define DMEM_MISS_RLAT       15      // Latency on miss = MISS_RLAT+1 cycles; range=[0-15]
-`define DMEM_FIXED_LAT       1       // Fixed latency = FIXED_LAT+1 for hit/miss; range=[0-15]
+`define DMEM_FIXED_LAT       0       // Fixed latency = FIXED_LAT+1 for hit/miss; range=[0-15]
 
 // Debug UART 
 `define DBGUART                              // Define this macro to enable Debug UART; SUPPORTED ONLY in DMEM Zero latency model

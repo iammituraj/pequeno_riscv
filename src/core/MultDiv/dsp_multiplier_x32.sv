@@ -100,6 +100,7 @@ logic   [32:0] op0_ff, op1_ff;       // Operands registered by the Control FSM
 logic          use_upp_ff;           // Use upper bits (UUB) flag registered by the Control FSM
 logic  [N-1:0] use_upp_ff_d;         // UUB flag pipeline registers
 logic          use_upp_retim;        // UUB flag retimed
+logic          en_mult_ff;           // Enable multiplier
 logic    [1:0] wait_cnt_ff;          // Wait counter
 
 //===================================================================
@@ -112,6 +113,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       stall_ff      <= 1'b0;
       res_out_ff    <= '0;
       res_valid_ff  <= 1'b0;
+      en_mult_ff    <= 1'b0;
       // No reset for better PPA
       //op0_ff        <= '0;
       //op1_ff        <= '0;
@@ -122,6 +124,7 @@ always_ff @(posedge clk or negedge aresetn) begin
    else if (i_flush) begin
       state_ff     <= IDLE;
       use_upp_ff   <= 1'b0;
+      en_mult_ff   <= 1'b0;
       res_valid_ff <= 1'b0;
       stall_ff     <= 1'b0;
    end
@@ -143,6 +146,7 @@ always_ff @(posedge clk or negedge aresetn) begin
             // Valid request received and Host is ready?
             if (!i_host_stall && i_op_valid) begin
                 stall_ff     <= 1'b1;  // Stall the Host until the multiplication completes
+                en_mult_ff   <= 1'b1;  // Enable multiplier
                 op0_ff       <= {(i_is_signed_op0 ? i_op0[31] : 1'b0), i_op0};  // Sign extend & register the operands on valid
                 op1_ff       <= {(i_is_signed_op1 ? i_op1[31] : 1'b0), i_op1};
                 use_upp_ff   <= i_use_upperbits;
@@ -160,7 +164,8 @@ always_ff @(posedge clk or negedge aresetn) begin
             wait_cnt_ff <= wait_cnt_ff - 2'd1;
             // Wait cycles expired?
             if (~|wait_cnt_ff) begin
-               state_ff <= RESULT;
+               en_mult_ff <= 1'b0;  // Disable multipliers
+               state_ff   <= RESULT;
             end
          end
 
@@ -190,12 +195,14 @@ end
 // This flag pipeline cannot be stalled by the Host
 // No reset required
 always_ff @(posedge clk) begin
-   // Stage-1
-   use_upp_ff_d[0] <= use_upp_ff;
+   if (en_mult_ff) begin
+      // Stage-1
+      use_upp_ff_d[0] <= use_upp_ff;
 
-   // Remaining pipeline stages; N>1
-   for (int i=1; i<N; i++) begin
-      use_upp_ff_d[i] <= use_upp_ff_d[i-1];
+      // Remaining pipeline stages; N>1
+      for (int i=1; i<N; i++) begin
+          use_upp_ff_d[i] <= use_upp_ff_d[i-1];
+      end
    end
 end
 assign use_upp_retim = use_upp_ff_d[N-1];
@@ -212,12 +219,14 @@ logic signed [65:0] mult_out, mult_out_ff;
 // Cannot be stalled by the Host
 // No reset required; async reset may not be supported by DSP multipliers as well...
 always_ff @(posedge clk) begin
-   // Stage-1 --> Register the inputs
-   mult_in0_ff <= op0_ff;
-   mult_in1_ff <= op1_ff;
+   if (en_mult_ff) begin
+      // Stage-1 --> Register the inputs
+      mult_in0_ff <= op0_ff;
+      mult_in1_ff <= op1_ff;
 
-   // Stage-2  --> Multiply
-   mult_out_ff <= mult_in0_ff * mult_in1_ff;
+      // Stage-2  --> Multiply
+      mult_out_ff <= mult_in0_ff * mult_in1_ff;
+    end
 end
 
 generate
@@ -227,9 +236,12 @@ if (N > 2) begin : MULT_OUT_REG
    // No reset required
    logic signed [65:0] mult_out_ff_d[N-2];
    always_ff @(posedge clk) begin
-      mult_out_ff_d[0] <= mult_out_ff;
-      for (int i=1; i<N-2; i++) begin
-         mult_out_ff_d[i] <= mult_out_ff_d[i-1];
+      if (en_mult_ff) begin
+         // Stage-3 to N
+         mult_out_ff_d[0] <= mult_out_ff;
+         for (int i=1; i<N-2; i++) begin
+            mult_out_ff_d[i] <= mult_out_ff_d[i-1];
+         end
       end
    end
    assign mult_out = mult_out_ff_d[N-3];

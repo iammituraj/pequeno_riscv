@@ -308,7 +308,10 @@ assign is_jalr         = (fu_opcode == OP_JALR) ;
 assign is_j_or_jalr    = (is_jal || is_jalr)    ;
 assign is_load         = (fu_opcode == OP_LOAD) ;
 `ifdef MULTDIV
-assign is_alur         = (fu_opcode == OP_ALU) && (fu_funct7 != F7_MULDIV);  // Excludes RV32M MUL/DIV/REM encoding
+wire is_fu_opcode_eq_OP_ALU    = (fu_opcode == OP_ALU);
+wire is_fu_funct7_eq_F7_MULDIV = (fu_funct7 == F7_MULDIV);
+assign is_muldiv_op            = is_fu_opcode_eq_OP_ALU &&  is_fu_funct7_eq_F7_MULDIV;
+assign is_alur                 = is_fu_opcode_eq_OP_ALU && ~is_fu_funct7_eq_F7_MULDIV;  // Excludes RV32M MUL/DIV/REM encoding
 `else
 assign is_alur         = (fu_opcode == OP_ALU)  ;
 `endif
@@ -378,7 +381,6 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 // Decode MULT/DIV flags
-assign is_muldiv_op   = (fu_opcode == OP_ALU) && (fu_funct7 == F7_MULDIV) ;
 assign is_mult_op     = is_muldiv_op && ~fu_funct3[2] ;               // funct3 = 000..011 --> MUL/MULH/MULHSU/MULHU
 assign is_div_op      = is_muldiv_op &&  fu_funct3[2] ;               // funct3 = 100..111 --> DIV/DIVU/REM/REMU
 assign is_upp_or_rem  = fu_funct3[1] | (is_mult_op & fu_funct3[0]) ;  // funct3 = 001, 010, 011 --> MULH*, 110, 111 --> REM*

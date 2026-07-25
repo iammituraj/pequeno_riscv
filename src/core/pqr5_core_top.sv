@@ -91,16 +91,18 @@ import pqr5_core_pkg :: * ;
 // Module definition
 module pqr5_core_top #(
    // Configurable parameters
-   parameter PC_INIT         = `PC_INIT,          // Init PC on reset
-   parameter IS_RF_ON_BRAM   = `IS_RF_ON_BRAM,    // Register File target = Block RAM?
-   parameter EN_BPREDICT_DYN = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
-   parameter BHT_IDW         = `BHT_IDW,          // Branch History Table (BHT) index width
-   parameter BHT_TYPE        = `BHT_TYPE,         // BHT target configuration (for Dynamic Branch Predictor)
-   parameter BHT_BIAS        = `BHT_BIAS,         // BHT entries reset value
-   parameter GHRW            = `GHRW,             // Global History Register (GHR) width
-   parameter EN_RAS          = `EN_RAS,           // RAS enabled?
-   parameter RAS_DPT         = `RAS_DPT,          // RAS depth
-   parameter EN_MULTDIV      = `EN_MULTDIV        // Multiplier/Divider enabled?
+   parameter PC_INIT          = `PC_INIT,          // Init PC on reset
+   parameter IS_RF_ON_BRAM    = `IS_RF_ON_BRAM,    // Register File target = Block RAM?
+   parameter EN_BPREDICT_DYN  = `IS_BPREDICT_DYN,  // Dynamic Branch Predictor enabled?
+   parameter BHT_IDW          = `BHT_IDW,          // Branch History Table (BHT) index width
+   parameter BHT_TYPE         = `BHT_TYPE,         // BHT target configuration (for Dynamic Branch Predictor)
+   parameter BHT_BIAS         = `BHT_BIAS,         // BHT entries reset value
+   parameter GHRW             = `GHRW,             // Global History Register (GHR) width
+   parameter EN_RAS           = `EN_RAS,           // RAS enabled?
+   parameter RAS_DPT          = `RAS_DPT,          // RAS depth
+   parameter EN_MULTDIV       = `EN_MULTDIV,       // Multiplier/Divider enabled?
+   parameter EN_FPGA_DSP_MULT = `EN_FPGA_DSP_MULT, // 1 = use x32 DSP multiplier, 0 = use x32 Radix-4 Booth multiplier
+   parameter MULT_PIPE_STAGES = `MULT_PIPE_STAGES  // No. of DSP multiplier pipeline stages; valid value >=2
 )
 (   
    // Clock and Reset  
@@ -584,8 +586,10 @@ opfwd_control inst_opfwd_control (
 // Execution Unit (EXU)
 execution_unit #(
    .PC_INIT         (PC_INIT),
-   .GHRW            (GHRW), 
-   .BPCW            (BPCW)
+   .GHRW            (GHRW),
+   .BPCW            (BPCW),
+   .EN_FPGA_DSP_MULT(EN_FPGA_DSP_MULT),
+   .MULT_PIPE_STAGES(MULT_PIPE_STAGES)
 )  inst_execution_unit (
    .clk                  (clk),          
    .aresetn              (aresetn),

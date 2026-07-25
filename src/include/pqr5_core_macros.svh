@@ -76,7 +76,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Branch Predictor & RAS
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-`define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor,
+//`define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor,
                                           // Else generate Static Branch Predictor (backward always taken strategy)
 `define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries of 2-bit. This macro is valid iff BREDICT_DYN is defined
 `define BHT_TYPE          "lutram"        // Branch History Table (BHT) target configuration. This macro is valid iff BREDICT_DYN is defined
@@ -86,15 +86,15 @@
 `define BHT_BIAS          2'b10           // BHT entries reset value = BIAS for 2-bit saturating counters, 2'b10 - best for embedded applications
 `define GHRW              (`BHT_IDW+2)    // Global History Register (GHR) width
 
-`define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
+//`define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
 `define RAS_DPT           8               // RAS depth, size = (N x 32) bits; Depth must be 2^N
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Multiplier & Divider unit
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-`define MULTDIV                           // Define this macro to generate HW Multiplier and Divider and adds M-extension
+//`define MULTDIV                           // Define this macro to generate HW Multiplier and Divider and adds M-extension
 `define EN_FPGA_DSP_MULT  1               // 1 = use x32 DSP multiplier, 0 = use x32 Radix-4 Booth multiplier. This macro is valid iff MULTDIV is defined
-`define PIPE_STAGES       2               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
+`define MULT_PIPE_STAGES  4               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Test & Debug
