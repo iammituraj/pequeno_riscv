@@ -657,6 +657,7 @@ execution_unit #(
    .i_du_is_s_type     (du_exu_is_s_type),
    .i_du_is_b_type     (du_exu_is_b_type),
    .i_du_is_riuj       (du_exu_is_riuj),
+   .i_du_is_risb       (du_exu_is_risb),
    .i_du_is_jal_or_jalr(du_exu_is_j_or_jalr),
    .i_du_is_jalr       (du_exu_is_jalr),
    .i_du_is_load       (du_exu_is_load),

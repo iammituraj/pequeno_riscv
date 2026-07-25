@@ -550,7 +550,7 @@ assign o_exu_is_signed_rs0= is_signed_rs0_rg ;
 assign o_exu_is_signed_rs1= is_signed_rs1_rg ;
 `endif
 assign o_exu_rs0          = reg_src0      ;
-assign o_exu_rs1          = reg_src1      ;
+assign o_exu_rs1          = is_i_type? reg_src0 : reg_src1 ;  // Optimization for Pipeline interlock in case of I-type instructions
 assign o_exu_rdt          = reg_dest      ;
 assign o_exu_rdt_not_x0   = |reg_dest     ;
 assign o_exu_funct3       = funct3        ;
