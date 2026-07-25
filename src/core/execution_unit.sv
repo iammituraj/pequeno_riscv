@@ -116,8 +116,15 @@ module execution_unit #(
    output logic             o_ras_rbk_incr_ptr  ,  // RAS roll back pointer increment flag
    `endif
 
-   input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU     
-   input  logic [3:0]       i_du_alu_opcode     ,  // ALU opcode from DU    
+   input  logic             i_du_is_alu_op      ,  // ALU operation flag from DU
+   input  logic [3:0]       i_du_alu_opcode     ,  // ALU opcode from DU
+   `ifdef MULTDIV
+   input  logic             i_du_is_mult_op     ,  // MULT operation flag from DU
+   input  logic             i_du_is_div_op      ,  // DIV operation flag from DU
+   input  logic             i_du_is_upp_or_rem  ,  // Upper-word (MUL*) / Remainder (REM*) result select flag from DU
+   input  logic             i_du_is_signed_rs0  ,  // rs0 operand signedness flag from DU; for MULT/DIV
+   input  logic             i_du_is_signed_rs1  ,  // rs1 operand signedness flag from DU; for MULT/DIV
+   `endif
    input  logic [4:0]       i_du_rs0            ,  // rs0 (source register-0) address from DU
    input  logic [4:0]       i_du_rs1            ,  // rs1 (source register-1) address from DU
    input  logic [4:0]       i_du_rdt            ,  // rdt (destination register) address from DU     

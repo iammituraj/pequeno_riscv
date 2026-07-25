@@ -199,6 +199,13 @@ logic             exu_du_stall      ;  // Stall signal from EXU to DU
 logic [6:0]       du_exu_opcode     ;  // Opcode from DU to EXU
 logic             du_exu_is_alu_op  ;  // ALU operation flag from DU to EXU
 logic [3:0]       du_exu_alu_opcode ;  // ALU opcode from DU to EXU
+`ifdef MULTDIV
+logic             du_exu_is_mult_op    ;  // MULT operation flag from DU to EXU
+logic             du_exu_is_div_op     ;  // DIV operation flag from DU to EXU
+logic             du_exu_is_upp_or_rem ;  // Upper-word (MUL*) / Remainder (REM*) result select flag from DU to EXU
+logic             du_exu_is_signed_rs0 ;  // rs0 operand signedness flag from DU to EXU; for MULT/DIV
+logic             du_exu_is_signed_rs1 ;  // rs1 operand signedness flag from DU to EXU; for MULT/DIV
+`endif
 logic [4:0]       du_exu_rs0        ;  // rs0 from DU to EXU
 logic [4:0]       du_exu_rs0_cpy    ;  // rs0 copy from DU to EXU
 logic [4:0]       du_exu_rs1        ;  // rs1 from DU to EXU
@@ -461,11 +468,11 @@ decode_unit #(
    .o_exu_is_alu_op   (du_exu_is_alu_op),
    .o_exu_alu_opcode  (du_exu_alu_opcode),
    `ifdef MULTDIV
-   .o_exu_is_mult_op   (),  // Unconnected for now; EXU MULT/DIV datapath not yet integrated
-   .o_exu_is_div_op    (),
-   .o_exu_is_upp_or_rem(),
-   .o_exu_is_signed_rs0(),
-   .o_exu_is_signed_rs1(),
+   .o_exu_is_mult_op   (du_exu_is_mult_op),
+   .o_exu_is_div_op    (du_exu_is_div_op),
+   .o_exu_is_upp_or_rem(du_exu_is_upp_or_rem),
+   .o_exu_is_signed_rs0(du_exu_is_signed_rs0),
+   .o_exu_is_signed_rs1(du_exu_is_signed_rs1),
    `endif
    .o_exu_rs0         (du_exu_rs0),
    .o_exu_rs0_cpy_ff  (du_exu_rs0_cpy),
@@ -628,6 +635,13 @@ execution_unit #(
 
    .i_du_is_alu_op     (du_exu_is_alu_op),
    .i_du_alu_opcode    (du_exu_alu_opcode),
+   `ifdef MULTDIV
+   .i_du_is_mult_op    (du_exu_is_mult_op),
+   .i_du_is_div_op     (du_exu_is_div_op),
+   .i_du_is_upp_or_rem (du_exu_is_upp_or_rem),
+   .i_du_is_signed_rs0 (du_exu_is_signed_rs0),
+   .i_du_is_signed_rs1 (du_exu_is_signed_rs1),
+   `endif
    .i_du_rs0           (du_exu_rs0),
    .i_du_rs1           (du_exu_rs1),
    .i_du_rdt           (du_exu_rdt),

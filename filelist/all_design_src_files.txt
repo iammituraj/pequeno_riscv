@@ -26,7 +26,7 @@
 
 
 ############################## CORE #################################
-# FU & PREDICTORS
+# FU & BRANCH PREDICTORS
 ./src/core/call_stack.sv
 ./src/core/ras_predictor.sv
 ./src/core/bhistory_table.sv
@@ -47,6 +47,14 @@
 ./src/core/exu_branch_unit.sv
 ./src/core/alu.sv
 ./src/core/loadstore_unit.sv
+
+# MULT/DIV
+./src/core/MultDiv/dsp_multiplier_x32.sv
+./src/core/MultDiv/booth_multiplier_x32r4.sv
+./src/core/MultDiv/pqMultiplier_top.sv
+./src/core/MultDiv/nrestore_divider_x32r2.sv
+./src/core/MultDiv/pqDivider_top.sv
+
 ./src/core/execution_unit.sv
 
 # MACCU
