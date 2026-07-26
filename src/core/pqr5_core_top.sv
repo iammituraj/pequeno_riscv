@@ -23,7 +23,7 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : Pequeno RISC-V aka PQR5 is 5-stage pipelined RISC-V CPU which supports RV32I ISA User Level v2.2.
+//----%% Description      : Pequeno RISC-V aka PQR5 is 5-stage pipelined RISC-V CPU which supports RV32IM ISA User Level v2.2.
 //----%%                    PQR5 is a 32-bit single-issue, single-core CPU which incorporates strictly in-order pipeline.
 //----%%                    The core is bare RTL, balanced for area/performance, and portable across platforms like FPGA, ASIC.
 //----%%                         ____________________________
@@ -67,6 +67,7 @@
 //----%%                    -- Static/Dynamic Branch predictor
 //----%%                    -- Branch History Table target (Block RAM/LUT RAM/Flops)
 //----%%                    -- Speculative RAS predictor
+//----%%                    -- HW Multipliers/Dividers
 //----%%                    -- Debug interfaces/modules to probe internal CPU signals during simulation can be generated using DBG macro.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser

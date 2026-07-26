@@ -54,6 +54,7 @@
 ./src/core/MultDiv/pqMultiplier_top.sv
 ./src/core/MultDiv/nrestore_divider_x32r2.sv
 ./src/core/MultDiv/pqDivider_top.sv
+./src/core/MultDiv/pqMultDiv_top.sv
 
 ./src/core/execution_unit.sv
 

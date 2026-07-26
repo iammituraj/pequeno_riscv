@@ -31,6 +31,7 @@
 //----%%                    # Incorporates Branch Unit (EXU-BU) to execute Jump/Branch instructions. Generates branch flush after
 //----%%                      branch resolution, if the branch prediction was wrong.
 //----%%                    # Incorporates Load-Store Unit (LSU) to execute Load/Store instructions.
+//----%%                    # Incorporates HW Multiplier/Divider for MULT/DIV instructions
 //----%%                    # Sends EXU results/memory access commands as payload to Memory Access Unit (MACCU). 
 //----%%                    # Pipeline latency = 1 cycle at all execution units ALU, LSU, EXU-BU.
 //----%%
@@ -181,17 +182,8 @@ logic             alu_bubble         ;  // Bubble from ALU
 
 `ifdef MULTDIV
 // MULT/DIV specific
-logic [`XLEN-1:0] multdiv_op0, multdiv_op1 ;  // MULT/DIV operands
-logic             mult_op_valid            ;  // MULT operands valid
-logic             div_op_valid             ;  // DIV operands valid
-logic             mult_busy                ;  // Multiplier busy status
-logic             div_busy                 ;  // Divider busy status
-logic             stall2mult               ;  // Stall to Multiplier
-logic             stall2div                ;  // Stall to Divider
+logic             multdiv_op_valid         ;  // MULT/DIV operands valid; this will be qualified against i_is_mult/div_op inside MULT/DIV
 logic             multdiv_stall            ;  // Stall to other EXU units and upstream pipeline from MULT/DIV
-logic [`XLEN-1:0] mult_res, div_res        ;  // Multiplier/Divider results
-logic             mult_res_valid           ;  // Multiplier result valid
-logic             div_res_valid            ;  // Divider result valid
 logic [`XLEN-1:0] multdiv_res              ;  // MULT/DIV result
 logic             multdiv_res_valid        ;  // MULT/DIV result valid
 `endif
@@ -340,56 +332,33 @@ loadstore_unit inst_loadstore_unit (
 );
 
 `ifdef MULTDIV
-// Multiplier
-// TODO: Ports unconnected; connectivity to be finalized
-pqMultiplier_top #(
+// Multiplier/Divider
+pqMultDiv_top #(
    .EN_FPGA_DSP_MULT (EN_FPGA_DSP_MULT),
    .PIPE_STAGES      (MULT_PIPE_STAGES)
-) inst_pqMultiplier_top (
-   .clk             (clk),
-   .aresetn         (aresetn),
+) inst_pqMultDiv_top (
+   .clk                (clk),
+   .aresetn            (aresetn),
 
-   .i_flush         (bu_flush),
+   .i_flush            (bu_flush),
 
-   .i_op0           (multdiv_op0),
-   .i_op1           (multdiv_op1),
-   .i_is_signed_op0 (i_du_is_signed_rs0),
-   .i_is_signed_op1 (i_du_is_signed_rs1),
-   .i_use_upperbits (i_du_is_upp_or_rem),
-   .i_op_valid      (mult_op_valid),
-   .o_host_stall    (mult_busy),
+   .i_op0              (i_op0),
+   .i_op1              (i_op1),
+   .i_is_mult_op       (i_du_is_mult_op),
+   .i_is_div_op        (i_du_is_div_op),
+   .i_is_signed_op0    (i_du_is_signed_rs0),
+   .i_is_signed_op1    (i_du_is_signed_rs1),
+   .i_use_upper_or_rem (i_du_is_upp_or_rem),
+   .i_op_valid         (multdiv_op_valid),
+   .o_multdiv_stall    (multdiv_stall),
 
-   .o_res           (mult_res),
-   .o_res_valid     (mult_res_valid),
-   .i_host_stall    (stall2mult)
+   .o_res              (multdiv_res),
+   .o_res_valid        (multdiv_res_valid),
+   .i_stall            (i_maccu_stall)
 );
 
-// Divider
-// TODO: Ports unconnected; connectivity to be finalized
-pqDivider_top inst_pqDivider_top (
-   .clk             (clk),
-   .aresetn         (aresetn),
-
-   .i_flush         (bu_flush),
-
-   .i_op0           (multdiv_op0),
-   .i_op1           (multdiv_op1),
-   .i_is_signed_op0 (i_du_is_signed_rs0),
-   .i_is_signed_op1 (i_du_is_signed_rs1),
-   .i_use_remainder (i_du_is_upp_or_rem),
-   .i_op_valid      (div_op_valid),
-   .o_host_stall    (div_busy),
-
-   .o_res           (div_res),
-   .o_res_valid     (div_res_valid),
-   .i_host_stall    (stall2div)
-);
-
-// MULT/DIV operands
-assign multdiv_op0 = i_op0 ;
-assign multdiv_op1 = i_op1 ;
-assign mult_op_valid = i_du_is_mult_op & ~du_bubble ;
-assign div_op_valid  = i_du_is_div_op  & ~du_bubble ;
+// MULT/DIV operand valid
+assign multdiv_op_valid = ~du_bubble ;
 `endif
 
 // On Flush, the payload to EXU blocks should be invalidated immediately to avoid control hazards on branching.
@@ -530,8 +499,6 @@ always_comb begin
 end
 
 `ifdef MULTDIV
-assign multdiv_res_valid = mult_res_valid | div_res_valid      ;  // Mutually exclusive by construction
-assign multdiv_res       = mult_res_valid ? mult_res : div_res ;
 assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble | multdiv_res_valid ;  // JAL/JALR/ALU/LUI/AUIPC/MULT/DIV instructions require writeback; DBG only
 `else
 assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble ;   // JAL/JALR/ALU/LUI/AUIPC instructions require writeback; DBG only
@@ -562,17 +529,14 @@ assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_src_eq_des
 //  Stall logic
 //===================================================================================================================================================
 `ifdef MULTDIV
-assign multdiv_stall = mult_busy | div_busy          ;  // In-flight MULT/DIV must generate stall
-assign stall         = i_maccu_stall | multdiv_stall ;  // MACCU and MULT/DIV can stall the upstream pipeline and other EXU units
-assign stall2mult    = i_maccu_stall | div_busy      ;  // MACCU and DIV  can stall MULT
-assign stall2div     = i_maccu_stall | mult_busy     ;  // MACCU can MULT can stall DIV
+assign stall  = i_maccu_stall | multdiv_stall;  // MACCU and MULT/DIV can stall the upstream pipeline and other EXU units
 `else
-assign stall         = i_maccu_stall           ;  // Only MACCU can stall EXU from outside.
+assign stall  = i_maccu_stall;  // Only MACCU can stall EXU from outside.
                                                   // NOT conditioned with valid cz the bubble maybe intentionally added by Pipeline Interlock.
                                                   // So, the bubble shouldn't be bursted...!!
 `endif
-assign exu_stall_ext = stall | is_pipe_inlock  ;  // Pipeline interlock should stall the upstream pipeline...
-assign o_du_stall    = exu_stall_ext           ;  // Stall signal to DU
+assign exu_stall_ext = stall | is_pipe_inlock;  // Pipeline interlock should stall the upstream pipeline...
+assign o_du_stall    = exu_stall_ext         ;  // Stall signal to DU
 
 //===================================================================================================================================================
 // All other output signals from EXU
