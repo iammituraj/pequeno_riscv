@@ -461,7 +461,7 @@ always @(posedge clk or negedge aresetn) begin
                ram_addr_rg  <= '0 ;                
 
                pgm_err_rg <= (pgm_cnt_rg != instr_cnt) ;  // If RAM address overflow, log it as error... but it's okay to have instruction count of 0             
-               state_rg   <= (pgm_cnt_rg != instr_cnt)? PGM_DONE : READ_POSTAMBLE ;               
+               state_rg   <= ldr_state'((pgm_cnt_rg != instr_cnt)? PGM_DONE : READ_POSTAMBLE) ;
             end
             // Instructions/data pending to be written...
             else if (uart_rxdata_valid) begin

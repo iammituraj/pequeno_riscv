@@ -59,7 +59,7 @@ module regfile #(
 
    `ifdef DBG
    // Debug Interface  
-   output logic [`XLEN-1:0] o_regf_dbg [32] ,  // Debug signal
+   output logic [0:31][`XLEN-1:0] o_regf_dbg ,  // Debug signal
    `endif
 
    `ifdef TEST_PORTS
@@ -211,7 +211,7 @@ assign o_x31_tst = reg_file[31] ;
 // Generate Debug Blocks
 //===================================================================================================================================================
 `ifdef DBG
-logic [`XLEN-1:0] reg_file_pp [0:31] ;  // Register file
+logic [0:31][`XLEN-1:0] reg_file_pp ;  // Register file
 
 generate   
 if (`REGFILE_DUMP) begin : DBG_REGFILE_DUMP
@@ -246,7 +246,7 @@ for (i=1; i<32; i++) begin
 end
 endgenerate
 
-assign o_regf_dbg  = {reg_file_pp};
+assign o_regf_dbg  = reg_file_pp;
 `endif
 
 endmodule

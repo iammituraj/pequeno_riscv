@@ -313,7 +313,7 @@ logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode =
 logic             exu_dbg_is_b_instr    ;  // Branch instruction flag from EXU  
 logic             exu_dbg_is_pred_wrong ;  // Branch prediction wrong flag from EXU
 logic [4:0]       wbu_dbg               ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, is_dir_writeback, pipe_stall, dmem_acc_stall}
-logic [`XLEN-1:0] regf [32]             ;  // Debug signal from REGF: Register File
+logic [0:31][`XLEN-1:0] regf            ;  // Debug signal from REGF: Register File
 `endif//DBG
 
 // Dynamic branch prediction related

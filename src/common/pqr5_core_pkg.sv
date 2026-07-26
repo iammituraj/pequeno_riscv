@@ -178,13 +178,15 @@ function automatic void hex2txtf (int fptr, int size, logic [DSIZE-1:0] hexval, 
    int i, j ;
    string hexstr = "x" ;
    
-   // Iterate thru each nibble and print   
+   // Iterate thru each nibble and print
    $fwrite(fptr, "%0s", prefix);    // Print prefix
-   for (i=msb, j=1; i>=3; i-=4, j+=1) begin
+   j = 1 ;
+   for (i=msb; i>=3; i-=4) begin
        logic x_check = ^hexval[i-:4] ;
-       if (x_check !== 1'bx) hexstr.hextoa(hexval[i-:4]);              
-       $fwrite(fptr, "%0s", hexstr.toupper());                      // Print data in HEX string   
+       if (x_check !== 1'bx) $sformat(hexstr, "%0X", hexval[i-:4]);
+       $fwrite(fptr, "%0s", hexstr);                                // Print data in HEX string
        if ((j%sepnib == 0) && (i != 3)) $fwrite(fptr, "%0s", sep);  // Print separator
+       j += 1 ;
    end
    $fwrite(fptr, "%0s", suffix);  // Print suffix
 endfunction
@@ -200,11 +202,13 @@ function automatic void hex2txt (int size, logic [DSIZE-1:0] hexval, string pref
    
    // Iterate thru each nibble and print
    $write("%0s", prefix);  // Print prefix
-   for (i=msb, j=1; i>=3; i-=4, j+=1) begin
+   j = 1 ;
+   for (i=msb; i>=3; i-=4) begin
          logic x_check = ^hexval[i-:4] ;
-         if (x_check !== 1'bx) hexstr.hextoa(hexval[i-:4]);
-   	   $write("%0s", hexstr.toupper());                      // Print data in HEX string          
+         if (x_check !== 1'bx) $sformat(hexstr, "%0X", hexval[i-:4]);
+   	   $write("%0s", hexstr);                                // Print data in HEX string
    	   if ((j%sepnib == 0) && (i != 3)) $write("%0s", sep);  // Print separator
+         j += 1 ;
    end
    $write("%0s", suffix);  // Print suffix
 endfunction
@@ -220,17 +224,19 @@ function automatic string rhex2txt (int size, logic [DSIZE-1:0] hexval, string p
    string txtstr = prefix ;
    
    // Iterate thru each nibble and append
-   for (i=msb, j=1; i>=3; i-=4, j+=1) begin
+   j = 1 ;
+   for (i=msb; i>=3; i-=4) begin
          logic x_check = ^hexval[i-:4] ;
-         if (x_check !== 1'bx) hexstr.hextoa(hexval[i-:4]);
-         txtstr = {txtstr, hexstr.toupper()} ;  // Append nibble         
+         if (x_check !== 1'bx) $sformat(hexstr, "%0X", hexval[i-:4]);
+         txtstr = {txtstr, hexstr} ;             // Append nibble
          if ((j%sepnib == 0) && (i != 3)) txtstr = {txtstr, sep} ;  // Append separator
+         j += 1 ;
    end
    return {txtstr, suffix} ;  // Append suffix and return
 endfunction
 
 // Function to dump Register File
-function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarray [], string dumpname);      
+function automatic void dump_regfile (int fdump, int n, logic [0:31][RSIZE-1:0] regarray, string dumpname);
    $fdisplay(fdump, "+======================================");
    $fdisplay(fdump, "| Pequeno RISC-V CPU v1.0 Simulation   ");
    $fdisplay(fdump, "+======================================");
@@ -245,7 +251,7 @@ function automatic void dump_regfile (int fdump, int n, logic [RSIZE-1:0] regarr
 endfunction
 
 // Function to display Register File
-function automatic void disp_regfile (logic [RSIZE-1:0] regarray [32]);
+function automatic void disp_regfile (logic [0:31][RSIZE-1:0] regarray);
    int i = 0 ;
    $display("+================================================================+");
    $display("| REGFILE                                                        |");

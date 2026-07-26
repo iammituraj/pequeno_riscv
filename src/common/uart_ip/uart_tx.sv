@@ -180,7 +180,7 @@ always @ (posedge clk or negedge rstn) begin
                                   state_rg <= PARITY ;        // Proceed to send parity bit
                                end
                                else begin
-                                  state_rg <= break_flag_rg ? BREAK : STOP ;   // Proceed to send STOP bit iff no break enabled                               
+                                  state_rg <= tx_state'(break_flag_rg ? BREAK : STOP) ;   // Proceed to send STOP bit iff no break enabled
                                end
 
                             end
@@ -199,7 +199,7 @@ always @ (posedge clk or negedge rstn) begin
          PARITY     : begin                         
                          if (i_baud_clk) begin
                             o_tx     <= break_flag_rg ? 1'b0 : parity_rg ;  // Should send 0 always if break is enabled
-                            state_rg <= break_flag_rg ? BREAK : STOP     ;  // Proceed to send STOP bit iff no break enabled                            
+                            state_rg <= tx_state'(break_flag_rg ? BREAK : STOP) ;  // Proceed to send STOP bit iff no break enabled
                          end
                       end
 

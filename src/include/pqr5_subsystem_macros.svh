@@ -26,7 +26,7 @@
 //----%% Description      : This Header File contains all macros (constants/configurable) used by PQR5 Subsystem simulation.
 //----%%
 //----%% Tested on        : -
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : July-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE
@@ -50,7 +50,7 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Features
 //`define EN_LOADER                    // Define this macro to generate Loader to program the core on the fly via UART
-`define BENCHMARK                     // Define this macro to enable Coremark/Dhrystone/RISC-V tests Benchmarking
+`define BENCHMARK                     // Define this macro to support Coremark/Dhrystone/RISC-V tests Benchmarking
 
 // On-board Test/Simulation environment INFO - define the parameters here
 `define FCLK                 12                         // System clock speed targetted for on-board testing/simulation; in MHz
