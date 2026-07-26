@@ -633,6 +633,7 @@ clean:
 	@rm -rf *.vcd
 	@rm -rf *_dump.txt
 	@rm -rf *.log
+	@rm -rf ./configurator/__pycache__
 
 # deep_clean
 deep_clean: clean	
