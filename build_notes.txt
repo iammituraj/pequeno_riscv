@@ -22,6 +22,8 @@
 |   7) Synthesis, Implementation, & Bitfile generation flow is compatible with Xilinx Vivado
 |   8) PQR5 tool suite: pqr5asm (Assembler), peqFlash (Flasher), helper scripts
 |
+|   >>>>>  SUPER USER TIP: Use configurator to configure and build the CPU & Subsystem easily!  <<<<<<<
+|
 |   STEPS to build a sample PQR5 SUBSYSTEM with Firmware
 |   ====================================================
 |   1) Compile any ASM program in assembler/example_programs using pqr5asm assembler:
@@ -68,7 +70,7 @@
 |      b) Make target-specific changes to the spawned RTL source files in synth/rtl_src if required
 |         This includes setting SYNTH MACROs, test env & design MACROs, configure I/O ports etc
 |      c) Create a top-level XDC constraints file for the design in synth/xdc/
-|      d) Configure the TCL scripts in synth/
+|      d) Configure the TCL scripts in synth/ if required...
 |      e) Run synthesis by running: make_synth
 |         This will run synthesis + implementation + generation of bitfile
 |      f) Verify all the outputs, reports & logs in synth/*_outputs, check errors/warnings, if any
@@ -116,7 +118,7 @@
 |      . ITERATIONS     = <no. of CoreMark iterations to be performed>
 |      . CLOCKS_PER_SEC = <Core clock speed>
 |
-|   2) Configure coremark/linker.ld.
+|   2) Configure coremark/linker.ld
 |      . IRAM ORIGIN = 0x00000000
 |      . IRAM LENGTH = <IRAM size>, min. 32 kB
 |      . DRAM ORIGIN = 0x80000000
@@ -127,8 +129,8 @@
 |      . DBGUART       = Enable
 |      . DBGUART_BRATE = <Targetted baudrate>
 |      . FCLK          = CLOCKS_PER_SEC
-|      . IRAM_SIZE     = IRAM LENGTH
-|      . DRAM_SIZE     = DRAM LENGTH
+|      . IRAM_SIZE     = <IRAM size>, min. 32 kB
+|      . DRAM_SIZE     = <DRAM size>, min. 32 kB
 |      . SUBSYS_DBG    = Enable if RTL simulation is required	
 |
 |   4) Configure CPU core macros:
@@ -165,8 +167,8 @@
 |      . DBGUART       = Enable
 |      . DBGUART_BRATE = <Targetted baudrate>
 |      . FCLK          = CLOCKS_PER_SEC
-|      . IRAM_SIZE     = IRAM LENGTH
-|      . DRAM_SIZE     = DRAM LENGTH
+|      . IRAM_SIZE     = <IRAM size>, min. 32 kB
+|      . DRAM_SIZE     = <DRAM size>, min. 32 kB
 |      . SUBSYS_DBG    = Enable if RTL simulation is required	
 |
 |   4) Configure CPU core macros:
@@ -202,8 +204,8 @@
 |      . DBGUART       = Enable
 |      . DBGUART_BRATE = <Targetted baudrate>
 |      . FCLK          = CLOCKS_PER_SEC
-|      . IRAM_SIZE     = IRAM LENGTH
-|      . DRAM_SIZE     = DRAM LENGTH
+|      . IRAM_SIZE     = <IRAM size>, min. 16 kB
+|      . DRAM_SIZE     = <DRAM size>, min. 16 kB (assumes data set <= 1024)
 |      . SUBSYS_DBG    = Enable if RTL simulation is required	
 |
 |   4) Configure CPU core macros:

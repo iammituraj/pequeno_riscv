@@ -1,7 +1,3 @@
-vivado/
-sim/
-dump*/
-ref/
 prj_roadmap/
 
 src/memory/*.sv
