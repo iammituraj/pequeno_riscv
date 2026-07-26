@@ -638,7 +638,7 @@ def configure_benchmark():
         # --- CPU configuration -----------------------------------------------------------------------------------------------
         print()
         print(c("CPU configuration:", C.BOLD, C.CYAN))
-        dyn_bp = ask_yes_no("Use Dynamic (GShare) Branch Predictor instead of Static (backward-taken)?", default=dyn_bp, allow_skip=True)
+        dyn_bp = ask_yes_no("Enable Dynamic (GShare) Branch Predictor? (default: Static, backward-taken)", default=dyn_bp, allow_skip=True)
         ras = ask_yes_no("Enable the Return Address Stack (RAS) predictor?", default=ras, allow_skip=True)
         muldiv = ask_yes_no("Enable the Hardware Multiplier/Divider (RISC-V M-extension)?", default=muldiv, allow_skip=True)
         if muldiv:
