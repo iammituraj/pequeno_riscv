@@ -42,9 +42,10 @@ en_run18=1
 en_run19=1
 en_run20=1
 en_run21=1
+en_run22=1
 
 # TESTS
-total_tests=21
+total_tests=22
 
 run01=01_test_regfile
 run02=02_test_alu
@@ -67,6 +68,7 @@ run18=20_bpredict_test3
 run19=21_bpredict_test4
 run20=22_test_swap
 run21=23_test_recursive
+run22=24_multdiv
 
 # Set Error capturing
 set -e
@@ -82,7 +84,7 @@ if [ "$en_run01" -eq 0 ] && [ "$en_run02" -eq 0 ] && \
    [ "$en_run15" -eq 0 ] && [ "$en_run16" -eq 0 ] && \
    [ "$en_run17" -eq 0 ] && [ "$en_run18" -eq 0 ] && \
    [ "$en_run19" -eq 0 ] && [ "$en_run20" -eq 0 ] && \
-   [ "$en_run21" -eq 0 ]; then
+   [ "$en_run21" -eq 0 ] && [ "$en_run22" -eq 0 ]; then
    echo ""
    echo "| PQR5: No tests enabled! REGRESSION RUN ABORTED..."
    echo ""
@@ -114,7 +116,7 @@ for i in $(seq -w 01 $total_tests); do
     make -C ./ compile
     make -C ./ sim
     echo "## RUN $i: $run_name" >> ./regress_run_dump/checker.log
-    make -C ./ diff >> ./regress_run_dump/checker.log
+    make -C ./ diff | tee -a ./regress_run_dump/checker.log
     echo "" >> ./regress_run_dump/checker.log
     grep -q '^PASS$' ./dump/test_result.txt && echo "## RUN $i: [PASS] $run_name" >> ./regress_run_dump/regress_result.txt \
         || echo "## RUN $i: [FAIL] $run_name" >> ./regress_run_dump/regress_result.txt
