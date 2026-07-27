@@ -9,11 +9,11 @@
 # Developer        : Mitu Raj, chip@chipmunklogic.com
 # Vendor           : Chipmunk Logic, https://chipmunklogic.com
 #
-# Description      : This script interprets, parses, and translates RISC-V RV32I assembly instructions to 
+# Description      : This script interprets, parses, and translates RISC-V RV32IM assembly instructions to
 #                    32-bit binary instructions.
 #                    -- Compliant with RISC-V User Level ISA v2.2.
-#                    -- Supports RV32I:
-#                       -- 37 base instructions (ref. pqr5asm Instruction Manual for full list)
+#                    -- Supports RV32IM:
+#                       -- 45 base instructions (ref. pqr5asm Instruction Manual for full list)
 #                       -- Custom/Pseudo instructions  (ref. pqr5asm Instruction Manual for full list)
 #                    -- Doesn't support FENCE and CSR instructions.
 #                    -- Input = assembly code file, Output = binary/hex code files (.txt/.bin)
@@ -86,7 +86,7 @@
 #
 # User Manual      : https://github.com/iammituraj/pqr5asm/blob/main/pqr5asm_imanual.pdf
 #
-# Copyright        : Open-source license, see LICENSE.
+# Copyright        : Open-source license.
 #################################################################################################################################
 
 # Import Libraries
@@ -136,7 +136,7 @@ def print_welcome():
     print("  / .___/\\__, /_/  /_____/\\__,_/____/_/ /_/ /_/ ")
     print(" /_/       /_/                                  ") 
     print("")
-    print("                  - RV32I Assembler for RISC-V CPUs")                    
+    print("                  - RV32IM Assembler for RISC-V CPUs")
     print("=====================================================") 
     print('')
     print(' OPEN-SOURCE licensed')
@@ -1493,7 +1493,11 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
             opcode == 'SLL' or opcode == 'sll' or opcode == 'SLT' or opcode == 'slt' or \
             opcode == 'SLTU' or opcode == 'sltu' or opcode == 'XOR' or opcode == 'xor' or \
             opcode == 'SRL' or opcode == 'srl' or opcode == 'SRA' or opcode == 'sra' or \
-            opcode == 'OR' or opcode == 'or' or opcode == 'AND' or opcode == 'and':
+            opcode == 'OR' or opcode == 'or' or opcode == 'AND' or opcode == 'and' or \
+            opcode == 'MUL' or opcode == 'mul' or opcode == 'MULH' or opcode == 'mulh' or \
+            opcode == 'MULHSU' or opcode == 'mulhsu' or opcode == 'MULHU' or opcode == 'mulhu' or \
+            opcode == 'DIV' or opcode == 'div' or opcode == 'DIVU' or opcode == 'divu' or \
+            opcode == 'REM' or opcode == 'rem' or opcode == 'REMU' or opcode == 'remu':
         r_type_flag = 1
         opcode_bin = '0110011'
     elif opcode == 'MV' or opcode == 'mv':
@@ -2009,6 +2013,38 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
     elif instr_error_flag == 0 and (opcode == 'AND' or opcode == 'and'):
         funct3 = '111'
         funct7 = '0000000'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MUL' or opcode == 'mul'):
+        funct3 = '000'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MULH' or opcode == 'mulh'):
+        funct3 = '001'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MULHSU' or opcode == 'mulhsu'):
+        funct3 = '010'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MULHU' or opcode == 'mulhu'):
+        funct3 = '011'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'DIV' or opcode == 'div'):
+        funct3 = '100'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'DIVU' or opcode == 'divu'):
+        funct3 = '101'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'REM' or opcode == 'rem'):
+        funct3 = '110'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'REMU' or opcode == 'remu'):
+        funct3 = '111'
+        funct7 = '0000001'
         instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
     elif instr_error_flag == 0 and (opcode == 'JALR' or opcode == 'jalr'):
         imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
