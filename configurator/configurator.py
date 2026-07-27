@@ -592,17 +592,14 @@ def configure_benchmark():
     print(c("      You will be warned if you try to go below these minimums.\n", C.YELLOW))
 
     # Pre-seed every answer with its current/sensible-default value, so anything the user skips
-    # past simply keeps that value untouched.
+    # past simply keeps that value untouched. (Macros driven via guided_toggle/guided_value below
+    # -- BPREDICT_DYN, RAS, MULTDIV, EN_FPGA_DSP_MULT, MULT_PIPE_STAGES -- fetch their own current
+    # value and write straight to core_lines, so they don't need pre-seeding here.)
     iram_kb = max(bytes_to_kb(int(svh_value_get(subsys_lines, "IRAM_SIZE"))), profile["min_iram_kb"])
     dram_kb = max(bytes_to_kb(int(svh_value_get(subsys_lines, "DRAM_SIZE"))), profile["min_dram_kb"])
     iterations = makefile_value_get(make_lines, "ITERATIONS")
     cur_clocks = makefile_value_get(make_lines, "CLOCKS_PER_SEC")
     mhz = int(cur_clocks) // 1_000_000 if cur_clocks.isdigit() else 12
-    dyn_bp = svh_toggle_get(core_lines, "BPREDICT_DYN")
-    ras = svh_toggle_get(core_lines, "RAS")
-    muldiv = svh_toggle_get(core_lines, "MULTDIV")
-    dsp_mult = svh_value_get(core_lines, "EN_FPGA_DSP_MULT") == "1"
-    mult_pipe_stages = svh_value_get(core_lines, "MULT_PIPE_STAGES")
     baud = svh_value_get(subsys_lines, "DBGUART_BRATE")
     debug_needed = True
     synth_needed = svh_toggle_get(core_lines, "CORE_SYNTH")
@@ -638,19 +635,30 @@ def configure_benchmark():
         # --- CPU configuration -----------------------------------------------------------------------------------------------
         print()
         print(c("CPU configuration:", C.BOLD, C.CYAN))
-        dyn_bp = ask_yes_no("Enable Dynamic (GShare) Branch Predictor? (default: Static, backward-taken)", default=dyn_bp, allow_skip=True)
-        ras = ask_yes_no("Enable the Return Address Stack (RAS) predictor?", default=ras, allow_skip=True)
-        muldiv = ask_yes_no("Enable the Hardware Multiplier/Divider (RISC-V M-extension)?", default=muldiv, allow_skip=True)
+        # Reuses the same guided_toggle/guided_bool_value/guided_value helpers as the Full Custom flow,
+        # so the "[MACRO]  (currently ...)" header above each question is shown consistently in both flows.
+        guided_toggle(core_lines, "BPREDICT_DYN", "Enable Dynamic (GShare) Branch Predictor?",
+                      note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better accuracy on real code.")
+        guided_toggle(core_lines, "RAS", "Enable the Return Address Stack (RAS) predictor?",
+                      note="Speeds up function-return branches; needs a small depth-N stack of PCs.")
+        muldiv = guided_toggle(core_lines, "MULTDIV", "Enable the Hardware Multiplier/Divider (RISC-V M-extension)?",
+                                note="Without this, GCC emits software mul/div/rem routines instead.")
         if muldiv:
-            dsp_mult = ask_yes_no("Use the FPGA DSP-based x32 multiplier (instead of a Radix-4 Booth multiplier)?",
-                                   default=dsp_mult, allow_skip=True)
+            dsp_mult = guided_bool_value(core_lines, "EN_FPGA_DSP_MULT",
+                                          "Use the FPGA DSP-based x32 multiplier (instead of a Radix-4 Booth multiplier)?",
+                                          note="Yes = FPGA DSP-based x32 multiplier, No = Radix-4 Booth multiplier (better for ASIC).")
             if dsp_mult:
-                mult_pipe_stages = ask_value("Number of DSP multiplier pipeline stages (>= 2)?", mult_pipe_stages,
-                                              validator=lambda s: (s.isdigit() and int(s) >= 2, "Must be an integer >= 2"),
-                                              allow_skip=True)
+                guided_value(core_lines, "MULT_PIPE_STAGES", "Number of DSP multiplier pipeline stages (>= 2)?",
+                             validator=lambda s: (s.isdigit() and int(s) >= 2, "Must be an integer >= 2"))
 
+        print()
+        print(c("[DBG]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if svh_toggle_get(core_lines, 'DBG') else 'disabled'})", C.DIM))
+        print(c("  Also drives SUBSYS_DBG/MEM_DBG (Subsystem) together with this. Simulation only.", C.GREY))
         debug_needed = ask_yes_no("Enable Debug interfaces in the CPU/Subsystem (for Simulation only)?", default=True, allow_skip=True)
 
+        print()
+        print(c("[CORE_SYNTH]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if synth_needed else 'disabled'})", C.DIM))
+        print(c("  Also drives SUBSYS_SYNTH (Subsystem) together with this.", C.GREY))
         synth_needed = ask_yes_no("Is a Synthesis-ready core (on-board FPGA/ASIC build) required, instead of a simulation build?",
                                    default=synth_needed, allow_skip=True)
     except SkipRemaining:
@@ -662,13 +670,8 @@ def configure_benchmark():
     makefile_value_set(make_lines, "ITERATIONS", iterations)
     makefile_value_set(make_lines, "CLOCKS_PER_SEC", str(mhz * 1_000_000))
 
-    svh_toggle_set(core_lines, "BPREDICT_DYN", dyn_bp)
-    svh_toggle_set(core_lines, "RAS", ras)
-    svh_toggle_set(core_lines, "MULTDIV", muldiv)
-    if muldiv:
-        svh_value_set(core_lines, "EN_FPGA_DSP_MULT", "1" if dsp_mult else "0")
-        if dsp_mult:
-            svh_value_set(core_lines, "MULT_PIPE_STAGES", mult_pipe_stages)
+    # BPREDICT_DYN, RAS, MULTDIV, EN_FPGA_DSP_MULT, MULT_PIPE_STAGES were already written straight
+    # into core_lines by the guided_toggle/guided_bool_value/guided_value calls above.
 
     if not svh_toggle_get(subsys_lines, "BENCHMARK"):
         svh_toggle_set(subsys_lines, "BENCHMARK", True)
