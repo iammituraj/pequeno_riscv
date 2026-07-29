@@ -107,6 +107,10 @@ help:
 	@echo ""
 	@echo "HELP"
 	@echo "===="
+	@echo "CONFIGURATOR"
+	@echo "------------"
+	@echo "1.  make configurator                                           -- Interactive menu to configure PQR5 core & subsystem"
+	@echo ""
 	@echo "BUILD, COMPILE & SIMULATE"
 	@echo "-------------------------"
 	@echo "1.  make listasm                                                -- To display the list of example ASM programs"
@@ -161,6 +165,11 @@ help:
 	@echo "   For more details, refer to: Programming_Pequeno_with_peqFlash.pdf"
 	@echo "5) [Units] Baudrate = bps, IRAM/DRAM size = bytes"
 	@echo ""
+
+# configurator
+.PHONY: configurator
+configurator:
+	$(PYTHON) ./configurator/configurator.py
 
 # build_sim
 build_sim:
