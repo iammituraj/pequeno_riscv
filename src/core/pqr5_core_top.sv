@@ -304,13 +304,25 @@ logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
 `ifdef DBG
 `ifdef RAS
 logic [5:0]       fu_dbg                ;  // Debug signal from FU  : {ras_flush, is_call, is_ret, bp_flush, is_op_branch, is_op_jal}
-logic [5:0]       exu_dbg               ;  // Debug signal from EXU : {is_ras_mispred, is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+   `ifdef MULTDIV
+   logic [6:0]    exu_dbg               ;  // Debug signal from EXU : {multdiv_res_valid, is_ras_mispred, is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+   `else
+   logic [5:0]    exu_dbg               ;  // Debug signal from EXU : {is_ras_mispred, is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+   `endif
 `else
 logic [2:0]       fu_dbg                ;  // Debug signal from FU  : {bp_flush, is_op_branch, is_op_jal}
-logic [4:0]       exu_dbg               ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+   `ifdef MULTDIV
+   logic [5:0]    exu_dbg               ;  // Debug signal from EXU : {multdiv_res_valid, is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+   `else
+   logic [4:0]    exu_dbg               ;  // Debug signal from EXU : {is_pipe_inlock, bu_branch_taken, lsu_bubble, alu_bubble, bu_bubble}
+   `endif
 `endif//RAS
-logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg} 
-logic             exu_dbg_is_b_instr    ;  // Branch instruction flag from EXU  
+`ifdef MULTDIV
+logic [11:0]      du_dbg                ;  // Debug signal from DU  : {is_mult_op, is_div_op, (opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg}
+`else
+logic [9:0]       du_dbg                ;  // Debug signal from DU  : {(opcode == OP_LUI), (opcode == OP_JALR), (opcode == OP_LOAD), is_op_alui, instr_type_rg}
+`endif
+logic             exu_dbg_is_b_instr    ;  // Branch instruction flag from EXU
 logic             exu_dbg_is_pred_wrong ;  // Branch prediction wrong flag from EXU
 logic [4:0]       wbu_dbg               ;  // Debug signal from WBU : {is_usig_macc, is_dmem_acc_load, is_dir_writeback, pipe_stall, dmem_acc_stall}
 logic [0:31][`XLEN-1:0] regf            ;  // Debug signal from REGF: Register File
@@ -827,7 +839,10 @@ final begin
    $display("| Exec   = %0d cycles ", exec_cycles);
    $display("| Bubble = %0d cycles ", bubb_cycles);
    $display("| Stall  = %0d cycles ", stal_cycles);
-   $display("| CPI    = %0.2f ", (clk_cycles * 1.0)/((clk_cycles * 1.0) - bubb_cycles - stal_cycles));
+   if ((clk_cycles - bubb_cycles - stal_cycles) == 0)
+      $display("| CPI    = infinity ");
+   else
+      $display("| CPI    = %0.2f ", (clk_cycles * 1.0)/((clk_cycles * 1.0) - bubb_cycles - stal_cycles));
    $display("+============================+");
    $display("");
    $display("+============================+");
@@ -920,6 +935,10 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       else if (du_dbg[8] && !du_exu_bubble) $write(", JALR");
       else if (du_dbg[7] && !du_exu_bubble) $write(", LOAD");
       else if (du_dbg[6] && !du_exu_bubble) $write(", ALUI");
+      `ifdef MULTDIV
+      else if (du_dbg[11] && !du_exu_bubble) $write(", MUL");
+      else if (du_dbg[10] && !du_exu_bubble) $write(", DIV");
+      `endif
       $write("\n");
       $display("| Stall generated : %s", ynstatus(du_fu_stall));
       $display("+================================================");
@@ -929,7 +948,14 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("| Branch taken    : %s", ynstatus(exu_dbg[3]));
       if      (exu_dbg[2] && !exu_maccu_bubble) $display("| Instr executed  : by Load-Store Unit");
       else if (exu_dbg[1] && !exu_maccu_bubble) $display("| Instr executed  : by ALU");
-      else if (exu_dbg[0] && !exu_maccu_bubble) $display("| Instr executed  : by Branch Unit");  
+      else if (exu_dbg[0] && !exu_maccu_bubble) $display("| Instr executed  : by Branch Unit");
+      `ifdef MULTDIV
+         `ifdef RAS
+         else if (exu_dbg[6] && !exu_maccu_bubble) $display("| Instr executed  : by MULT/DIV Unit");
+         `else
+         else if (exu_dbg[5] && !exu_maccu_bubble) $display("| Instr executed  : by MULT/DIV Unit");
+         `endif
+      `endif
       else                                      $display("| Instr executed  : --");
       $write  ("| MEM access init : %s, ", ynstatus(exu_maccu_is_macc_op));
       $write  ("%s", memacctype(exu_maccu_size, exu_maccu_cmd, exu_maccu_is_macc_op));
@@ -957,7 +983,10 @@ always @(posedge clk or negedge clk or negedge aresetn) begin
       $display("| Exec   = %0d cycles ", exec_cycles);
       $display("| Bubble = %0d cycles ", bubb_cycles);
       $display("| Stall  = %0d cycles ", stal_cycles);
-      $display("| CPI    = %0.2f ", (clk_cycles * 1.0)/((clk_cycles * 1.0) - bubb_cycles - stal_cycles));
+      if ((clk_cycles - bubb_cycles - stal_cycles) == 0)
+         $display("| CPI    = infinity ");
+      else
+         $display("| CPI    = %0.2f ", (clk_cycles * 1.0)/((clk_cycles * 1.0) - bubb_cycles - stal_cycles));
       $display("+===========================+");
       $display("");
       $display("+===========================+");

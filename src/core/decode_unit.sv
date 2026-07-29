@@ -59,8 +59,12 @@ module decode_unit #(
    input  logic             aresetn            ,  // Asynchronous Reset; active-low
 
    `ifdef DBG
-   // Debug Interface  
+   // Debug Interface
+   `ifdef MULTDIV
+   output logic [11:0]      o_du_dbg           ,  // Debug signal
+   `else
    output logic [9:0]       o_du_dbg           ,  // Debug signal
+   `endif
    `endif
 
    // Interface with Fetch Unit (FU)
@@ -500,7 +504,11 @@ assign flush = i_exu_bu_flush ;  // Only EXU-BU can flush FU from outside
 //===================================================================================================================================================
 `ifdef DBG
 // Debug Interface
+`ifdef MULTDIV
+assign o_du_dbg = {is_mult_op_rg, is_div_op_rg, is_lui_rg, is_jalr_rg, is_load_rg, is_alui_rg, instr_type_rg} ;
+`else
 assign o_du_dbg = {is_lui_rg, is_jalr_rg, is_load_rg, is_alui_rg, instr_type_rg} ;
+`endif
 `endif
 
 // Instruction decoded

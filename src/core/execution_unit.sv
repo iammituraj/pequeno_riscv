@@ -68,11 +68,19 @@ module execution_unit #(
    input  logic             aresetn             ,  // Asynchronous Reset; active-low
    
    `ifdef DBG
-   // Debug Interface 
-   `ifdef RAS 
-   output logic [5:0]       o_exu_dbg           ,  // Debug signal
+   // Debug Interface
+   `ifdef RAS
+      `ifdef MULTDIV
+      output logic [6:0]       o_exu_dbg           ,  // Debug signal
+      `else
+      output logic [5:0]       o_exu_dbg           ,  // Debug signal
+      `endif
    `else
-   output logic [4:0]       o_exu_dbg           ,  // Debug signal
+      `ifdef MULTDIV
+      output logic [5:0]       o_exu_dbg           ,  // Debug signal
+      `else
+      output logic [4:0]       o_exu_dbg           ,  // Debug signal
+      `endif
    `endif
    output logic             o_dbg_is_b_instr    ,  // Branch instruction flag
    output logic             o_dbg_is_pred_wrong ,  // Prediction wrong?
@@ -544,9 +552,17 @@ assign o_du_stall    = exu_stall_ext         ;  // Stall signal to DU
 `ifdef DBG
 // Debug Interface
 `ifdef RAS
-assign o_exu_dbg = {is_ras_mispred_rg, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   `ifdef MULTDIV
+   assign o_exu_dbg = {multdiv_res_valid, is_ras_mispred_rg, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   `else
+   assign o_exu_dbg = {is_ras_mispred_rg, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   `endif
 `else
-assign o_exu_dbg = {is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   `ifdef MULTDIV
+   assign o_exu_dbg = {multdiv_res_valid, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   `else
+   assign o_exu_dbg = {is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   `endif
 `endif
 `endif
 
