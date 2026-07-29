@@ -38,8 +38,16 @@
 SHELL:=/bin/bash
 
 # [CONFIGURE] Python env path
-PYTHON:=~/my_workspace/python/myenv/bin/python
+#PYTHON:=~/my_workspace/python/myenv/bin/python
 #PYTHON:=python
+
+# Auto-detects python3/python on PATH
+#
+# NOTE if you use a venv: this just picks up whatever python3/python is first on PATH at the
+# moment make runs. If your required packages are in a venv, activate it first in the SAME shell
+# before running make (`source /path/to/venv/bin/activate`) so the venv's bin/ is what gets found here
+# otherwise this will silently resolve to the system python instead, which won't have those packages.
+PYTHON ?= $(shell command -v python3 2>/dev/null || command -v python 2>/dev/null)
 
 # Define directories
 SRC_DIR    = $(shell pwd)/src
