@@ -19,7 +19,12 @@ mul x4, x2, x3          # NOT executed (branch above was taken)
 
 SKIP:
 mul x5, x4, x3          # x5 = x4 * x3 = 6 * 5 = 30
-mul x6, x4, x0          # x6 = x4 * x0 = 6 * 0 = 0
+mul x6, x4, x0          # x6 = x4 * x0 = 6 * 0 = 0, immediately overwritten below
+mul x6, x4, x3          # x6 = x4 * x3 = 6 * 5 = 30, overwrites x6
+beq x5, x6, SKIP2       # x5 == x6 (30 == 30), branch taken, next mvi is skipped
+mvi x30, -1             # NOT executed (branch above was taken), x30 stays don't-care
+
+SKIP2:
 div x7, x4, x0          # x7 = x4 / x0, divide by zero -> x7 = 0xFFFFFFFF (-1)
 div x8, x4, x4          # x8 = x4 / x4 = 6 / 6 = 1
 beq x8, x0, END         # x8 = 1, not equal to x0, branch NOT taken
@@ -46,10 +51,11 @@ mvi x0, 0xEEE          # write to x0 discarded (x0 hardwired to 0)
 j END                 # End of program
 
 # ---------------------------------------------------------------------------
-# Expected final register state (golden reference), x20-x30 never written,
-# so they retain power-on/reset don't-care values and should not be compared:
+# Expected final register state (golden reference), x20-x29 and x30 never
+# written (mvi x30,-1 is skipped), so they retain power-on/reset don't-care
+# values and should not be compared:
 #   x0=0x00000000  x1=0x00000000  x2=0x00000003  x3=0x00000005
-#   x4=0x00000006  x5=0x0000001E  x6=0x00000000  x7=0x00000001
+#   x4=0x00000006  x5=0x0000001E  x6=0x0000001E  x7=0x00000001
 #   x8=0x00000001  x9=0x00000000  x10=0xFFFFFFFF x11=0x00000001
 #   x12=0x00000006 x13=0x00000012 x14=0x0000000C x15=0x00000000
 #   x16=0x80000000 x17=0xFFFFFFFF x18=0x80000000 x19=0x00000000
