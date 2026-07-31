@@ -84,6 +84,10 @@
                                           // "lutram" - BHT is generated on LUT RAMs on FPGAs
                                           // "flops"  - BHT is generated on flip-flops; ideal for ASIC
 `define BHT_BIAS          2'b10           // BHT entries reset value = BIAS for 2-bit saturating counters, 2'b10 - best for embedded applications
+                                          // 2'b00 - Strongly not taken
+                                          // 2'b01 - Weakly not taken
+                                          // 2'b10 - Weakly taken
+                                          // 2'b11 - Strongly taken
 `define GHRW              (`BHT_IDW+2)    // Global History Register (GHR) width
 
 //`define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
@@ -94,7 +98,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 //`define MULTDIV                           // Define this macro to generate HW Multiplier and Divider and adds M-extension
 `define EN_FPGA_DSP_MULT  1               // 1 = use x32 DSP multiplier, 0 = use x32 Radix-4 Booth multiplier. This macro is valid iff MULTDIV is defined
-`define MULT_PIPE_STAGES  4               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
+`define MULT_PIPE_STAGES  2               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Test & Debug
