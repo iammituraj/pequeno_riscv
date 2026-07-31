@@ -54,6 +54,8 @@ CMK_MAKE    = REPO_ROOT / "coremark" / "Makefile"
 CMK_LINKER  = REPO_ROOT / "coremark" / "linker.ld"
 DHRY_MAKE   = REPO_ROOT / "dhrystone" / "Makefile"
 DHRY_LINKER = REPO_ROOT / "dhrystone" / "linker.ld"
+RVTEST_DIR  = REPO_ROOT / "riscv_tests"
+RVTESTS     = ["median", "memcpy", "multiply", "qsort", "rsort", "towers"]
 
 BUILD_NOTES = REPO_ROOT / "build_notes.txt"
 
@@ -485,7 +487,7 @@ def review_and_apply_all(changes, title="Proposed changes"):
     header(title)
     if not real_changes:
         print(c("No changes to apply — configuration already matches what you selected.", C.GREEN))
-        return False
+        return True  # Files already reflect the chosen config, so it's still safe/correct to run the build.
 
     for ch in real_changes:
         print()
@@ -518,7 +520,11 @@ def print_core_subsys_rows(core, subsys):
     print_row("Register File on Block RAM", "Enabled" if svh_toggle_get(core, "RF_ON_BRAM") else "Disabled", "RF_ON_BRAM")
     print_row("Branch Predictor", "Dynamic (GShare)" if svh_toggle_get(core, "BPREDICT_DYN") else "Static (backward-taken)", "BPREDICT_DYN")
     print_row("Return Address Stack (RAS)", "Enabled" if svh_toggle_get(core, "RAS") else "Disabled", "RAS")
-    print_row("Hardware Multiplier/Divider", "Enabled" if svh_toggle_get(core, "MULTDIV") else "Disabled", "MULTDIV")
+    if svh_toggle_get(core, "MULTDIV"):
+        mult_type = "DSP x32 multiplier" if svh_value_get(core, "EN_FPGA_DSP_MULT") == "1" else "Radix-4 Booth multiplier"
+        print_row("Hardware Multiplier/Divider", f"Enabled ({mult_type})", "MULTDIV")
+    else:
+        print_row("Hardware Multiplier/Divider", "Disabled", "MULTDIV")
     print_row("Test Ports", "Enabled" if svh_toggle_get(core, "TEST_PORTS") else "Disabled", "TEST_PORTS")
     print_row("Synthesis build (Core)", "Yes" if svh_toggle_get(core, "CORE_SYNTH") else "No", "CORE_SYNTH")
     print_row("Debug interfaces (Core)", "Enabled" if svh_toggle_get(core, "DBG") else "Disabled", "DBG")
@@ -567,7 +573,7 @@ def configure_benchmark():
     header("CoreMark / Dhrystone Benchmark Configuration")
     print("Reference: see 'Building CoreMark(R) CPU Benchmark' / 'Building Dhrystone CPU Benchmark'")
     print(f"sections of {c(str(BUILD_NOTES), C.CYAN)} for full details.")
-    print(c("Note: linker.ld's IRAM/DRAM LENGTH will be kept in sync with the sizes chosen below.", C.DIM))
+    print(c("Note: linker.ld's IRAM/DRAM LENGTH will be kept in sync with the sizes chosen below.", C.YELLOW))
     print(c("Tip: type 's' at any prompt below to skip the remaining questions and jump to the summary.", C.DIM))
     print(c("Tip: type 'q' at any prompt (below or later) to quit immediately, with nothing further changed.\n", C.DIM))
 
@@ -638,29 +644,34 @@ def configure_benchmark():
         # Reuses the same guided_toggle/guided_bool_value/guided_value helpers as the Full Custom flow,
         # so the "[MACRO]  (currently ...)" header above each question is shown consistently in both flows.
         guided_toggle(core_lines, "BPREDICT_DYN", "Enable Dynamic (GShare) Branch Predictor?",
-                      note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better accuracy on real code.")
+                      note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better prediction accuracy on real codes.")
         guided_toggle(core_lines, "RAS", "Enable the Return Address Stack (RAS) predictor?",
-                      note="Speeds up function-return branches; needs a small depth-N stack of PCs.")
+                      note="Predicts function-return branches; needs a small depth-N stack of PCs.")
         muldiv = guided_toggle(core_lines, "MULTDIV", "Enable the Hardware Multiplier/Divider (RISC-V M-extension)?",
-                                note="Without this, GCC emits software mul/div/rem routines instead.")
+                                note="Without HW multipliers/dividers, GCC must rely on mul/div/rem SW routines.")
         if muldiv:
-            dsp_mult = guided_bool_value(core_lines, "EN_FPGA_DSP_MULT",
-                                          "Use the FPGA DSP-based x32 multiplier (instead of a Radix-4 Booth multiplier)?",
-                                          note="Yes = FPGA DSP-based x32 multiplier, No = Radix-4 Booth multiplier (better for ASIC).")
+            dsp_mult = guided_bool_choice(core_lines, "EN_FPGA_DSP_MULT",
+                                           "Which HW multiplier should be used?",
+                                           ("FPGA DSP-based x32 multiplier", "Radix-4 Booth multiplier"),
+                                           note="DSP-based uses dedicated FPGA DSP slices.")
             if dsp_mult:
                 guided_value(core_lines, "MULT_PIPE_STAGES", "Number of DSP multiplier pipeline stages (>= 2)?",
+                             note="Tune the pipeline stages according to the target operating frequency.",
                              validator=lambda s: (s.isdigit() and int(s) >= 2, "Must be an integer >= 2"))
 
         print()
-        print(c("[DBG]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if svh_toggle_get(core_lines, 'DBG') else 'disabled'})", C.DIM))
-        print(c("  Also drives SUBSYS_DBG/MEM_DBG (Subsystem) together with this. Simulation only.", C.GREY))
-        debug_needed = ask_yes_no("Enable Debug interfaces in the CPU/Subsystem (for Simulation only)?", default=True, allow_skip=True)
-
-        print()
-        print(c("[CORE_SYNTH]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if synth_needed else 'disabled'})", C.DIM))
-        print(c("  Also drives SUBSYS_SYNTH (Subsystem) together with this.", C.GREY))
+        print(c("[SYNTH Macros]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if synth_needed else 'disabled'})", C.DIM))
+        print(c("  Enables CORE_SYNTH/SUBSYS_SYNTH to target Synthesis and Simulation-only features are removed", C.GREY))
         synth_needed = ask_yes_no("Is a Synthesis-ready core (on-board FPGA/ASIC build) required, instead of a simulation build?",
                                    default=synth_needed, allow_skip=True)
+
+        if not synth_needed:
+            print()
+            print(c("[DBG Macros]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if svh_toggle_get(core_lines, 'DBG') else 'disabled'})", C.DIM))
+            print(c("  Enables DBG/SUBSYS_DBG/MEM_DBG (For Simulation purpose only)", C.GREY))
+            debug_needed = ask_yes_no("Enable Debug interfaces in the CPU/Subsystem (for Simulation only)?", default=True, allow_skip=True)
+        else:
+            print(c("\n  (Skipping Debug interfaces prompt — Synth macros disable simulation-only debug macros.)", C.DIM))
     except SkipRemaining:
         print(c("\n(Skipping remaining questions — keeping current/default values for anything not yet asked.)", C.DIM))
 
@@ -688,11 +699,20 @@ def configure_benchmark():
         print(c("  -> DBGUART will be enabled (benchmark report is printed over the Debug UART).", C.CYAN))
     svh_value_set(subsys_lines, "DBGUART_BRATE", baud)
 
-    svh_toggle_set(subsys_lines, "SUBSYS_DBG", debug_needed)
-    svh_toggle_set(subsys_lines, "MEM_DBG", debug_needed)
-
     svh_value_set(core_lines, "PC_INIT", "32'h0000_0000")
-    svh_toggle_set(core_lines, "DBG", debug_needed)
+
+    # Debug macros are only ever touched when NOT building for synthesis; a synthesis build leaves
+    # DBG/SUBSYS_DBG/MEM_DBG/REGFILE_DUMP/IMEM_DUMP/DMEM_DUMP exactly as they were, matching the
+    # Full Custom flow's behavior. DBG/SUBSYS_DBG/MEM_DBG toggle together either way; the *_DUMP
+    # value macros are only ever explicitly enabled (never explicitly disabled) when debug is on.
+    if not synth_needed:
+        svh_toggle_set(core_lines, "DBG", debug_needed)
+        svh_toggle_set(subsys_lines, "SUBSYS_DBG", debug_needed)
+        svh_toggle_set(subsys_lines, "MEM_DBG", debug_needed)
+        if debug_needed:
+            svh_value_set(core_lines, "REGFILE_DUMP", "1")
+            svh_value_set(subsys_lines, "IMEM_DUMP", "1")
+            svh_value_set(subsys_lines, "DMEM_DUMP", "1")
 
     svh_toggle_set(core_lines, "CORE_SYNTH", synth_needed)
     svh_toggle_set(subsys_lines, "SUBSYS_SYNTH", synth_needed)
@@ -716,16 +736,268 @@ def configure_benchmark():
     applied = review_and_apply_all(changes, title=f"{name} Configuration — review before applying")
     if applied:
         print(f"\nPlease run  {c('make ' + ('coremark' if idx == 0 else 'dhryst') + f' ISZ={kb_to_bytes(iram_kb)} DSZ={kb_to_bytes(dram_kb)}', C.CYAN, C.BOLD)}")
+        if svh_toggle_get(core_lines, "MULTDIV"):
+            print(c(f"  Add ARCH=rv32im to also compile {name} with native HW mul/div (M-extension) instructions.", C.YELLOW))
+        print(c(f"Refer to {BUILD_NOTES} for more details.", C.DIM))
+
+
+# =================================================================================================================================
+# RISC-V Standard Test Program configuration
+# =================================================================================================================================
+def configure_rvtest():
+    header("RISC-V Standard Test Program Configuration")
+    print("Reference: see 'Building RISC-V Test Programs' section of")
+    print(f"{c(str(BUILD_NOTES), C.CYAN)} for full details.")
+    print(c("Note: linker.ld's IRAM/DRAM LENGTH will be kept in sync with the sizes chosen below.", C.YELLOW))
+    print(c("Tip: type 's' at any prompt below to skip the remaining questions and jump to the summary.", C.DIM))
+    print(c("Tip: type 'q' at any prompt (below or later) to quit immediately, with nothing further changed.\n", C.DIM))
+
+    pgm_options = RVTESTS + ["Back to main menu"]
+    idx = ask_choice("Which RISC-V test program do you want to configure?", pgm_options, default_index=0)
+    if idx == len(RVTESTS):
+        return
+    pgm = RVTESTS[idx]
+    name = pgm
+    makefile_path = RVTEST_DIR / pgm / "Makefile"
+    linker_path = RVTEST_DIR / pgm / "linker.ld"
+    min_iram_kb, min_dram_kb = 16, 16
+
+    make_lines_orig = read_lines(makefile_path)
+    core_lines_orig = read_lines(CORE_SVH)
+    subsys_lines_orig = read_lines(SUBSYS_SVH)
+    linker_lines_orig = read_lines(linker_path)
+
+    make_lines = list(make_lines_orig)
+    core_lines = list(core_lines_orig)
+    subsys_lines = list(subsys_lines_orig)
+    linker_lines = list(linker_lines_orig)
+
+    print()
+    print(c(f"NOTE: {name} requires IRAM >= {min_iram_kb}K and DRAM >= {min_dram_kb}K.", C.YELLOW, C.BOLD))
+    print(c("      You will be warned if you try to go below these minimums.\n", C.YELLOW))
+
+    # Pre-seed every answer with its current/sensible-default value, so anything the user skips
+    # past simply keeps that value untouched. (Macros driven via guided_toggle/guided_bool_choice/
+    # guided_value below fetch their own current value and write straight to core_lines.)
+    iram_kb = max(bytes_to_kb(int(svh_value_get(subsys_lines, "IRAM_SIZE"))), min_iram_kb)
+    dram_kb = max(bytes_to_kb(int(svh_value_get(subsys_lines, "DRAM_SIZE"))), min_dram_kb)
+    iterations = makefile_value_get(make_lines, "ITERATIONS")
+    cur_mhz = makefile_value_get(make_lines, "CLOCK_SPEED_MHZ")
+    mhz = int(cur_mhz) if cur_mhz.isdigit() else 12
+    baud = svh_value_get(subsys_lines, "DBGUART_BRATE")
+    debug_needed = True
+    synth_needed = svh_toggle_get(core_lines, "CORE_SYNTH")
+
+    try:
+        # --- IRAM/DRAM Interface configuration ------------------------------------------------------------------------------
+        print()
+        print(c("IRAM/DRAM Interface configuration:", C.BOLD, C.CYAN))
+        iram_kb = ask_size_kb(f"IRAM size for {name} (KB)?", iram_kb, min_iram_kb, name, allow_skip=True)
+        dram_kb = ask_size_kb(f"DRAM size for {name} (KB)?", dram_kb, min_dram_kb, name, allow_skip=True)
+
+        # --- {name} configuration --------------------------------------------------------------------------------------------
+        print()
+        print(c(f"{name} configuration:", C.BOLD, C.CYAN))
+        iterations = ask_value(f"Number of {name} iterations/runs?", iterations,
+                                validator=lambda s: (s.isdigit() and int(s) > 0, "Must be a positive integer"),
+                                allow_skip=True)
+
+        mhz = ask_value("Target system clock speed, in MHz?", mhz,
+                         validator=lambda s: (s.isdigit() and int(s) > 0, "Must be a positive integer"),
+                         allow_skip=True)
+
+        new_baud = ask_value("Debug UART baud rate (for printing to the serial terminal)?", baud,
+                              validator=lambda s: (s.isdigit(), "Must be an integer baud rate"), allow_skip=True)
+        if int(new_baud) * 16 >= int(mhz) * 1_000_000:
+            print(c(f"  WARNING: {new_baud} baud is not comfortably slower than 1/16 of FCLK ({mhz}MHz)."
+                     " The Debug UART may not work reliably.", C.YELLOW))
+            if ask_yes_no("  Keep this baud rate anyway?", default=False):
+                baud = new_baud
+        else:
+            baud = new_baud
+
+        # --- CPU configuration -----------------------------------------------------------------------------------------------
+        print()
+        print(c("CPU configuration:", C.BOLD, C.CYAN))
+        guided_toggle(core_lines, "BPREDICT_DYN", "Enable Dynamic (GShare) Branch Predictor?",
+                      note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better prediction accuracy on real codes.")
+        guided_toggle(core_lines, "RAS", "Enable the Return Address Stack (RAS) predictor?",
+                      note="Predicts function-return branches; needs a small depth-N stack of PCs.")
+        muldiv = guided_toggle(core_lines, "MULTDIV", "Enable the Hardware Multiplier/Divider (RISC-V M-extension)?",
+                                note="Without HW multipliers/dividers, GCC must rely on mul/div/rem SW routines.")
+        if muldiv:
+            dsp_mult = guided_bool_choice(core_lines, "EN_FPGA_DSP_MULT",
+                                           "Which HW multiplier should be used?",
+                                           ("FPGA DSP-based x32 multiplier", "Radix-4 Booth multiplier"),
+                                           note="DSP-based uses dedicated FPGA DSP slices.")
+            if dsp_mult:
+                guided_value(core_lines, "MULT_PIPE_STAGES", "Number of DSP multiplier pipeline stages (>= 2)?",
+                             note="Tune the pipeline stages according to the target operating frequency.",
+                             validator=lambda s: (s.isdigit() and int(s) >= 2, "Must be an integer >= 2"))
+
+        print()
+        print(c("[SYNTH Macros]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if synth_needed else 'disabled'})", C.DIM))
+        print(c("  Enables CORE_SYNTH/SUBSYS_SYNTH to target Synthesis and Simulation-only features are removed", C.GREY))
+        synth_needed = ask_yes_no("Is a Synthesis-ready core (on-board FPGA/ASIC build) required, instead of a simulation build?",
+                                   default=synth_needed, allow_skip=True)
+
+        if not synth_needed:
+            print()
+            print(c("[DBG Macros]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if svh_toggle_get(core_lines, 'DBG') else 'disabled'})", C.DIM))
+            print(c("  Enables DBG/SUBSYS_DBG/MEM_DBG (For Simulation purpose only)", C.GREY))
+            debug_needed = ask_yes_no("Enable Debug interfaces in the CPU/Subsystem (for Simulation only)?", default=True, allow_skip=True)
+        else:
+            print(c("\n  (Skipping Debug interfaces prompt — Synth macros disable simulation-only debug macros.)", C.DIM))
+    except SkipRemaining:
+        print(c("\n(Skipping remaining questions — keeping current/default values for anything not yet asked.)", C.DIM))
+
+    mhz = int(mhz)
+
+    # --- Apply everything to the in-memory file contents ------------------------------------------------------------------
+    makefile_value_set(make_lines, "ITERATIONS", iterations)
+    makefile_value_set(make_lines, "CLOCK_SPEED_MHZ", str(mhz))
+
+    # BPREDICT_DYN, RAS, MULTDIV, EN_FPGA_DSP_MULT, MULT_PIPE_STAGES were already written straight
+    # into core_lines by the guided_toggle/guided_bool_choice/guided_value calls above.
+
+    if not svh_toggle_get(subsys_lines, "BENCHMARK"):
+        svh_toggle_set(subsys_lines, "BENCHMARK", True)
+        print(c("  -> BENCHMARK macro will be enabled (required to build/run RISC-V test programs).", C.CYAN))
+
+    svh_value_set(subsys_lines, "FCLK", str(mhz))
+    svh_value_set(subsys_lines, "IRAM_SIZE", str(kb_to_bytes(iram_kb)))
+    svh_value_set(subsys_lines, "DRAM_SIZE", str(kb_to_bytes(dram_kb)))
+    linker_length_set(linker_lines, "IRAM", iram_kb)
+    linker_length_set(linker_lines, "DRAM", dram_kb)
+
+    if not svh_toggle_get(subsys_lines, "DBGUART"):
+        svh_toggle_set(subsys_lines, "DBGUART", True)
+        print(c("  -> DBGUART will be enabled (test result is printed over the Debug UART).", C.CYAN))
+    svh_value_set(subsys_lines, "DBGUART_BRATE", baud)
+
+    svh_value_set(core_lines, "PC_INIT", "32'h0000_0000")
+
+    # Debug macros are only ever touched when NOT building for synthesis; a synthesis build leaves
+    # DBG/SUBSYS_DBG/MEM_DBG/REGFILE_DUMP/IMEM_DUMP/DMEM_DUMP exactly as they were, matching the
+    # benchmark and Full Custom flows' behavior.
+    if not synth_needed:
+        svh_toggle_set(core_lines, "DBG", debug_needed)
+        svh_toggle_set(subsys_lines, "SUBSYS_DBG", debug_needed)
+        svh_toggle_set(subsys_lines, "MEM_DBG", debug_needed)
+        if debug_needed:
+            svh_value_set(core_lines, "REGFILE_DUMP", "1")
+            svh_value_set(subsys_lines, "IMEM_DUMP", "1")
+            svh_value_set(subsys_lines, "DMEM_DUMP", "1")
+
+    svh_toggle_set(core_lines, "CORE_SYNTH", synth_needed)
+    svh_toggle_set(subsys_lines, "SUBSYS_SYNTH", synth_needed)
+
+    # --- Feature summary, then a single gate before the detailed file diff/apply step ---------------------------------------
+    header(f"{name} Configuration Summary")
+    print(c(f"\n{name} Test Program:", C.BOLD))
+    print_row("Iterations", iterations, "ITERATIONS")
+    print_row("Clock speed", f"{mhz} MHz", "CLOCK_SPEED_MHZ / FCLK")
+    print_row("IRAM size", f"{iram_kb}K", "IRAM_SIZE")
+    print_row("DRAM size", f"{dram_kb}K", "DRAM_SIZE")
+    print_core_subsys_rows(core_lines, subsys_lines)
+    input(c("\nPress ENTER to review the exact file changes and confirm...", C.DIM))
+
+    changes = [
+        {"label": f"{name} Makefile", "path": makefile_path, "old_lines": make_lines_orig, "new_lines": make_lines},
+        {"label": "Core Macros", "path": CORE_SVH, "old_lines": core_lines_orig, "new_lines": core_lines},
+        {"label": "Subsystem Macros", "path": SUBSYS_SVH, "old_lines": subsys_lines_orig, "new_lines": subsys_lines},
+        {"label": f"{name} linker.ld", "path": linker_path, "old_lines": linker_lines_orig, "new_lines": linker_lines},
+    ]
+    applied = review_and_apply_all(changes, title=f"{name} Configuration — review before applying")
+    if applied:
+        print(f"\nPlease run  {c(f'make rvtest PGM={pgm} ISZ={kb_to_bytes(iram_kb)} DSZ={kb_to_bytes(dram_kb)}', C.CYAN, C.BOLD)}")
+        if svh_toggle_get(core_lines, "MULTDIV"):
+            print(c(f"  Add ARCH=rv32im to also compile {name} with native HW mul/div (M-extension) instructions.", C.YELLOW))
+        print(c(f"Refer to {BUILD_NOTES} for more details.", C.DIM))
+
+
+# =================================================================================================================================
+# Regression Suite configuration
+# =================================================================================================================================
+def configure_regress():
+    header("Regression Suite Configuration")
+    print("Reference: see 'Running Regressions in the CPU' section of")
+    print(f"{c(str(BUILD_NOTES), C.CYAN)} for full details.")
+    print(c("Tip: type 's' at any prompt below to skip the remaining questions and jump to the summary.", C.DIM))
+    print(c("Tip: type 'q' at any prompt (below or later) to quit immediately, with nothing further changed.\n", C.DIM))
+
+    core_lines_orig = read_lines(CORE_SVH)
+    subsys_lines_orig = read_lines(SUBSYS_SVH)
+    core_lines = list(core_lines_orig)
+    subsys_lines = list(subsys_lines_orig)
+
+    print(c("NOTE: Regression always runs as a simulation (never Synthesis), and always needs Debug", C.YELLOW, C.BOLD))
+    print(c("      interfaces + Register/Memory dumps enabled to verify results against the golden", C.YELLOW))
+    print(c("      reference -- these are applied automatically below, not asked as questions.\n", C.YELLOW))
+
+    try:
+        # --- CPU configuration -----------------------------------------------------------------------------------------------
+        print()
+        print(c("CPU configuration:", C.BOLD, C.CYAN))
+        guided_toggle(core_lines, "BPREDICT_DYN", "Enable Dynamic (GShare) Branch Predictor?",
+                      note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better prediction accuracy on real codes.")
+        guided_toggle(core_lines, "RAS", "Enable the Return Address Stack (RAS) predictor?",
+                      note="Predicts function-return branches; needs a small depth-N stack of PCs.")
+        muldiv = guided_toggle(core_lines, "MULTDIV", "Enable the Hardware Multiplier/Divider (RISC-V M-extension)?",
+                                note="Without HW multipliers/dividers, GCC must rely on mul/div/rem SW routines. If disabled,"
+                                     " the 24_multdiv regression test is auto-skipped by scripts/regress_run.sh.")
+        if muldiv:
+            dsp_mult = guided_bool_choice(core_lines, "EN_FPGA_DSP_MULT",
+                                           "Which HW multiplier should be used?",
+                                           ("FPGA DSP-based x32 multiplier", "Radix-4 Booth multiplier"),
+                                           note="DSP-based uses dedicated FPGA DSP slices.")
+            if dsp_mult:
+                guided_value(core_lines, "MULT_PIPE_STAGES", "Number of DSP multiplier pipeline stages (>= 2)?",
+                             note="Tune the pipeline stages according to the target operating frequency.",
+                             validator=lambda s: (s.isdigit() and int(s) >= 2, "Must be an integer >= 2"))
+    except SkipRemaining:
+        print(c("\n(Skipping remaining questions — keeping current/default values for anything not yet asked.)", C.DIM))
+
+    # --- Apply the fixed regression prerequisites (not asked -- these are hard requirements, not choices) ------------------
+    svh_toggle_set(core_lines, "CORE_SYNTH", False)
+    svh_toggle_set(subsys_lines, "SUBSYS_SYNTH", False)
+
+    svh_toggle_set(core_lines, "DBG", True)
+    svh_toggle_set(subsys_lines, "SUBSYS_DBG", True)
+    svh_toggle_set(subsys_lines, "MEM_DBG", True)
+    svh_value_set(core_lines, "REGFILE_DUMP", "1")
+    svh_value_set(subsys_lines, "IMEM_DUMP", "1")
+    svh_value_set(subsys_lines, "DMEM_DUMP", "1")
+
+    svh_toggle_set(subsys_lines, "SIMLIMIT", True)
+    svh_toggle_set(core_lines, "SIMEXIT_INSTR_END", True)
+    svh_value_set(core_lines, "PC_INIT", "32'h0000_0000")
+
+    svh_value_set(subsys_lines, "IRAM_SIZE", "1024")
+    svh_value_set(subsys_lines, "DRAM_SIZE", "1024")
+
+    # --- Feature summary, then a single gate before the detailed file diff/apply step ---------------------------------------
+    header("Regression Suite Configuration Summary")
+    print_core_subsys_rows(core_lines, subsys_lines)
+    input(c("\nPress ENTER to review the exact file changes and confirm...", C.DIM))
+
+    changes = [
+        {"label": "Core Macros", "path": CORE_SVH, "old_lines": core_lines_orig, "new_lines": core_lines},
+        {"label": "Subsystem Macros", "path": SUBSYS_SVH, "old_lines": subsys_lines_orig, "new_lines": subsys_lines},
+    ]
+    applied = review_and_apply_all(changes, title="Regression Suite Configuration — review before applying")
+    if applied:
+        print(f"\nPlease run  {c('make regress', C.CYAN, C.BOLD)}")
         print(c(f"Refer to {BUILD_NOTES} for more details.", C.DIM))
 
 
 # =================================================================================================================================
 # Full guided macro-by-macro configuration
 # =================================================================================================================================
-def guided_toggle(lines, macro, question, note=None):
+def guided_toggle(lines, macro, question, note=None, label=None):
     cur = svh_toggle_get(lines, macro)
     print()
-    print(c(f"[{macro}]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if cur else 'disabled'})", C.DIM))
+    print(c(f"[{label or macro}]", C.BOLD, C.MAGENTA) + c(f"  (currently {'ENABLED' if cur else 'disabled'})", C.DIM))
     if note:
         print(c(f"  {note}", C.GREY))
     new = ask_yes_no(question, default=cur, allow_skip=True)
@@ -769,6 +1041,24 @@ def guided_bool_value(lines, macro, question, note=None, true_val="1", false_val
     if note:
         print(c(f"  {note}", C.GREY))
     new = ask_yes_no(question, default=cur_bool, allow_skip=True)
+    svh_value_set(lines, macro, true_val if new else false_val)
+    return new
+
+
+def guided_bool_choice(lines, macro, question, options, note=None, true_val="1", false_val="0"):
+    """Like guided_bool_value, but presented as a 2-option menu (descriptive labels) instead of a
+    plain yes/no. options = (true_label, false_label); the current value is pre-selected and
+    explicitly marked "(default)" so it's clear which one you'll get if you just press Enter."""
+    cur = svh_value_get(lines, macro)
+    cur_bool = cur == true_val
+    print()
+    print(c(f"[{macro}]", C.BOLD, C.MAGENTA) + c(f"  (currently {options[0] if cur_bool else options[1]})", C.DIM))
+    if note:
+        print(c(f"  {note}", C.GREY))
+    default_index = 0 if cur_bool else 1
+    hints = ["(default)" if default_index == 0 else "", "(default)" if default_index == 1 else ""]
+    idx = ask_choice(question, list(options), default_index=default_index, hints=hints, allow_skip=True)
+    new = (idx == 0)
     svh_value_set(lines, macro, true_val if new else false_val)
     return new
 
@@ -828,7 +1118,7 @@ def _configure_guided_questions(core, subsys, bench_info):
 
     dyn_bp = guided_toggle(core, "BPREDICT_DYN",
                             "Do you want a Dynamic (GShare) Branch Predictor instead of the Static predictor?",
-                            note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better accuracy on real code.")
+                            note="Static = backward-always-taken heuristic (lighter). Dynamic = GShare, better prediction accuracy on real codes.")
     if dyn_bp:
         guided_value(core, "BHT_IDW", "Branch History Table (BHT) index width? (e.g. 10 = 1024 entries)",
                      validator=int_validator())
@@ -840,18 +1130,20 @@ def _configure_guided_questions(core, subsys, bench_info):
 
     ras = guided_toggle(core, "RAS",
                          "Enable the Return Address Stack (RAS) predictor?",
-                         note="Speeds up function-return branches; needs a small depth-N stack of PCs.")
+                         note="Predicts function-return branches; needs a small depth-N stack of PCs.")
     if ras:
         guided_value(core, "RAS_DPT", "RAS depth (must be a power of 2)?", validator=int_validator())
 
     muldiv = guided_toggle(core, "MULTDIV",
                             "Enable the Hardware Multiplier/Divider (adds the RISC-V M-extension)?",
-                            note="Without this, GCC emits software mul/div/rem routines instead.")
+                            note="Without HW multipliers/dividers, GCC must rely on mul/div/rem SW routines.")
     if muldiv:
-        dsp = guided_bool_value(core, "EN_FPGA_DSP_MULT", "Use the FPGA DSP-based x32 multiplier (instead of a Radix-4 Booth multiplier)?",
-                                 note="Yes = FPGA DSP-based x32 multiplier, No = Radix-4 Booth multiplier (better for ASIC).")
+        dsp = guided_bool_choice(core, "EN_FPGA_DSP_MULT", "Which HW multiplier should be used?",
+                                  ("FPGA DSP-based x32 multiplier", "Radix-4 Booth multiplier"),
+                                  note="DSP-based uses dedicated FPGA DSP slices.")
         if dsp:
             guided_value(core, "MULT_PIPE_STAGES", "Number of DSP multiplier pipeline stages (>= 2)?",
+                         note="Tune the pipeline stages according to the target operating frequency.",
                          validator=lambda s: (s.isdigit() and int(s) >= 2, "Must be an integer >= 2"))
 
     guided_toggle(core, "TEST_PORTS",
@@ -859,12 +1151,12 @@ def _configure_guided_questions(core, subsys, bench_info):
                   note="Handy for board bring-up/debug; adds a few extra top-level ports.")
 
     synth = guided_toggle(core, "CORE_SYNTH",
-                           "Is this configuration meant for SYNTHESIS (an on-board FPGA build)?",
-                           note="If yes, all simulation-only debug macros below are force-disabled automatically.")
+                           "Should the CPU CORE be configured for Synthesis only?",
+                           note="Disables debug prints, debug ports, CPU registers dump and other simulation-only features automatically when enabled.")
 
     if not synth:
         sim_note = "Simulation-only. Ignored/overridden automatically when CORE_SYNTH is enabled."
-        dbg = guided_toggle(core, "DBG", "Enable Debug interfaces & performance summary (Simulation only)?", note=sim_note)
+        dbg = guided_toggle(core, "DBG", "Enable Debug interfaces & performance summary (Simulation only)?", note=sim_note, label="DBG Macros")
         if dbg:
             guided_toggle(core, "DBG_PRINT", "Also print verbose per-cycle debug messages during simulation?", note=sim_note)
         guided_bool_value(core, "REGFILE_DUMP", "Dump the Register File contents at the end of simulation?", note=sim_note)
@@ -939,8 +1231,8 @@ def _configure_guided_questions(core, subsys, bench_info):
                      validator=lambda s: (s.isdigit() and int(s) <= 65536, "Must be an integer <= 65536"))
 
     subsynth = guided_toggle(subsys, "SUBSYS_SYNTH",
-                              "Is the SUBSYSTEM being prepared for SYNTHESIS?",
-                              note="Disables TB clock/reset generation and memory debug ports automatically when enabled.")
+                              "Should the SUBSYSTEM be configured for Synthesis only?",
+                              note="Disables test clock/reset generation, memory debug ports and other simulation-only features automatically when enabled.")
 
     if not subsynth:
         sim_note = "Simulation-only. Ignored/overridden automatically when SUBSYS_SYNTH is enabled."
@@ -1009,6 +1301,8 @@ def show_summary():
 # =================================================================================================================================
 MENU_OPTIONS = [
     "Configure to run CoreMark / Dhrystone Benchmark",
+    "Configure to build RISC-V Standard Test Program",
+    "Configure to run Regression Suite",
     "Full Custom Configuration (walk through every macro)",
     "View Current Configuration Summary",
     "Exit",
@@ -1018,8 +1312,8 @@ MENU_OPTIONS = [
 def print_welcome():
     print()
     print(c("Welcome to the Pequeno R5 CPU & Subsystem Configurator!", C.BOLD, C.WHITE))
-    print(c("This interactive session guides you through configuring the CPU core, subsystem, and", C.GREY))
-    print(c("CoreMark/Dhrystone benchmark builds.", C.GREY))
+    print(c("This interactive session guides you through configuring the CPU core, subsystem,", C.GREY))
+    print(c("CoreMark/Dhrystone benchmark builds, and RISC-V Standard Test Program builds.", C.GREY))
 
 
 def main_menu():
@@ -1037,8 +1331,12 @@ def main_menu():
         if idx == 0:
             configure_benchmark()
         elif idx == 1:
-            configure_guided()
+            configure_rvtest()
         elif idx == 2:
+            configure_regress()
+        elif idx == 3:
+            configure_guided()
+        elif idx == 4:
             show_summary()
         elif idx == exit_index:
             print(c("\nGoodbye!\n", C.CYAN))

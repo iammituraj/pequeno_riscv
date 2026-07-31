@@ -70,6 +70,17 @@ run20=22_test_swap
 run21=23_test_recursive
 run22=24_multdiv
 
+# Auto-skip capability-gated tests whose required RTL macro isn't enabled, regardless of the
+# en_run* toggle above -- no point running a test that's guaranteed to fail/misbehave on RTL
+# that doesn't support it. Currently just RUN 22 (24_multdiv), which needs MULTDIV enabled.
+CORE_MACROS=./src/include/pqr5_core_macros.svh
+if [ "$en_run22" -eq 1 ] && ! grep -qE '^`define[[:space:]]+MULTDIV\b' "$CORE_MACROS"; then
+  echo ""
+  echo "| PQR5: RUN 22 ($run22) skipped -- MULTDIV is disabled in $CORE_MACROS."
+  echo ""
+  en_run22=0
+fi
+
 # Set Error capturing
 set -e
 

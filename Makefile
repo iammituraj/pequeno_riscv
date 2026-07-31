@@ -77,6 +77,8 @@ DTW  = 32
 OFT  = 0
 # Assembly pgm passed to asm2bin
 ASM  = 01_test_regfile.s
+# CoreMark target arch; rv32im = M-extension enabled (HW mul/div)
+ARCH = rv32i
 # peqFlash flags
 PQF  =
 # pqr5asm flags; -pcrel to generate relocatable (text) binary by default
@@ -124,48 +126,53 @@ help:
 	@echo "1.  make listasm                                                -- To display the list of example ASM programs"
 	@echo "2.  make asm2bin ASM=<assembly file> ASMF=<>                    -- To compile an eg. ASM program with assembler and generate the binaries"
 	@echo "3.  make genram ISZ=<IRAM size> DSZ=<DRAM size> OFT=<PC_INIT>   -- To generate IRAM & DRAM with binaries initialized"
-	@echo "4.  make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To build the PQR5 subsystem with FW: asm2bin + genram + compile"
-	@echo "5.  make compile                                                -- To clean compile the PQR5 subsystem RTL database"
-	@echo "6.  make qcompile                                               -- To compile without clean"
+	@echo "4.  make compile                                                -- To clean compile the PQR5 subsystem RTL database"
+	@echo "5.  make qcompile                                               -- To compile without clean"
+	@echo "6.  make build ASM=<> ISZ=<> DSZ=<> OFT=<>                      -- To build the PQR5 subsystem with FW: asm2bin + genram + compile"
 	@echo "7.  make sim GUI=0/1                                            -- To simulate the PQR5 subsystem"
 	@echo "8.  make run_all GUI=0/1                                        -- To clean + compile + simulate"
 	@echo ""
-	@echo "BENCHMARKS"
-	@echo "----------"
-	@echo "1.  make coremark ISZ=<IRAM size> DSZ=<DRAM size>               -- To build CoreMark® CPU Benchmark"
-	@echo "2.  make dhryst ISZ=<IRAM size> DSZ=<DRAM size>                 -- To build Dhrystone CPU Benchmark"
-	@echo "3.  make listrvtest                                             -- To display the list of supported RISC-V Test Programs in C"
-	@echo "4.  make rvtest ISZ=<IRAM size> DSZ=<DRAM size> PGM=<Program>   -- To build RISC-V Test Program in C"
+	@echo "BENCHMARKS & C PROGRAMS"
+	@echo "-----------------------"
+	@echo "1.  make coremark ISZ=<IRAM size> DSZ=<DRAM size> ARCH=<ISA>              -- To build CoreMark® CPU Benchmark"
+	@echo "2.  make dhryst ISZ=<IRAM size> DSZ=<DRAM size> ARCH=<ISA>                -- To build Dhrystone CPU Benchmark"
+	@echo "3.  make listrvtest                                                       -- To display the list of example RISC-V Test Programs in C"
+	@echo "4.  make rvtest ISZ=<IRAM size> DSZ=<DRAM size> PGM=<Program> ARCH=<ISA>  -- To build RISC-V Test Program in C"
 	@echo ""
 	@echo "SYNTHESIS & FPGA VALIDATION"
 	@echo "---------------------------"
-	@echo "1.  make build_synth                                            -- To generate a basic synthesis setup for Xilinx Vivado"
-	@echo "2.  make synth                                                  -- To perform synthesis, implementation, and generate bitfile"
-	@echo "3.  make burn                                                   -- To write the generated bitfile to the target FPGA"
-	@echo "4.  make flash SP=<port> BAUD=<baudrate> PQF=<>                 -- To flash the program binary via serial port to the target"
+	@echo "1.  make build_synth                             -- To generate a basic synthesis setup for Xilinx Vivado"
+	@echo "2.  make synth                                   -- To perform synthesis, implementation, and generate bitfile"
+	@echo "3.  make burn                                    -- To write the generated bitfile to the target FPGA"
+	@echo "4.  make flash SP=<port> BAUD=<baudrate> PQF=<>  -- To flash the program binary via serial port to the target"
 	@echo ""
 	@echo "CLEANERS"
 	@echo "--------"
-	@echo "1.  make clean                                                  -- To clean sim + dump files"
-	@echo "2.  make deep_clean                                             -- To clean sim + dump + generated RAM files"
-	@echo "3.  make asm_clean                                              -- To clean ASM build files"
-	@echo "4.  make cmk_clean                                              -- To clean CoreMark build files"
-	@echo "5.  make dhry_clean                                             -- To clean Dhrystone build files"
-	@echo "6.  make rvt_clean                                              -- To clean RISC-V Test Program build files"
-	@echo "7.  make build_clean                                            -- To perform deep_clean + asm_clean + cmk_clean + dhry_clean + rvt_clean"
-	@echo "8.  make synth_clean                                            -- To clean synth files"
-	@echo "9.  make full_clean                                             -- To perform full clean = build_clean + synth_clean"
-	@echo "10. make sweep                                                  -- To perform full_clean + clear any left over regression dumps"
+	@echo "1.  make clean        -- To clean sim + dump files"
+	@echo "2.  make deep_clean   -- To clean sim + dump + generated RAM files"
+	@echo "3.  make asm_clean    -- To clean ASM build files"
+	@echo "4.  make cmk_clean    -- To clean CoreMark build files"
+	@echo "5.  make dhry_clean   -- To clean Dhrystone build files"
+	@echo "6.  make rvt_clean    -- To clean RISC-V Test Program build files"
+	@echo "7.  make build_clean  -- To perform deep_clean + asm_clean + cmk_clean + dhry_clean + rvt_clean"
+	@echo "8.  make synth_clean  -- To clean synth files"
+	@echo "9.  make full_clean   -- To perform full clean = build_clean + synth_clean"
+	@echo "10. make sweep        -- To perform full_clean + clear any left over regression dumps"
 	@echo ""
 	@echo "REGRESSION & CHECKERS"
 	@echo "---------------------"
-	@echo "1.  make regress                                                -- To run regressions and dump the results"
-	@echo "2.  make diff                                                   -- To diff simulation dumps of example ASM program with golden reference"
+	@echo "1.  make regress      -- To run regressions and dump the results"
+	@echo "2.  make diff         -- To diff simulation dumps of example ASM program with golden reference"
 	@echo ""
 	@echo "NOTES:"
 	@echo "1) Pay attention to all errors/warnings of build before proceeding ahead..."
-	@echo "2) Default values of flags: ASM=01_test_regfile.s ISZ/DSZ=1024, OFT=0, GUI=0"
-	@echo "   OFT, PC_INIT, program (text section) base address are related, refer to: build_notes.txt"
+	@echo "2) Default values of flags:"
+	@echo "   ASM=01_test_regfile.s"
+	@echo "   ISZ/DSZ=1024"
+	@echo "   OFT=0"
+	@echo "   GUI=0"
+	@echo "   ARCH=rv32i"
+	@echo "   OFT, PC_INIT, program (text section) base address have constraints, refer to: build_notes.txt"
 	@echo "3) ASM flags (ASMF) available are: -pcrel. It is added by default for relocatable program binary."
 	@echo "   Override ASMF=<empty> to create non-relocatable program binary"
 	@echo "   For more details, refer to: pqr5asm_imanual.pdf"
@@ -252,6 +259,19 @@ check_flash:
 		exit 1; \
 	fi
 
+# check_arch
+check_arch:
+	@if [ "$(ARCH)" = "rv32im" ]; then \
+		if grep -qE '^`define[[:space:]]+MULTDIV\b' $(SRC_DIR)/include/pqr5_core_macros.svh; then \
+			echo "| MAKE_PQR5: ARCH=rv32im, MULTDIV is enabled -- HW Multiplier/Divider will be exercised."; \
+		else \
+			echo "| MAKE_PQR5: **CRITICAL ERROR** ARCH=rv32im requires MULTDIV to be defined in"; \
+			echo "| MAKE_PQR5: src/include/pqr5_core_macros.svh, else these opcodes will be misdecoded by the core."; \
+			echo "| MAKE_PQR5: Enable it via ./configurator.sh (CPU config -> Hardware Multiplier/Divider), then retry."; \
+			exit 1; \
+		fi; \
+	fi
+
 # compile
 compile: clean build_sim
 	@echo ""
@@ -321,7 +341,7 @@ asm2bin: check_asm asm_clean
 	$(PYTHON) $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_dmem.bin $(ASM_DIR)/sample_dmem_baseaddr.txt
 
 # cmk2bin
-cmk2bin: asm_clean cmk_clean
+cmk2bin: asm_clean cmk_clean check_arch
 	@echo ""
 	@echo "CoreMark® CPU Benchmark Build"
 	@echo "-----------------------------"
@@ -331,31 +351,34 @@ cmk2bin: asm_clean cmk_clean
 	@echo "1. Configure the test parameters and environment in CoreMark Makefile."
 	@echo "   . ITERATIONS     = <no. of CoreMark iterations to be performed>"
 	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
-	@echo "2. Configure CoreMark linker.ld." 
+	@echo "2. Configure CoreMark linker.ld."
 	@echo "   . IRAM ORIGIN = 0x00000000"
-	@echo "   . IRAM LENGTH = <IRAM size>, min. 32 kB"
+	@echo "   . IRAM LENGTH = ISZ = $(ISZ) bytes, min. 32 kB"
 	@echo "   . DRAM ORIGIN = 0x80000000"
-	@echo "   . DRAM LENGTH = <DRAM size>, min. 8 kB"
+	@echo "   . DRAM LENGTH = DSZ = $(DSZ) bytes, min. 8 kB"
 	@echo "3. Configure the PQR5 subsystem macros:"
 	@echo "   . BENCHMARK     = Enabled"
 	@echo "   . DBGUART       = Enabled"
 	@echo "   . DBGUART_BRATE = <Targetted baudrate>"
 	@echo "   . FCLK          = CLOCKS_PER_SEC"
-	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH, min. 32768"
-	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH, min. 8192"	
+	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) bytes = IRAM LENGTH, min. 32 kB"
+	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) bytes = DRAM LENGTH, min. 8 kB"
 	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation is required"
 	@echo "4. Configure CPU Core macros:"
 	@echo "   . PC_INIT           = 0x00000000"
 	@echo "   . SIMEXIT_INSTR_END = Enabled if you require RTL simulation with exit on END"
+	@if [ "$(ARCH)" = "rv32im" ]; then \
+		echo "   . MULTDIV           = Must be enabled (ARCH=rv32im requires the HW Multiplier/Divider)"; \
+	fi
 	@echo ""
-	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
+	@read -p "Press ENTER to continue... ELSE ctrl+C to break... OR run make configurator to setup CoreMark build easily!" dummy
 	@echo ""
 	@echo "| MAKE_PQR5: Building CoreMark for the system..."
 	@echo ""
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(COREMK_DIR); \
-	make all ; \
+	make all ARCH=$(ARCH); \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
@@ -371,7 +394,7 @@ cmk2bin: asm_clean cmk_clean
 	@echo ""
 
 # dhry2bin
-dhry2bin: asm_clean dhry_clean
+dhry2bin: asm_clean dhry_clean check_arch
 	@echo ""
 	@echo "Dhrystone CPU Benchmark Build"
 	@echo "-----------------------------"
@@ -383,29 +406,32 @@ dhry2bin: asm_clean dhry_clean
 	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
 	@echo "2. Configure Dhrystone linker.ld." 
 	@echo "   . IRAM ORIGIN = 0x00000000"
-	@echo "   . IRAM LENGTH = <IRAM size>, min. 32 kB"
+	@echo "   . IRAM LENGTH = ISZ = $(ISZ) bytes, min. 32 kB"
 	@echo "   . DRAM ORIGIN = 0x80000000"
-	@echo "   . DRAM LENGTH = <DRAM size>, min. 32 kB"
+	@echo "   . DRAM LENGTH = DSZ = $(DSZ) bytes, min. 32 kB"
 	@echo "3. Configure the PQR5 subsystem macros:"
 	@echo "   . BENCHMARK     = Enabled"
 	@echo "   . DBGUART       = Enabled"
 	@echo "   . DBGUART_BRATE = <Targetted baudrate>"
 	@echo "   . FCLK          = CLOCKS_PER_SEC"
-	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH, min. 32 kB"
-	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH, min. 32 kB"	
+	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) bytes = IRAM LENGTH, min. 32 kB"
+	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) bytes = DRAM LENGTH, min. 32 kB"	
 	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation is required"
 	@echo "4. Configure CPU Core macros:"
 	@echo "   . PC_INIT           = 0x00000000"
 	@echo "   . SIMEXIT_INSTR_END = Enabled if you require RTL simulation with exit on END"
+	@if [ "$(ARCH)" = "rv32im" ]; then \
+		echo "   . MULTDIV           = Must be enabled (ARCH=rv32im requires the HW Multiplier/Divider)"; \
+	fi
 	@echo ""
-	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
+	@read -p "Press ENTER to continue... ELSE ctrl+C to break... OR run make configurator to setup Dhrystone build easily!" dummy
 	@echo ""
 	@echo "| MAKE_PQR5: Building Dhrystone for the system..."
 	@echo ""
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(DHRYST_DIR); \
-	make all ; \
+	make all ARCH=$(ARCH); \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(DHRYST_DIR)/dhrystone_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
@@ -421,7 +447,7 @@ dhry2bin: asm_clean dhry_clean
 	@echo ""
 
 # rvt2bin
-rvt2bin: asm_clean rvt_clean
+rvt2bin: asm_clean rvt_clean check_arch
 	@echo ""
 	@echo "RISC-V Test Program Build"
 	@echo "-------------------------"
@@ -430,22 +456,25 @@ rvt2bin: asm_clean rvt_clean
 	@echo "PRE-REQUISITES to build the test program for Pequeno subsystem"
 	@echo "1. Configure the test parameters and environment in the program's Makefile."
 	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
-	@echo "2. Configure the program's linker.ld." 
+	@echo "2. Configure the program's linker.ld."
 	@echo "   . IRAM ORIGIN = 0x00000000"
-	@echo "   . IRAM LENGTH = <IRAM size>, min. 16 kB"
+	@echo "   . IRAM LENGTH = ISZ = $(ISZ) bytes, min. 16 kB"
 	@echo "   . DRAM ORIGIN = 0x80000000"
-	@echo "   . DRAM LENGTH = <DRAM size>, min. 16 kB (assumes data set <= 1024)"
+	@echo "   . DRAM LENGTH = DSZ = $(DSZ) bytes, min. 16 kB (assumes data set <= 1024)"
 	@echo "3. Configure the PQR5 subsystem macros:"
 	@echo "   . BENCHMARK     = Enabled"
 	@echo "   . DBGUART       = Enabled"
 	@echo "   . DBGUART_BRATE = <Targetted baudrate>"
 	@echo "   . FCLK          = CLOCKS_PER_SEC"
-	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) = IRAM LENGTH"
-	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) = DRAM LENGTH"	
+	@echo "   . IRAM_SIZE     = ISZ = $(ISZ) bytes = IRAM LENGTH, min. 16 kB"
+	@echo "   . DRAM_SIZE     = DSZ = $(DSZ) bytes = DRAM LENGTH, min. 16 kB"
 	@echo "   . SUBSYS_DBG    = Enabled if RTL simulation is required"
 	@echo "4. Configure CPU Core macros:"
 	@echo "   . PC_INIT           = 0x00000000"
 	@echo "   . SIMEXIT_INSTR_END = Enabled if you require RTL simulation with exit on END"
+	@if [ "$(ARCH)" = "rv32im" ]; then \
+		echo "   . MULTDIV           = Must be enabled (ARCH=rv32im requires the HW Multiplier/Divider)"; \
+	fi
 	@echo ""
 	@read -p "Press ENTER to continue... ELSE ctrl+C to break" dummy
 	@echo ""
@@ -454,7 +483,7 @@ rvt2bin: asm_clean rvt_clean
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(RVTEST_DIR)/$(PGM); \
-	make all ; \
+	make all ARCH=$(ARCH); \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
@@ -462,7 +491,7 @@ rvt2bin: asm_clean rvt_clean
 	@echo ""
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin $(ASM_DIR)/sample_imem_hex.txt
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_dram.bin $(ASM_DIR)/sample_dmem_hex.txt
-	@echo "The program built by the Make is: Standard RISC-V Test Program - $(PGM) " > $(ASM_DIR)/asm_pgm_info.txt
+	@echo "The program built by the Make is: RISC-V Test Program - $(PGM) " > $(ASM_DIR)/asm_pgm_info.txt
 	@echo "0x00000000" > $(ASM_DIR)/sample_imem_baseaddr.txt
 	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_baseaddr.txt
 	@echo ""
