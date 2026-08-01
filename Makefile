@@ -673,7 +673,7 @@ regress:
 	@echo "| MAKE_PQR5: Initiating regression runs..."
 	@echo ""
 	@set -e
-	bash $(SCRIPT_DIR)/regress_run.sh
+	bash $(SCRIPT_DIR)/regress_run.sh 1024 1024
 	@echo "|| Regression result ||"
 	@cat $(DUMP_DIR)/regress_run_dump/regress_result.txt
 	bash $(SCRIPT_DIR)/regress_check.sh

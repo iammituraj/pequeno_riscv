@@ -20,6 +20,10 @@
 #############################################################################################################
 #!/bin/bash
 
+# IRAM/DRAM sizes (bytes), forwarded to `make build`; defaults to 1024/1024 if not passed in
+ISZ=${1:-1024}
+DSZ=${2:-1024}
+
 # CONFIGURATION
 en_run01=1
 en_run02=1
@@ -123,8 +127,8 @@ for i in $(seq -w 01 $total_tests); do
     [ -d ./regress_run_dump ] || mkdir ./regress_run_dump
     mkdir -p ./regress_run_dump/$run_name
     make -C ./ build_clean
-    make -C ./ build ASM="$run_name.s"
-    make -C ./ compile
+    make -C ./ build ASM="$run_name.s" ISZ="$ISZ" DSZ="$DSZ"
+    # make -C ./ compile
     make -C ./ sim
     echo "## RUN $i: $run_name" >> ./regress_run_dump/checker.log
     make -C ./ diff | tee -a ./regress_run_dump/checker.log
