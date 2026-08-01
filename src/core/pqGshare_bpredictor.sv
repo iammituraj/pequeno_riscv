@@ -224,13 +224,9 @@ assign branch_pc = i_req_pc + req_pc_offset ;
 
 // Register Branch PC and pipe it forward
 logic [`XLEN-1:0] branch_pc_rg ;  // Branch PC registered
-always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
-   if (!aresetn) begin
-      branch_pc_rg <=  '0 ;
-   end
-   // Out of reset
-   else if (!i_stall) begin  
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!i_stall) begin  
       branch_pc_rg <= branch_pc ;
    end
 end

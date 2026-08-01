@@ -134,11 +134,9 @@ logic is_ras_pred_true ;  // RAS prediction flag
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      nxt_instr_pc_rg    <= PC_INIT   ;
       bubble_rg          <= 1'b1      ;
       branch_taken_rg    <= 1'b0      ;
       bp_branch_taken_rg <= 1'b0      ;
-      branch_pc_rg       <= PC_INIT   ;  
       `ifdef RAS
       `ifdef BPREDICT_DYN
       ovr_bp_sts_btaken_rg <= 1'b0    ;
@@ -147,7 +145,6 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
    // Out of reset
    else if (!i_stall) begin 
-      nxt_instr_pc_rg    <= pc_plus_4      ;
       bubble_rg          <= bubble         ;  
       branch_taken_rg    <= branch_taken   ;
       `ifdef RAS
@@ -159,12 +156,18 @@ always_ff @(posedge clk or negedge aresetn) begin
       `else 
       bp_branch_taken_rg <= i_branch_taken ;
       `endif
-      branch_pc_rg       <= branch_pc      ;
       `ifdef RAS
       `ifdef BPREDICT_DYN
       ovr_bp_sts_btaken_rg <= i_ras_ret_taken;  // RET taken to override the branch taken status to Branch predictor
       `endif 
       `endif
+   end
+end
+// Next/Branch PCs; No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!i_stall) begin 
+      nxt_instr_pc_rg <= pc_plus_4 ;
+      branch_pc_rg    <= branch_pc ;
    end
 end
 `ifdef RAS
@@ -284,14 +287,9 @@ end
 // PC, GHR piped to BHT to index and update
 logic [BPCW-1:0] bp_idx_pc_rg  ;
 logic [GHRW-1:0] bp_idx_ghr_rg ;
-always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
-   if (!aresetn) begin
-      bp_idx_pc_rg  <= '0 ;
-      bp_idx_ghr_rg <= '0 ;
-   end
-   // Out of reset
-   else if (!i_stall) begin 
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!i_stall) begin 
       bp_idx_pc_rg  <= i_pc[BPCW-1:0]    ; 
       bp_idx_ghr_rg <= i_bp_ghr_snapshot ;
    end

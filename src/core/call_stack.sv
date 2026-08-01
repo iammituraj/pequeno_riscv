@@ -237,14 +237,9 @@ assign o_alm_full = &count_ff[PTRW-1:0];  // If the counter = (MAX_CNT -1) => Al
 // spare_buff[0] = latest data
 // spare_buff[1] = older data
 //===================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   // Reset
-   if (!aresetn) begin
-      spare_buff[0] <= '0 ;
-      spare_buff[1] <= '0 ;
-   end  
-   // Update the buffer on every push when no rollback
-   else if (push_en && !i_rbk_en) begin
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (push_en && !i_rbk_en) begin
       spare_buff[0] <= stack[wr_ptr];
       spare_buff[1] <= spare_buff[0];
    end

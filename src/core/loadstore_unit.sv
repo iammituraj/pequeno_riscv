@@ -91,22 +91,25 @@ logic             is_op_load, is_op_store ;  // Load/Store instruction flags
 //===================================================================================================================================================
 // Synchronous logic to control memory access
 //===================================================================================================================================================
+// Pipe forward bubble
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      mem_cmd_rg  <= LOAD  ; 
-      mem_addr_rg <= '0    ;
-      mem_size_rg <= BYTE  ;
-      mem_data_rg <= '0    ;
       bubble_rg   <= 1'b1  ;            
    end
    // Out of reset
    else if (!i_stall) begin 
+      bubble_rg   <= bubble ;          
+   end
+end
+// Memory command
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!i_stall) begin 
       mem_cmd_rg  <= is_op_store ;      
       mem_addr_rg <= is_op_store ? store_addr : load_addr ;  
       mem_size_rg <= memacc_size ;
-      mem_data_rg <= is_op_store ? store_data : '0 ;
-      bubble_rg   <= bubble ;          
+      mem_data_rg <= is_op_store ? store_data : '0 ;         
    end
 end
 
