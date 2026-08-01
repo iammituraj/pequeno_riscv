@@ -448,11 +448,11 @@ def ask_choice(question, options, default_index=0, hints=None, allow_skip=False)
     return arrow_select(question, options, default_index=default_index, hints=hints, allow_skip=allow_skip)
 
 
-def ask_size_kb(question, default_kb, min_kb, subject, allow_skip=False):
+def ask_size_kb(question, default_kb, min_kb, subject, allow_skip=False, max_kb=64):
     while True:
         raw = input(
             c(question, C.CYAN, C.BOLD) +
-            c(f" [default: {default_kb}K, min. recommended: {min_kb}K]: ", C.DIM)
+            c(f" [default: {default_kb}K, min. recommended: {min_kb}K, max: {max_kb}K]: ", C.DIM)
         ).strip()
         if raw.lower() in ("q", "quit"):
             raise QuitConfigurator()
@@ -463,6 +463,9 @@ def ask_size_kb(question, default_kb, min_kb, subject, allow_skip=False):
             kb = parse_kb(val)
         except ValueError as e:
             print(c(f"  {e}", C.YELLOW))
+            continue
+        if kb > max_kb:
+            print(c(f"  ERROR: {kb}K is currently not supported by the Subsystem. Max supported is {max_kb}K.", C.RED, C.BOLD))
             continue
         if kb < min_kb:
             print(c(f"  NOTE: {subject} requires a minimum of {min_kb}K. {kb}K is below that and the "
@@ -781,7 +784,6 @@ def configure_rvtest():
     # guided_value below fetch their own current value and write straight to core_lines.)
     iram_kb = max(bytes_to_kb(int(svh_value_get(subsys_lines, "IRAM_SIZE"))), min_iram_kb)
     dram_kb = max(bytes_to_kb(int(svh_value_get(subsys_lines, "DRAM_SIZE"))), min_dram_kb)
-    iterations = makefile_value_get(make_lines, "ITERATIONS")
     cur_mhz = makefile_value_get(make_lines, "CLOCK_SPEED_MHZ")
     mhz = int(cur_mhz) if cur_mhz.isdigit() else 12
     baud = svh_value_get(subsys_lines, "DBGUART_BRATE")
@@ -798,10 +800,6 @@ def configure_rvtest():
         # --- {name} configuration --------------------------------------------------------------------------------------------
         print()
         print(c(f"{name} configuration:", C.BOLD, C.CYAN))
-        iterations = ask_value(f"Number of {name} iterations/runs?", iterations,
-                                validator=lambda s: (s.isdigit() and int(s) > 0, "Must be a positive integer"),
-                                allow_skip=True)
-
         mhz = ask_value("Target system clock speed, in MHz?", mhz,
                          validator=lambda s: (s.isdigit() and int(s) > 0, "Must be a positive integer"),
                          allow_skip=True)
@@ -854,7 +852,7 @@ def configure_rvtest():
     mhz = int(mhz)
 
     # --- Apply everything to the in-memory file contents ------------------------------------------------------------------
-    makefile_value_set(make_lines, "ITERATIONS", iterations)
+    # ITERATIONS is not written here -- it's not supported/used by these test programs' C source.
     makefile_value_set(make_lines, "CLOCK_SPEED_MHZ", str(mhz))
 
     # BPREDICT_DYN, RAS, MULTDIV, EN_FPGA_DSP_MULT, MULT_PIPE_STAGES were already written straight
@@ -895,7 +893,6 @@ def configure_rvtest():
     # --- Feature summary, then a single gate before the detailed file diff/apply step ---------------------------------------
     header(f"{name} Configuration Summary")
     print(c(f"\n{name} Test Program:", C.BOLD))
-    print_row("Iterations", iterations, "ITERATIONS")
     print_row("Clock speed", f"{mhz} MHz", "CLOCK_SPEED_MHZ / FCLK")
     print_row("IRAM size", f"{iram_kb}K", "IRAM_SIZE")
     print_row("DRAM size", f"{dram_kb}K", "DRAM_SIZE")
@@ -1126,7 +1123,8 @@ def _configure_guided_questions(core, subsys, bench_info):
                              note='"blkram"=Block RAM, "lutram"=LUT RAM, "flops"=flip-flops (best for ASIC).')
         guided_choice_value(core, "BHT_BIAS", "BHT reset bias for the 2-bit saturating counters?",
                              ["2'b00", "2'b01", "2'b10", "2'b11"],
-                             note="2'b10 is recommended default for embedded workloads.")
+                             note="2'b00=Strongly not taken, 2'b01=Weakly not taken, 2'b10=Weakly taken"
+                                  " (recommended default), 2'b11=Strongly taken.")
 
     ras = guided_toggle(core, "RAS",
                          "Enable the Return Address Stack (RAS) predictor?",

@@ -79,6 +79,11 @@ OFT  = 0
 ASM  = 01_test_regfile.s
 # CoreMark target arch; rv32im = M-extension enabled (HW mul/div)
 ARCH = rv32i
+# CoreMark/Dhrystone iterations, and CoreMark/Dhrystone/RISC-V test clock speed (MHz), override;
+# empty = don't touch, use whatever's already in that program's own Makefile
+ITER_CMK  =
+ITER_DHRY =
+CLK       =
 # peqFlash flags
 PQF  =
 # pqr5asm flags; -pcrel to generate relocatable (text) binary by default
@@ -265,9 +270,9 @@ check_arch:
 		if grep -qE '^`define[[:space:]]+MULTDIV\b' $(SRC_DIR)/include/pqr5_core_macros.svh; then \
 			echo "| MAKE_PQR5: ARCH=rv32im, MULTDIV is enabled -- HW Multiplier/Divider will be exercised."; \
 		else \
-			echo "| MAKE_PQR5: **CRITICAL ERROR** ARCH=rv32im requires MULTDIV to be defined in"; \
-			echo "| MAKE_PQR5: src/include/pqr5_core_macros.svh, else these opcodes will be misdecoded by the core."; \
-			echo "| MAKE_PQR5: Enable it via ./configurator.sh (CPU config -> Hardware Multiplier/Divider), then retry."; \
+			echo "| MAKE_PQR5: **CRITICAL ERROR** ARCH=rv32im requires MULTDIV to be defined in the core"; \
+			echo "             macros, else these opcodes will be misdecoded by the core."; \
+			echo "             Run make configurator, or manually update MULTDIV, to fix this."; \
 			exit 1; \
 		fi; \
 	fi
@@ -378,7 +383,10 @@ cmk2bin: asm_clean cmk_clean check_arch
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(COREMK_DIR); \
-	make all ARCH=$(ARCH); \
+	extra=""; \
+	[ -n "$(ITER_CMK)" ] && extra="$$extra ITERATIONS=$(ITER_CMK)"; \
+	[ -n "$(CLK)" ] && extra="$$extra CLOCKS_PER_SEC=$$(( $(CLK) * 1000000 ))"; \
+	make all ARCH=$(ARCH) $$extra; \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
@@ -431,7 +439,10 @@ dhry2bin: asm_clean dhry_clean check_arch
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(DHRYST_DIR); \
-	make all ARCH=$(ARCH); \
+	extra=""; \
+	[ -n "$(ITER_DHRY)" ] && extra="$$extra ITERATIONS=$(ITER_DHRY)"; \
+	[ -n "$(CLK)" ] && extra="$$extra CLOCKS_PER_SEC=$$(( $(CLK) * 1000000 ))"; \
+	make all ARCH=$(ARCH) $$extra; \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(DHRYST_DIR)/dhrystone_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
@@ -455,7 +466,8 @@ rvt2bin: asm_clean rvt_clean check_arch
 	@echo ""
 	@echo "PRE-REQUISITES to build the test program for Pequeno subsystem"
 	@echo "1. Configure the test parameters and environment in the program's Makefile."
-	@echo "   . CLOCKS_PER_SEC = <Core clock speed>"
+	@echo "   . CLOCK_SPEED_MHZ = <Core clock speed, in MHz>"
+	@echo "   . ITERATIONS is not supported/used by these test programs' C source"
 	@echo "2. Configure the program's linker.ld."
 	@echo "   . IRAM ORIGIN = 0x00000000"
 	@echo "   . IRAM LENGTH = ISZ = $(ISZ) bytes, min. 16 kB"
@@ -483,7 +495,9 @@ rvt2bin: asm_clean rvt_clean check_arch
 	@set -e
 	@master_dir=$$(pwd); \
 	cd $(RVTEST_DIR)/$(PGM); \
-	make all ARCH=$(ARCH); \
+	extra=""; \
+	[ -n "$(CLK)" ] && extra="$$extra CLOCK_SPEED_MHZ=$(CLK)"; \
+	make all ARCH=$(ARCH) $$extra; \
 	cd "$$master_dir"
 	@echo ""
 	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
@@ -537,7 +551,8 @@ genram:
 	@echo ". DRAM size = $(DSZ_2n) Bytes"
 
 # build
-build: asm2bin genram compile 
+build: asm2bin genram compile
+	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
 
 # coremark
 coremark: cmk2bin genram compile
@@ -554,6 +569,7 @@ coremark: cmk2bin genram compile
 	@echo "  Data binary base address    = 0x00000000 @DRAM"
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
+	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
 
 # dhrystone
 dhryst: dhry2bin genram compile
@@ -570,6 +586,7 @@ dhryst: dhry2bin genram compile
 	@echo "  Data binary base address    = 0x00000000 @DRAM"
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
+	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
 
 # rvtest
 rvtest: rvt2bin genram compile
@@ -586,6 +603,7 @@ rvtest: rvt2bin genram compile
 	@echo "  Data binary base address    = 0x00000000 @DRAM"
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
+	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
 
 # synth
 synth: check_synth
