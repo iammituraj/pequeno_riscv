@@ -393,9 +393,9 @@ assign is_signed_rs1  = is_mult_op ? ~(fu_funct3[1])                : ~fu_funct3
 //===================================================================================================================================================
 // Synchronous logic to pipe PC
 //===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin du_pc_rg <= PC_INIT ; end
-   else if (!stall)   begin du_pc_rg <= i_fu_pc ; end  // Pipe forward...
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin du_pc_rg <= i_fu_pc ; end  // Pipe forward...
 end
 
 //===================================================================================================================================================

@@ -161,22 +161,27 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
       `ifdef DBG
-      wbu_pc_rg        <= PC_INIT    ;
       wbu_instr_rg     <= `INSTR_NOP ;
       `endif
       wbu_is_riuj_rg   <= 1'b0       ;
-      wbu_pkt_valid_rg <= 1'b0       ;      
+      wbu_pkt_valid_rg <= 1'b0       ;
    end
    // Out of reset
    else if (!pipe_stall) begin
       `ifdef DBG
-      wbu_pc_rg        <= i_maccu_pc        ;
       wbu_instr_rg     <= i_maccu_instr     ;
       `endif
       wbu_is_riuj_rg   <= i_maccu_is_riuj & ~i_maccu_bubble ;
-      wbu_pkt_valid_rg <= ~i_maccu_bubble ;      
+      wbu_pkt_valid_rg <= ~i_maccu_bubble ;
    end
 end
+
+`ifdef DBG
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!pipe_stall) begin wbu_pc_rg <= i_maccu_pc ; end  // Pipe forward...
+end
+`endif
 
 //===================================================================================================================================================
 // Synchronous logic to decode MACCU packet and perform writeback

@@ -414,9 +414,9 @@ assign alu_opcode = i_du_alu_opcode ;
 //===================================================================================================================================================
 // Synchronous logic to pipe PC
 //===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin exu_pc_rg <= PC_INIT  ; end
-   else if (!stall)   begin exu_pc_rg <= i_du_pc  ; end  // Pipe forward...
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin exu_pc_rg <= i_du_pc  ; end  // Pipe forward...
 end
 `endif
 

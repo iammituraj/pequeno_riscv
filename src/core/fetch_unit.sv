@@ -214,25 +214,27 @@ assign nxt_pc       = pc_rst_flag_rg ? PC_INIT : pc_plus_four ;
 // Synchronous logic to buffer instruction at Instruction Buffer-1
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
+   // Reset
    if (!aresetn) begin
       instr_rg      [0] <= `INSTR_NOP ;
       instr_valid_rg[0] <= 1'b0       ;
-      instr_pc_rg   [0] <= PC_INIT    ;
    end
    // Out of reset
-   else begin 
-      // Instruction Buffer-1 
+   else begin
+      // Instruction Buffer-1
       if (!stall) begin instr_rg[0] <= i_imem_pkt ; end  // Pipe forward...
-      
-      // Instruction Buffer-1 valid
-      if      (flush)                     begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on external flush; highest priority 
-      else if (bp_or_ras_flush && !stall) begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on BP/RAS flush IFF not stalling - cz the instr that generated flush shouldn't get invalidated in the pipeline!
-      else if (!stall)                    begin instr_valid_rg[0] <= i_imem_pkt_valid ; end  // Pipe forward packet valid... 
 
-      // Instruction Buffer-1 PC
-      if (!stall) begin instr_pc_rg[0] <= i_imem_pc ; end             
+      // Instruction Buffer-1 valid
+      if      (flush)                     begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on external flush; highest priority
+      else if (bp_or_ras_flush && !stall) begin instr_valid_rg[0] <= 1'b0 ; end              // Invalidate on BP/RAS flush IFF not stalling - cz the instr that generated flush shouldn't get invalidated in the pipeline!
+      else if (!stall)                    begin instr_valid_rg[0] <= i_imem_pkt_valid ; end  // Pipe forward packet valid...
    end
+end
+
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   // Instruction Buffer-1 PC
+   if (!stall) begin instr_pc_rg[0] <= i_imem_pc ; end
 end
 
 //===================================================================================================================================================

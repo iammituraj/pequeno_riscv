@@ -147,13 +147,12 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
       `ifdef DBG
-      maccu_pc_rg         <= PC_INIT    ;
       maccu_instr_rg      <= `INSTR_NOP ;
       `endif
       maccu_is_riuj_rg    <= 1'b0       ;
       maccu_funct3_rg     <= 3'h0       ;
       maccu_bubble_rg     <= 1'b1       ;
-      rdt_addr_rg         <= '0         ;  
+      rdt_addr_rg         <= '0         ;
       rdt_data_rg         <= '0         ;
       rdt_not_x0_rg       <= 1'b0       ;
       is_macc_rg          <= 1'b0       ;
@@ -164,21 +163,27 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else if (!stall) begin  // Pipe forward...
       `ifdef DBG
-      maccu_pc_rg         <= i_exu_pc         ;
       maccu_instr_rg      <= i_exu_instr      ;
       `endif
       maccu_is_riuj_rg    <= i_exu_is_riuj & ~exu_bubble ;
       maccu_funct3_rg     <= i_exu_funct3     ;
       maccu_bubble_rg     <= exu_bubble       ;
-      rdt_addr_rg         <= i_exu_rdt_addr   ;  
+      rdt_addr_rg         <= i_exu_rdt_addr   ;
       rdt_data_rg         <= i_exu_rdt_data   ;
       rdt_not_x0_rg       <= i_exu_rdt_not_x0 ;
-      is_macc_rg          <= is_macc          ;  
+      is_macc_rg          <= is_macc          ;
       is_load_rg          <= is_load          ;
       is_dwback_rg        <= is_dwback        ;
       macc_addr_lsb_rg    <= i_exu_macc_addr[`XLSB-1:0];
    end
 end
+
+`ifdef DBG
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin maccu_pc_rg <= i_exu_pc ; end  // Pipe forward...
+end
+`endif
 
 assign exu_bubble  =  i_exu_bubble | i_wbu_stall ;    // WBU stall should invalidate EXU instr to disable new memory access requests @MACCU
                                                       // This is a strict in-order requirement
