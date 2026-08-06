@@ -73,7 +73,7 @@ ISZ  = 1024
 DSZ  = 1024
 # Data width in RAMs
 DTW  = 32
-# Base address in IRAM                
+# Offset address in IRAM                
 OFT  = 0
 # Assembly pgm passed to asm2bin
 ASM  = 01_test_regfile.s
@@ -177,7 +177,7 @@ help:
 	@echo "   OFT=0"
 	@echo "   GUI=0"
 	@echo "   ARCH=rv32i"
-	@echo "   OFT, PC_INIT, program (text section) base address have constraints, refer to: build_notes.txt"
+	@echo "   OFT, PC_INIT, program (text section) offset address have constraints, refer to: build_notes.txt"
 	@echo "3) ASM flags (ASMF) available are: -pcrel. It is added by default for relocatable program binary."
 	@echo "   Override ASMF=<empty> to create non-relocatable program binary"
 	@echo "   For more details, refer to: pqr5asm_imanual.pdf"
@@ -342,8 +342,8 @@ asm2bin: check_asm asm_clean
 	@mkdir $(ASM_DIR)/asm_pgm_dump_ref
 	@cp -f $(ASM_DIR)/example_programs/test_results/$(ASM)/*_dump.txt $(ASM_DIR)/asm_pgm_dump_ref/	
 	@echo "The program built by the assembler is: $(ASM)" > $(ASM_DIR)/asm_pgm_info.txt
-	$(PYTHON) $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_imem.bin $(ASM_DIR)/sample_imem_baseaddr.txt
-	$(PYTHON) $(SCRIPT_DIR)/decode_baseaddr.py $(ASM_DIR)/sample_dmem.bin $(ASM_DIR)/sample_dmem_baseaddr.txt
+	$(PYTHON) $(SCRIPT_DIR)/decode_offsetaddr.py $(ASM_DIR)/sample_imem.bin $(ASM_DIR)/sample_imem_offsetaddr.txt
+	$(PYTHON) $(SCRIPT_DIR)/decode_offsetaddr.py $(ASM_DIR)/sample_dmem.bin $(ASM_DIR)/sample_dmem_offsetaddr.txt
 
 # cmk2bin
 cmk2bin: asm_clean cmk_clean check_arch
@@ -389,14 +389,14 @@ cmk2bin: asm_clean cmk_clean check_arch
 	make all ARCH=$(ARCH) $$extra; \
 	cd "$$master_dir"
 	@echo ""
-	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
-	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -baseaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -offsetaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(COREMK_DIR)/coremark_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -offsetaddr 0x0
 	@echo ""
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(COREMK_DIR)/coremark_pqr5_iram.bin $(ASM_DIR)/sample_imem_hex.txt
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(COREMK_DIR)/coremark_pqr5_dram.bin $(ASM_DIR)/sample_dmem_hex.txt
 	@echo "The program built by the Make is: CoreMark " > $(ASM_DIR)/asm_pgm_info.txt
-	@echo "0x00000000" > $(ASM_DIR)/sample_imem_baseaddr.txt
-	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_baseaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_imem_offsetaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_offsetaddr.txt
 	@echo ""
 	@echo "| MAKE_PQR5: Finished building the CoreMark !!!"
 	@echo ""
@@ -445,14 +445,14 @@ dhry2bin: asm_clean dhry_clean check_arch
 	make all ARCH=$(ARCH) $$extra; \
 	cd "$$master_dir"
 	@echo ""
-	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(DHRYST_DIR)/dhrystone_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
-	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(DHRYST_DIR)/dhrystone_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -baseaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(DHRYST_DIR)/dhrystone_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -offsetaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(DHRYST_DIR)/dhrystone_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -offsetaddr 0x0
 	@echo ""
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(DHRYST_DIR)/dhrystone_pqr5_iram.bin $(ASM_DIR)/sample_imem_hex.txt
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(DHRYST_DIR)/dhrystone_pqr5_dram.bin $(ASM_DIR)/sample_dmem_hex.txt
 	@echo "The program built by the Make is: Dhrystone " > $(ASM_DIR)/asm_pgm_info.txt
-	@echo "0x00000000" > $(ASM_DIR)/sample_imem_baseaddr.txt
-	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_baseaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_imem_offsetaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_offsetaddr.txt
 	@echo ""
 	@echo "| MAKE_PQR5: Finished building the Dhrystone !!!"
 	@echo ""
@@ -500,14 +500,14 @@ rvt2bin: asm_clean rvt_clean check_arch
 	make all ARCH=$(ARCH) $$extra; \
 	cd "$$master_dir"
 	@echo ""
-	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -baseaddr 0x0
-	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -baseaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin -outfile $(ASM_DIR)/sample_imem.bin -offsetaddr 0x0
+	$(PYTHON) $(SCRIPT_DIR)/bin2pqr5bin.py -binfile $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_dram.bin -outfile $(ASM_DIR)/sample_dmem.bin -offsetaddr 0x0
 	@echo ""
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_iram.bin $(ASM_DIR)/sample_imem_hex.txt
 	bash $(SCRIPT_DIR)/bin2hextxt.sh $(RVTEST_DIR)/$(PGM)/$(PGM)_pqr5_dram.bin $(ASM_DIR)/sample_dmem_hex.txt
 	@echo "The program built by the Make is: RISC-V Test Program - $(PGM) " > $(ASM_DIR)/asm_pgm_info.txt
-	@echo "0x00000000" > $(ASM_DIR)/sample_imem_baseaddr.txt
-	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_baseaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_imem_offsetaddr.txt
+	@echo "0x00000000" > $(ASM_DIR)/sample_dmem_offsetaddr.txt
 	@echo ""
 	@echo "| MAKE_PQR5: Finished building the RISC-V Test Program - $(PGM) !!!"
 	@echo ""
@@ -516,12 +516,12 @@ rvt2bin: asm_clean rvt_clean check_arch
 genram:
 	@set -e
 	@echo ""
-	@echo "| MAKE PQR5: Analyzing binary files for Instruction & Data base addresses..."
-	@imem_baseaddr=$$(cat $(ASM_DIR)/sample_imem_baseaddr.txt); \
-	echo "| MAKE PQR5: Parsed program base address         = $$imem_baseaddr"; \
-	echo "| MAKE PQR5: User requested program base address = 0x$$(printf '%08X' $$(($(OFT))))";\
-	dmem_baseaddr=$$(cat $(ASM_DIR)/sample_dmem_baseaddr.txt); \
-	echo "| MAKE PQR5: Parsed data base address            = $$dmem_baseaddr"
+	@echo "| MAKE PQR5: Analyzing binary files for Instruction & Data RAM offset addresses..."
+	@imem_offsetaddr=$$(cat $(ASM_DIR)/sample_imem_offsetaddr.txt); \
+	echo "| MAKE PQR5: Parsed program offset address         = $$imem_offsetaddr"; \
+	echo "| MAKE PQR5: User requested program offset address = 0x$$(printf '%08X' $$(($(OFT))))";\
+	dmem_offsetaddr=$$(cat $(ASM_DIR)/sample_dmem_offsetaddr.txt); \
+	echo "| MAKE PQR5: Parsed data offset address            = $$dmem_offsetaddr"
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking GENRAM to generate Instruction RAM with program binary initialized..."
 	@echo ""
@@ -531,7 +531,7 @@ genram:
 	@echo ""
 	@echo "| MAKE_PQR5: Invoking GENRAM to generate Data RAM with data binary initialized..."
 	@echo ""
-	$(PYTHON) $(SCRIPT_DIR)/pqr5genram.py $(ASM_DIR)/sample_dmem_hex.txt $(SRC_DIR)/memory/model/dram_model.sv dram $(DDPT) $(DTW) $$dmem_baseaddr 1
+	$(PYTHON) $(SCRIPT_DIR)/pqr5genram.py $(ASM_DIR)/sample_dmem_hex.txt $(SRC_DIR)/memory/model/dram_model.sv dram $(DDPT) $(DTW) $(OFT) 1
 	@mv $(SRC_DIR)/memory/model/dram_b*.sv $(SRC_DIR)/memory/
 	@mv $(SRC_DIR)/memory/model/dram_4x8.sv $(SRC_DIR)/memory/dram_4x8.sv
 	@echo ""
@@ -565,8 +565,8 @@ coremark: cmk2bin genram compile
 	@echo ". Generated IRAM and DRAM with the CoreMark binary initialized."
 	@echo "  IRAM size = $(ISZ_2n) Bytes"
 	@echo "  DRAM size = $(DSZ_2n) Bytes"
-	@echo "  Program binary base address = 0x00000000 @IRAM"
-	@echo "  Data binary base address    = 0x00000000 @DRAM"
+	@echo "  Program binary offset address = 0x00000000 @IRAM"
+	@echo "  Data binary offset address    = 0x00000000 @DRAM"
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
 	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
@@ -582,8 +582,8 @@ dhryst: dhry2bin genram compile
 	@echo ". Generated IRAM and DRAM with the Dhrystone binary initialized."
 	@echo "  IRAM size = $(ISZ_2n) Bytes"
 	@echo "  DRAM size = $(DSZ_2n) Bytes"
-	@echo "  Program binary base address = 0x00000000 @IRAM"
-	@echo "  Data binary base address    = 0x00000000 @DRAM"
+	@echo "  Program binary offset address = 0x00000000 @IRAM"
+	@echo "  Data binary offset address    = 0x00000000 @DRAM"
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
 	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
@@ -599,8 +599,8 @@ rvtest: rvt2bin genram compile
 	@echo ". Generated IRAM and DRAM with the program binary initialized."
 	@echo "  IRAM size = $(ISZ_2n) Bytes"
 	@echo "  DRAM size = $(DSZ_2n) Bytes"
-	@echo "  Program binary base address = 0x00000000 @IRAM"
-	@echo "  Data binary base address    = 0x00000000 @DRAM"
+	@echo "  Program binary offset address = 0x00000000 @IRAM"
+	@echo "  Data binary offset address    = 0x00000000 @DRAM"
 	@echo ". Compiled the PQR5 subsystem successfully."
 	@echo ""
 	@bash $(SCRIPT_DIR)/check_iram_dram_sync.sh $(ISZ_2n) $(DSZ_2n)
