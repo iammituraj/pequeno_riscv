@@ -88,7 +88,7 @@ logic [DATA_W-1:0] iram_wdata       ;    // IRAM Write Data
 logic [DATA_W-1:0] iram_rdata       ;    // IRAM Read Data
 
 logic              data_valid_rg    ;    // Data valid register
-logic              ready, ready_rg  ;    // Ready, Ready register
+logic              ready            ;    // Ready
 
 //===================================================================================================================================================
 // Submodule Instances
@@ -113,19 +113,15 @@ inst_iram (
 //===================================================================================================================================================
 always @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin
-      ready_rg      <= 1'b0 ;  
-      data_valid_rg <= 1'b0 ;  
-      reqid_rg      <= '0   ; 
-   end
-   else if (!i_flush) begin
-      ready_rg      <= 1'b1  ;      
-      data_valid_rg <= ready? rd_en   : data_valid_rg ; 
-      reqid_rg      <= ready? i_reqid : reqid_rg      ;     
-   end
-   else begin  // Flush - synchronous
-      ready_rg      <= 1'b0 ;  
-      data_valid_rg <= 1'b0 ;  
+      data_valid_rg <= 1'b0 ;
       reqid_rg      <= '0   ;
+   end
+   else if (i_flush) begin
+      data_valid_rg <= 1'b1    ; 
+      reqid_rg      <= i_reqid ;   
+   end else if (ready) begin
+      data_valid_rg <= i_valid ;
+      reqid_rg      <= i_reqid ;
    end
 end
 
@@ -133,10 +129,10 @@ end
 // Continuous Assignments
 //===================================================================================================================================================
 // IRAM control signals from Master
-assign mstr_iram_en    = i_valid && ready ;
-assign mstr_iram_wen   = 1'b0             ;
-assign mstr_iram_addr  = i_addr           ;
-assign rd_en           = mstr_iram_en     ;
+assign mstr_iram_en    = (i_valid && ready) | i_flush ;
+assign mstr_iram_wen   = 1'b0         ;
+assign mstr_iram_addr  = i_addr       ;
+assign rd_en           = mstr_iram_en ;
 
 // IRAM Mux: selects between Master/Programming Interface control
 assign iram_en    = (i_pgm_en)? i_pgm_iram_en   : mstr_iram_en   ;
@@ -145,9 +141,9 @@ assign iram_addr  = (i_pgm_en)? i_pgm_iram_addr : mstr_iram_addr ;
 assign iram_wdata = i_pgm_iram_wdata ;
 
 // Valid and Ready
-assign ready   = i_ready && ready_rg ;
-assign o_ready = ready               ;
-assign o_valid = data_valid_rg       ;
+assign ready   = i_ready       ;
+assign o_ready = ready         ;
+assign o_valid = data_valid_rg ;
 
 // Data and Request ID out
 assign o_reqid          = reqid_rg   ;
