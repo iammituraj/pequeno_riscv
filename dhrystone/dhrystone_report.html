@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CoreMark® Report - PQR5 v1.0.3</title>
+    <title>Dhrystone Report - PQR5 v1.1</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,7 +54,7 @@
 </head>
 <body>
 
-    <h1>CoreMark® Benchmark Report</h1>
+    <h1>Dhrystone Benchmark Report</h1>
 
     <div class="section">
         <h2>Platform Overview</h2>
@@ -76,46 +76,39 @@
         <h2>Linker Memory Layout</h2>
         <table style="width: 24%;">
             <tr><th>Instruction RAM size</th><td>32 kB</td></tr>
-            <tr><th>Data RAM size</th><td>8 kB</td></tr>
+            <tr><th>Data RAM size</th><td>32 kB</td></tr>
         </table>
         <table>
-            <br><b>IRAM</b>            
-            <tr><th>.TEXT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp</th><td>0x00000000--0x00005348&nbsp;&nbsp;&nbsp;&nbsp</td><td>21320 Bytes</td></tr>
+            <br><b>IRAM</b>
+            <tr><th>.TEXT&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp</th><td>0x00000000--0x00002F24&nbsp;&nbsp;&nbsp;&nbsp</td><td>12068 Bytes</td></tr>
         </table>
         <table>
             <br><b>DRAM</b>
-            <tr><th>.RODATA</th><td>0x80000000--0x80000793</td><td>1939 Bytes</td></tr>
-            <tr><th>.DATA</th><td>0x80000794--0x800007B8</td><td>36 Bytes</td></tr>
-            <tr><th>.BSS</th><td>0x800007B8--0x800007C0</td><td>8 Bytes</td></tr>
-            <tr><th>Stack</th><td>0x800007C0--0x80002000</td><td>6208 Bytes</td></tr>
+            <tr><th>.RODATA</th><td>0x80000000--0x80000A5B</td><td>2651 Bytes</td></tr>
+            <tr><th>.EH_FRAME</th><td>0x80000A5C--0x80000A84</td><td>40 Bytes</td></tr>
+            <tr><th>.DATA</th><td>0x80000A84--0x80000A98</td><td>20 Bytes</td></tr>
+            <tr><th>.BSS</th><td>0x80000A98--0x800032A0</td><td>10248 Bytes</td></tr>
+            <tr><th>Stack</th><td>0x800032A0--0x80008000</td><td>19808 Bytes</td></tr>
         </table>
     </div>
 
     <div class="section">
-        <h2>CoreMark® Performance Metrics</h2>
+        <h2>Dhrystone Performance Metrics</h2>
         <table>
-            <tr><th>CoreMark iterations</th><td>400</td></tr>
-            <tr><th>Execution time</th><td>12.59 seconds</td></tr>
-            <tr><th>Iterations per second</th><td>31.75</td></tr>
-            <tr><th>CoreMark score</th><td>2.65 CoreMark/MHz</td></tr>
+            <tr><th>Dhrystone runs</th><td>5000</td></tr>
+            <tr><th>Execution time</th><td>0.2 seconds</td></tr>
+            <tr><th>Dhrystones per second</th><td>24946</td></tr>
+            <tr><th>Benchmark score</th><td>1.18 DMIPS/MHz</td></tr>
         </table>
         <p style="font-size: small; color: #666;">Report date: <code>Aug 2026</code></p>
     </div>
 
     <div class="section">
-        <h2>CoreMark® Results on Board</h2>
+        <h2>Dhrystone Results on Board</h2>
         <!-- Replace with actual path or image name -->
-        <img src="coremark_run.png" alt="Pequeno CoreMark" width="50%">
+        <img src="dhrystone.png" alt="Pequeno Dhrystone" width="50%">
         <p style="font-size: small; color: #666;">Report date: <code>Aug 2026</code></p>
-        <p style="font-size: small; color: #666;">Image path : <code>coremark_run.png</code></p>
-    </div>
-
-    <div class="section">
-        <h2>Useful URLs</h2>
-        <ul>
-            <li>How to build & run CoreMark® ? - <a href="../build_notes.txt" target="_blank"><code>../build_notes.txt</code></a></li>
-            <li>For details on EEMBC CoreMark® - <a href="https://www.eembc.org/coremark/" target="_blank">Visit the website</a></li>
-        </ul>
+        <p style="font-size: small; color: #666;">Image path : <code>dhrystone.png</code></p>
     </div>
 
 </body>
