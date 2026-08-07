@@ -114,16 +114,10 @@ always_ff @(posedge clk or negedge aresetn) begin
       stall_ff     <= 1'b0;
       res_out_ff   <= '0;
       res_valid_ff <= 1'b0;
-      // No reset for better PPA
-      //op0_ff       <= '0;
-      //q_ff         <= '0;  
-      //m_ff         <= '0;  
-      //acc_ff       <= '0;  
-      //iter_ff      <= '0;  
-      //quot_neg_ff  <= 1'b0;
-      //rem_neg_ff   <= 1'b0;
-      //use_rem_ff   <= 1'b0;
-      //div_by_zero_ff <= 1'b0;
+      quot_neg_ff  <= 1'b0;
+      rem_neg_ff   <= 1'b0;
+      use_rem_ff   <= 1'b0;
+      div_by_zero_ff <= 1'b0;
    end
    // Flush --> Highest priority; clear the valid/stall and flush the FSM back to IDLE
    else if (i_flush) begin
@@ -151,15 +145,9 @@ always_ff @(posedge clk or negedge aresetn) begin
             if (!i_host_stall && i_op_valid) begin
                 // Stall the Host until the division completes
                 stall_ff <= 1'b1;
-                
-                // Initialize
-                q_ff       <= op0_abs;              // Q = |op0|
-                m_ff       <= {1'b0, op1_abs};      // M = |op1|
-                acc_ff     <= 33'd0;                // A = 0
-                quot_neg_ff <= op0_sign ^ op1_sign;  // Quotient = -ve if only one operand is negative
-               
+
                 // Flags
-                op0_ff         <= i_op0;            // Register raw operand-0 for later use in case of Divide-by-Zero error
+                quot_neg_ff    <= op0_sign ^ op1_sign;  // Quotient = -ve if only one operand is negative
                 rem_neg_ff     <= op0_sign;         // Remainder takes dividend's sign
                 use_rem_ff     <= i_use_remainder;  // Remainder flag
                 div_by_zero_ff <= is_op1_zero;      // DBZ flag
@@ -168,7 +156,6 @@ always_ff @(posedge clk or negedge aresetn) begin
                 if (is_op1_zero) begin
                   state_ff <= RESULT;
                 end else begin
-                  iter_ff  <= 6'd32;  // = No. of iterations reqd
                   state_ff <= EXEC;
                 end
             end
@@ -183,19 +170,9 @@ always_ff @(posedge clk or negedge aresetn) begin
          // remainder correction (add divisor back if negative)
          ////////////////////////////////////////////////////////////
          EXEC: begin
-            iter_ff <= iter_ff - 6'd1;
-
             // Final iteration?
             if (~|iter_ff) begin
-               if (acc_ff[32] == 1'b1) begin
-                  acc_ff <= acc_ff + m_ff;
-               end
                state_ff <= RESULT;
-            end
-            // Iterations 0-31
-            else begin
-               acc_ff <= acc_next;
-               q_ff   <= q_next;
             end
          end
 
@@ -223,7 +200,60 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
 end
 
-assign is_op1_zero = (i_op1 == 32'd0); 
+// Divider datapath registers (op0_ff, q_ff, m_ff, acc_ff, iter_ff)
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   case (state_ff)
+      ////////////////////////////////////////////////////////////
+      // IDLE state:
+      // Waits here to get a valid request from Host
+      // Converts operands to absolute values and initializes the
+      // non-restoring division iteration
+      ////////////////////////////////////////////////////////////
+      IDLE: begin
+         // Valid request received and Host is ready?
+         if (!i_host_stall && i_op_valid) begin
+            // Initialize
+            q_ff   <= op0_abs;              // Q = |op0|
+            m_ff   <= {1'b0, op1_abs};      // M = |op1|
+            acc_ff <= 33'd0;                // A = 0
+
+            // Register raw operand-0 for later use in case of Divide-by-Zero error
+            op0_ff  <= i_op0;
+            iter_ff <= 6'd32;  // = No. of iterations reqd
+         end
+      end
+
+      ////////////////////////////////////////////////////////////
+      // EXEC state:
+      // Performs one radix-2 non-restoring iteration every clock.
+      // Total iterations = 33 (0..32), one quotient bit per cycle.
+      // One extra iteration for final correction.
+      // On the final iteration, applies the end-of-loop
+      // remainder correction (add divisor back if negative)
+      ////////////////////////////////////////////////////////////
+      EXEC: begin
+         iter_ff <= iter_ff - 6'd1;
+
+         // Final iteration?
+         if (~|iter_ff) begin
+            if (acc_ff[32] == 1'b1) begin
+               acc_ff <= acc_ff + m_ff;
+            end
+         end
+         // Iterations 0-31
+         else begin
+            acc_ff <= acc_next;
+            q_ff   <= q_next;
+         end
+      end
+
+      // DEFAULT
+      default: ;
+   endcase
+end
+
+assign is_op1_zero = (i_op1 == 32'd0);
 
 //---------------------------------------------------------
 // Operand pre-processing

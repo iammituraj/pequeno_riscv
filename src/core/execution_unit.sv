@@ -231,7 +231,7 @@ logic             is_du_rs0_eq_exu_rdt ;  // Flags if DU rs0 == EXU rdt
 logic             is_du_rs1_eq_exu_rdt ;  // Flags if DU rs1 == EXU rdt
 logic             is_du_rsx_eq_exu_rdt ;  // Flags if DU rs0/1 == EXU rdt
 logic             is_exu_rdt_not_x0    ;  // Flags if EXU rdt != x0
-logic [3:0]       is_du_instr_risb     ;  // Flags if DU instr = R/I/S/B-type
+logic             is_du_instr_risb     ;  // Flags if DU instr = R/I/S/B-type
 logic             is_exu_result_wb     ;  // Flags if EXU result requires writeback; DBG only, not consumed by any functional logic
 logic             is_exu_result_mem    ;  // Flags if EXU result requires memory access
 logic             is_pipe_inlock       ;  // Flags if pipeline interlock required

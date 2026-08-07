@@ -105,11 +105,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       stall_ff     <= 1'b0;
       res_out_ff   <= '0;
       res_valid_ff <= 1'b0;
-      // No reset for better PPA
-      //use_upp_ff   <= 1'b0;
-      //mcand_ff     <= '0;
-      //prod_ff      <= '0;
-      //iter_ff      <= 5'd16;
+      use_upp_ff   <= 1'b0;
    end
    // Flush --> Highest priority; clear the valid/stall and flush the FSM back to IDLE
    else if (i_flush) begin
@@ -137,15 +133,10 @@ always_ff @(posedge clk or negedge aresetn) begin
                // Stall the Host until the multiplication completes
                stall_ff     <= 1'b1;
 
-               // Initialize
-               mcand_ff     <= {(i_is_signed_op0 & i_op0[31]), i_op0};
-               prod_ff      <= {34'd0, (i_is_signed_op1 & i_op1[31]), (i_is_signed_op1 & i_op1[31]), i_op1, 1'b0};  // Initialize Booth product; {Accumulator[34 bits], multiplier[34 bits: 2-bit ext + 32 data], Q-1(init)}
-               iter_ff      <= 5'd16;  // = No. of iterations reqd
-               
                // Set flags and move to next state
                use_upp_ff   <= i_use_upperbits;
                state_ff     <= EXEC;
-            end  
+            end
          end
 
          ////////////////////////////////////////////////////////////
@@ -157,10 +148,6 @@ always_ff @(posedge clk or negedge aresetn) begin
          // operands with bit[31] set are handled correctly, not just signed ones)
          ////////////////////////////////////////////////////////////
          EXEC: begin
-            // Update the product register with the next Booth iteration
-            prod_ff <= prod_next;
-            iter_ff <= iter_ff - 5'd1;
-
             // Final iteration?
             if (~|iter_ff) begin
                state_ff <= RESULT;
@@ -185,6 +172,44 @@ always_ff @(posedge clk or negedge aresetn) begin
          default: ;
       endcase
    end
+end
+
+// Booth datapath registers (mcand_ff, prod_ff, iter_ff)
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   case (state_ff)
+      ////////////////////////////////////////////////////////////
+      // IDLE state:
+      // Waits here to get a valid request from Host
+      // Initializes Radix-4 Booth algorithm
+      ////////////////////////////////////////////////////////////
+      IDLE: begin
+         // Valid request received and Host is ready?
+         if (!i_host_stall && i_op_valid) begin
+            // Initialize
+            mcand_ff <= {(i_is_signed_op0 & i_op0[31]), i_op0};
+            prod_ff  <= {34'd0, (i_is_signed_op1 & i_op1[31]), (i_is_signed_op1 & i_op1[31]), i_op1, 1'b0};  // Initialize Booth product; {Accumulator[34 bits], multiplier[34 bits: 2-bit ext + 32 data], Q-1(init)}
+            iter_ff  <= 5'd16;  // = No. of iterations reqd
+         end
+      end
+
+      ////////////////////////////////////////////////////////////
+      // EXEC state:
+      // Performs one Radix-4 Booth iteration every clock.
+      // Total iterations = 17 (16..0): 16 groups for the 32 multiplier
+      // bits plus 1 extra group to correctly consume the 2-bit
+      // sign/zero-extension guard on the multiplier (needed so that unsigned
+      // operands with bit[31] set are handled correctly, not just signed ones)
+      ////////////////////////////////////////////////////////////
+      EXEC: begin
+         // Update the product register with the next Booth iteration
+         prod_ff <= prod_next;
+         iter_ff <= iter_ff - 5'd1;
+      end
+
+      // DEFAULT
+      default: ;
+   endcase
 end
 
 //===================================================================

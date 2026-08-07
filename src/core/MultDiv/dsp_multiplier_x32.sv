@@ -269,7 +269,7 @@ assign o_res_valid = res_valid_ff;
 // ASSERTION for PIPE STAGES
 /////////////////////////////////////////////////////////////////////
 generate
-if (PIPE_STAGES < 2) begin
+if (PIPE_STAGES < 2) begin : ASSERTION_MULT_PIPESTAGES
     initial begin
        $fatal(1, "dsp_multiplier_x32 PIPE_STAGES must be >=2");
    end

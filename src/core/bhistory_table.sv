@@ -100,13 +100,13 @@ logic [1:0] rdata0_rg, rdata1_rg ;  // Read data
 // Synchronous logic to update BHT
 //===================================================================================================================================================
 generate
-if (TGT == "blkram" || TGT == "lutram") begin
+if (TGT == "blkram" || TGT == "lutram") begin : gen_noreset_ram
    always_ff @(posedge clk) begin
       if (i_wren) begin
          gen_ram.ram[i_waddr] <= i_wdata ;
       end
    end
-end else begin
+end else begin : gen_reset_ram
    always_ff @(posedge clk or negedge aresetn) begin
       if (!aresetn) begin  // Reset is reqd only if the BHT is implemented on flops...
          for (integer i=0; i<DPT_2N; i=i+1) gen_ram.ram[i] <= RSTVAL;

@@ -198,7 +198,6 @@ logic [`ILEN-1:0] du_exu_instr      ;  // Instruction from DU to EXU
 logic             du_exu_bubble     ;  // Bubble from DU to EXU
 logic             exu_du_stall      ;  // Stall signal from EXU to DU
 
-logic [6:0]       du_exu_opcode     ;  // Opcode from DU to EXU
 logic             du_exu_is_alu_op  ;  // ALU operation flag from DU to EXU
 logic [3:0]       du_exu_alu_opcode ;  // ALU opcode from DU to EXU
 `ifdef MULTDIV
@@ -220,7 +219,6 @@ logic             du_exu_is_i_type    ;  // I-type instruction flag from DU to E
 logic             du_exu_is_s_type    ;  // S-type instruction flag from DU to EXU
 logic             du_exu_is_b_type    ;  // B-type instruction flag from DU to EXU
 logic             du_exu_is_u_type    ;  // U-type instruction flag from DU to EXU; Tapped by opfwd block...
-logic             du_exu_is_j_type    ;  // J-type instruction flag from DU to EXU
 logic             du_exu_is_rsb       ;  // RSB flag from DU to EXU
 logic             du_exu_is_risb      ;  // RISB flag from DU to EXU
 logic             du_exu_is_riuj      ;  // RIUJ flag from DU to EXU
@@ -239,7 +237,6 @@ logic [11:0]      du_exu_i_type_imm   ;  // I-type immediate from DU to EXU
 logic [11:0]      du_exu_s_type_imm   ;  // S-type immediate from DU to EXU
 logic [11:0]      du_exu_b_type_imm   ;  // B-type immediate from DU to EXU
 logic [19:0]      du_exu_u_type_imm   ;  // U-type immediate from DU to EXU; Tapped by opfwd block...
-logic [19:0]      du_exu_j_type_imm   ;  // J-type immediate from DU to EXU
 
 // EXU-MACCU Interface
 `ifdef DBG
@@ -334,7 +331,6 @@ logic [GHRW-1:0] fu_du_ghr_snapshot  ;  // GHR snapshot from FU to DU
 logic [GHRW-1:0] du_exu_ghr_snapshot ;  // GHR snapshot from DU to EXU
 logic            exu_bp_upd_ghr      ;  // Update GHR signal from EXU to Branch Predictor
 logic            exu_bp_upd_bht      ;  // Update BHT signal from EXU to Branch Predictor
-logic [BPCW-1:0] exu_bp_upd_pc       ;  // PC to index BHT from EXU to Branch Predictor
 logic            exu_bp_sts_btaken   ;  // Branch taken status from EXU to Branch Predictor
 logic [BPCW-1:0] exu_bp_idx_pc       ;  // PC index from EXU-BU to predictor
 logic [GHRW-1:0] exu_bp_idx_ghr      ;  // GHR index from EXU-BU to predictor
