@@ -93,6 +93,7 @@
 |   Following configuration should be set before running regression.
 |
 |   PQR5 subsystem macros:
+|      . BENCHMARK  = Disable
 |      . IRAM_SIZE  = 1024
 |      . DRAM_SIZE  = 1024
 |      . SUBSYS_DBG = Enable

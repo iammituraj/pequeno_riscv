@@ -959,6 +959,13 @@ def configure_regress():
     svh_toggle_set(core_lines, "CORE_SYNTH", False)
     svh_toggle_set(subsys_lines, "SUBSYS_SYNTH", False)
 
+    # BENCHMARK must be off for regression: its own `ifdef BENCHMARK` override block in
+    # pqr5_subsystem_macros.svh unconditionally `undef`s SIMLIMIT (and force-redefines
+    # DMEM_IS_ZERO_LAT back to 1) regardless of the SIMLIMIT=True set below -- leaving
+    # BENCHMARK on silently drops the regression cycle cap at compile time even though this
+    # script's own SIMLIMIT toggle looks correct in the generated file.
+    svh_toggle_set(subsys_lines, "BENCHMARK", False)
+
     svh_toggle_set(core_lines, "DBG", True)
     svh_toggle_set(subsys_lines, "SUBSYS_DBG", True)
     svh_toggle_set(subsys_lines, "MEM_DBG", True)
