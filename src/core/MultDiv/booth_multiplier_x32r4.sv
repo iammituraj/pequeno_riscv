@@ -188,7 +188,7 @@ always_ff @(posedge clk) begin
          if (!i_host_stall && i_op_valid) begin
             // Initialize
             mcand_ff <= {(i_is_signed_op0 & i_op0[31]), i_op0};
-            prod_ff  <= {34'd0, (i_is_signed_op1 & i_op1[31]), (i_is_signed_op1 & i_op1[31]), i_op1, 1'b0};  // Initialize Booth product; {Accumulator[34 bits], multiplier[34 bits: 2-bit ext + 32 data], Q-1(init)}
+            prod_ff  <= {34'd0, (i_is_signed_op1 & i_op1[31]), (i_is_signed_op1 & i_op1[31]), i_op1, 1'b0};  // Booth product; {Accumulator[34 bits], multiplier[34 bits: 2-bit ext + 32 data], Q-1(init)}
             iter_ff  <= 5'd16;  // = No. of iterations reqd
          end
       end
@@ -221,6 +221,8 @@ logic        [33:0] mult;
 logic               q_1;
 logic signed [68:0] prod_sum, prod_sum_sr2;
 logic signed [33:0] mcand_ff_sl1;
+logic signed [33:0] booth_operand;  // Magnitude selected for this Booth case: 0, mcand_ff, or mcand_ff_sl1
+logic               booth_sub;      // '0'- add booth_operand, '1'- subtract it; one shared adder/subtractor for all cases below
 
 // Iteration logic
 always_comb begin
@@ -232,40 +234,51 @@ always_comb begin
    q_1  = prod_ff[0];
 
    //---------------------------------------------------------------
-   // Booth recoding
+   // Booth recoding: select magnitude (0, M, 2M) and sign only; the add/sub itself is common below
    //---------------------------------------------------------------
    case ({mult[1:0], q_1})
       // 000,111 -> 0
       3'b000,
       3'b111: begin
-         // No operation
+         booth_operand = '0;
+         booth_sub     = 1'b0;
       end
 
       // +M
       3'b001,
       3'b010: begin
-         acc = acc + mcand_ff;
+         booth_operand = mcand_ff;
+         booth_sub     = 1'b0;
       end
 
       // +2M
       3'b011: begin
-         acc = acc + mcand_ff_sl1;
+         booth_operand = mcand_ff_sl1;
+         booth_sub     = 1'b0;
       end
 
       // -2M
       3'b100: begin
-         acc = acc - mcand_ff_sl1;
+         booth_operand = mcand_ff_sl1;
+         booth_sub     = 1'b1;
       end
 
       // -M
       3'b101,
       3'b110: begin
-         acc = acc - mcand_ff;
+         booth_operand = mcand_ff;
+         booth_sub     = 1'b1;
       end
-        
+
       // DEFAULT
-      default: ;
+      default: begin
+         booth_operand = '0;
+         booth_sub     = 1'b0;
+      end
    endcase
+
+   // Add/subtract from acc
+   acc = booth_sub ? (acc - booth_operand) : (acc + booth_operand);
 
    // Pack updated product
    prod_sum = {acc, mult, q_1};

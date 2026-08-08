@@ -71,6 +71,8 @@ module decode_unit #(
    input  logic [`XLEN-1:0] i_fu_pc            ,  // PC from FU
    input  logic [`ILEN-1:0] i_fu_instr         ,  // Instruction from FU
    input  logic             i_fu_br_taken      ,  // Branch taken status from FU
+   input  logic             i_fu_is_op_jal     ,  // JAL instruction flag from FU
+   input  logic             i_fu_is_op_branch  ,  // Branch instruction flag (legal) from FU
    `ifdef BPREDICT_DYN
    input  logic [GHRW-1:0]  i_fu_ghr_snapshot  ,  // GHR snapshot from FU
    `endif
@@ -259,50 +261,47 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 // Combi logic to decode the flags
+// J-type and B-type bits of instr_type are taken directly from FU's pre-decoded i_fu_is_op_jal/i_fu_is_op_branch
+// (piped forward from FU for the same instruction) instead of re-deriving fu_opcode==OP_JAL/OP_BRANCH here.
+logic [3:0] instr_type_risu ;  // {R,I,S,U} bits of instr_type; J,B come from FU directly
+logic       is_ris, is_rs   ;  // R/I/S/U contribution to is_risb/is_rsb; Branch contribution ORed in below
 always_comb begin
-   case (fu_opcode)  
-      OP_ALU    : begin 
-                     instr_type = 6'b100000    ;  // R-type 
-                     is_risb    = ~i_fu_bubble ;
-                     is_rsb     = ~i_fu_bubble ; 
+   case (fu_opcode)
+      OP_ALU    : begin
+                     instr_type_risu = 4'b1000      ;  // R-type
+                     is_ris          = ~i_fu_bubble ;
+                     is_rs           = ~i_fu_bubble ;
                   end
-      //7'h73,  // ECALL/EBREAK/CSRR* 
+      //7'h73,  // ECALL/EBREAK/CSRR*
       //7'h0F,  // FENCE
       OP_JALR,
       OP_LOAD,
-      OP_ALUI   : begin 
-                     instr_type = 6'b010000    ;  // I-type 
-                     is_risb    = ~i_fu_bubble ; 
-                     is_rsb     = 1'b0         ; 
+      OP_ALUI   : begin
+                     instr_type_risu = 4'b0100      ;  // I-type
+                     is_ris          = ~i_fu_bubble ;
+                     is_rs           = 1'b0         ;
                   end
-      OP_STORE  : begin 
-                     instr_type = 6'b001000    ;  // S-type
-                     is_risb    = ~i_fu_bubble ; 
-                     is_rsb     = ~i_fu_bubble ;
-                  end
-      OP_BRANCH : begin 
-                     instr_type = 6'b000100    ;  // B-type 
-                     is_risb    = ~i_fu_bubble ; 
-                     is_rsb     = ~i_fu_bubble ; 
+      OP_STORE  : begin
+                     instr_type_risu = 4'b0010      ;  // S-type
+                     is_ris          = ~i_fu_bubble ;
+                     is_rs           = ~i_fu_bubble ;
                   end
       OP_LUI,
-      OP_AUIPC  : begin 
-                     instr_type = 6'b000010    ;  // U-type 
-                     is_risb    = 1'b0         ; 
-                     is_rsb     = 1'b0         ; 
+      OP_AUIPC  : begin
+                     instr_type_risu = 4'b0001      ;  // U-type
+                     is_ris          = 1'b0         ;
+                     is_rs           = 1'b0         ;
                   end
-      OP_JAL    : begin 
-                     instr_type = 6'b000001    ;  // J-type 
-                     is_risb    = 1'b0         ; 
-                     is_rsb     = 1'b0         ;
+      default   : begin
+                     instr_type_risu = 4'b0000      ;  // Not an R/I/S/U instruction
+                     is_ris          = 1'b0         ;
+                     is_rs           = 1'b0         ;
                   end
-      default   : begin 
-                     instr_type = 6'b000000    ;  // Illegal instruction!!
-                     is_risb    = 1'b0         ; 
-                     is_rsb     = 1'b0         ; 
-                  end  
    endcase
 end
+assign instr_type = {instr_type_risu[3:1], i_fu_is_op_branch, instr_type_risu[0], i_fu_is_op_jal} ;
+assign is_risb     = is_ris | (i_fu_is_op_branch & ~i_fu_bubble) ;  // Branch is RISB-type
+assign is_rsb      = is_rs  | (i_fu_is_op_branch & ~i_fu_bubble) ;  // Branch is RSB-type
 
 // Decode instruction flags
 assign is_jal          = (fu_opcode == OP_JAL)  ;

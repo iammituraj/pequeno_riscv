@@ -156,6 +156,8 @@ localparam RPTW  = $clog2(RAS_DPT) ;  // RAS pointer size
 logic [`XLEN-1:0] fu_du_pc          ;  // PC from FU to DU
 logic [`ILEN-1:0] fu_du_instr       ;  // Instruction from FU to DU
 logic             fu_du_br_taken    ;  // Branch taken status from FU to DU
+logic             fu_du_is_op_jal   ;  // JAL instruction flag from FU to DU
+logic             fu_du_is_op_branch;  // Branch instruction flag (legal) from FU to DU
 logic             fu_du_bubble      ;  // Bubble from FU to DU
 logic             du_fu_stall       ;  // Stall signal from DU to FU
 `ifdef RAS
@@ -384,6 +386,8 @@ fetch_unit #(
    .o_du_pc             (fu_du_pc),
    .o_du_instr          (fu_du_instr),
    .o_du_br_taken       (fu_du_br_taken),
+   .o_du_is_op_jal      (fu_du_is_op_jal),
+   .o_du_is_op_branch   (fu_du_is_op_branch),
    `ifdef BPREDICT_DYN
    .o_du_ghr_snapshot   (fu_du_ghr_snapshot),
    `endif
@@ -430,9 +434,11 @@ decode_unit #(
    .o_du_dbg          (du_dbg),    
    `endif
 
-   .i_fu_pc           (fu_du_pc),      
+   .i_fu_pc           (fu_du_pc),
    .i_fu_instr        (fu_du_instr),
    .i_fu_br_taken     (fu_du_br_taken),
+   .i_fu_is_op_jal    (fu_du_is_op_jal),
+   .i_fu_is_op_branch (fu_du_is_op_branch),
    `ifdef BPREDICT_DYN
    .i_fu_ghr_snapshot (fu_du_ghr_snapshot),
    `endif

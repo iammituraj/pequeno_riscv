@@ -83,7 +83,7 @@ logic [1:0]       mem_size_rg             ;  // Memory access size
 logic [`XLEN-1:0] mem_data_rg             ;  // Memory data
 logic             bubble, bubble_rg       ;  // Bubble
 logic [`XLEN-1:0] immI, immS              ;  // I/S-type immediates sign-extended
-logic [`XLEN-1:0] load_addr, store_addr   ;  // Load/Store addresses
+logic [`XLEN-1:0] load_store_addr         ;  // Shared Load/Store address; Load, Store are mutually exclusive, so 1 adder suffices
 logic [`XLEN-1:0] store_data              ;  // Store data
 logic [1:0]       memacc_size             ;  // Memory access size
 logic             is_op_load, is_op_store ;  // Load/Store instruction flags
@@ -106,8 +106,8 @@ end
 // No reset for better PPA
 always_ff @(posedge clk) begin
    if (!i_stall) begin 
-      mem_cmd_rg  <= is_op_store ;      
-      mem_addr_rg <= is_op_store ? store_addr : load_addr ;  
+      mem_cmd_rg  <= is_op_store ;
+      mem_addr_rg <= load_store_addr ;
       mem_size_rg <= memacc_size ;
       mem_data_rg <= is_op_store ? store_data : '0 ;         
    end
@@ -118,10 +118,10 @@ end
 //===================================================================================================================================================
 always_comb begin
    case (memacc_size)
-      BYTE    : store_data = i_op1[7:0]  << (8 * store_addr[`XLSB-1:0]) ;  // Extend LS Byte and send
-      HWORD   : store_data = i_op1[15:0] << (8 * store_addr[`XLSB-1:0]) ;  // Extend LS Half-word and send
-      WORD    : store_data = i_op1 ;                                       // Send word
-      default : store_data = i_op1 ;                                       // Send word
+      BYTE    : store_data = i_op1[7:0]  << (8 * load_store_addr[`XLSB-1:0]) ;  // Extend LS Byte and send
+      HWORD   : store_data = i_op1[15:0] << (8 * load_store_addr[`XLSB-1:0]) ;  // Extend LS Half-word and send
+      WORD    : store_data = i_op1 ;                                            // Send word
+      default : store_data = i_op1 ;                                            // Send word
    endcase      
 end
 
@@ -132,10 +132,9 @@ assign memacc_size = i_funct3[1:0];
 assign bubble      = (is_op_load || is_op_store)? i_bubble : 1'b1 ;  // Insert bubble if neither Load/Store instruction
 
 // Load/Store address decoding
-assign immI        = {{(`XLEN-12){i_immI[11]}}, i_immI} ;  // Sign-extend
-assign immS        = {{(`XLEN-12){i_immS[11]}}, i_immS} ;  // Sign-extend
-assign load_addr   = i_op0 + immI ;
-assign store_addr  = i_op0 + immS ;
+assign immI            = {{(`XLEN-12){i_immI[11]}}, i_immI} ;  // Sign-extend
+assign immS            = {{(`XLEN-12){i_immS[11]}}, i_immS} ;  // Sign-extend
+assign load_store_addr = i_op0 + (is_op_store ? immS : immI) ;
 
 // Memory Access Interface outputs
 assign o_mem_cmd   = mem_cmd_rg  ;

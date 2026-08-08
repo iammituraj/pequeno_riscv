@@ -97,12 +97,12 @@ logic  [31:0] q_next, q_ff;      // Quotient field
 logic  [32:0] m_ff;              // Divisor field
 logic  [32:0] acc_next, acc_ff;  // Accumulator field
 logic   [5:0] iter_ff;           // Iteration counter
-logic         quot_neg_ff;       // Quotient is negative flag
-logic         rem_neg_ff;        // Remainder is negative flag
+logic         res_neg_ff;        // Result is negative flag
 logic         use_rem_ff;        // Remainder flag
 logic         div_by_zero_ff;    // Division-by-Zero (DBZ) flag
-logic  [31:0] rem_out, rem_out_signed;    // Remainder at the end of the algorithm
-logic  [31:0] quot_out, quot_out_signed;  // Quotient at the end of the algorithm
+logic  [31:0] rem_out;           // Remainder at the end of the algorithm
+logic  [31:0] quot_out;          // Quotient at the end of the algorithm
+logic  [31:0] div_out;           // Divider result out
 
 //===================================================================
 // Control FSM
@@ -114,8 +114,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       stall_ff     <= 1'b0;
       res_out_ff   <= '0;
       res_valid_ff <= 1'b0;
-      quot_neg_ff  <= 1'b0;
-      rem_neg_ff   <= 1'b0;
+      res_neg_ff   <= 1'b0;
       use_rem_ff   <= 1'b0;
       div_by_zero_ff <= 1'b0;
    end
@@ -147,8 +146,7 @@ always_ff @(posedge clk or negedge aresetn) begin
                 stall_ff <= 1'b1;
 
                 // Flags
-                quot_neg_ff    <= op0_sign ^ op1_sign;  // Quotient = -ve if only one operand is negative
-                rem_neg_ff     <= op0_sign;         // Remainder takes dividend's sign
+                res_neg_ff     <= i_use_remainder ? op0_sign : (op0_sign ^ op1_sign) ;  // Quotient = -ve if only one operand is negative & Remainder takes dividend's sign
                 use_rem_ff     <= i_use_remainder;  // Remainder flag
                 div_by_zero_ff <= is_op1_zero;      // DBZ flag
 
@@ -186,7 +184,7 @@ always_ff @(posedge clk or negedge aresetn) begin
                if (div_by_zero_ff) begin
                   res_out_ff   <= use_rem_ff ? op0_ff : 32'hFFFF_FFFF;  // RISC-V spec mandates Quotient = -1 or FF.. and Remainder = Dividert, on DBZ
                end else begin
-                  res_out_ff   <= use_rem_ff ? rem_out_signed : quot_out_signed;  // Sign restoration
+                  res_out_ff   <= div_out;  // Sign restored results
                end
                res_valid_ff <= 1'b1;
                stall_ff     <= 1'b0;
@@ -279,11 +277,16 @@ assign      acc_next      = acc_sign ? (acc_temp + m_ff) : (acc_temp - m_ff);
 wire        acc_next_sign = acc_next[32];
 assign      q_next        = {q_temp[31:1],~acc_next_sign};
 
-// Results: Quotient and Remainder
-assign  rem_out         = acc_ff[31:0];  // MSB of A can be ignored
-assign  quot_out        = q_ff;
-assign  rem_out_signed  = rem_neg_ff  ? (~rem_out  + 32'd1) : rem_out;   // If Remainder should be negative, take 2's complement
-assign  quot_out_signed = quot_neg_ff ? (~quot_out + 32'd1) : quot_out;  // If Quotient should be negative, take 2's complement
+//---------------------------------------------------------
+// Results: Quotient & Remainder
+//---------------------------------------------------------
+assign  rem_out     = acc_ff[31:0];  // MSB of A can be ignored
+assign  quot_out    = q_ff;
+// Quotient/Remainder mux
+logic  [31:0] sel_rem_quot;
+assign sel_rem_quot = use_rem_ff ? rem_out : quot_out ;
+// Sign restored result
+assign div_out      = res_neg_ff ? (~sel_rem_quot + 32'd1) : sel_rem_quot ;  // If Quotient/Remainder should be negative, take 2's complement
 
 // Stall out
 assign o_host_stall = stall_ff;

@@ -96,7 +96,7 @@ state_t        state_ff;             // State register
 logic          stall_ff;             // Stall to Host
 logic   [31:0] res_out, res_out_ff;  // Result registered by the Control FSM
 logic          res_valid_ff;         // Result valid
-logic   [32:0] op0_ff, op1_ff;       // Operands registered by the Control FSM
+logic   [32:0] op0_ff, op1_ff;       // Operands registered
 logic          use_upp_ff;           // Use upper bits (UUB) flag registered by the Control FSM
 logic  [N-1:0] use_upp_ff_d;         // UUB flag pipeline registers
 logic          use_upp_retim;        // UUB flag retimed
@@ -114,11 +114,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       res_out_ff    <= '0;
       res_valid_ff  <= 1'b0;
       en_mult_ff    <= 1'b0;
-      // No reset for better PPA
-      //op0_ff        <= '0;
-      //op1_ff        <= '0;
-      //use_upp_ff    <= 1'b0;
-      //wait_cnt_ff   <= T_WAIT;
+      use_upp_ff    <= 1'b0;
    end
    // Flush --> Highest priority; clear the valid/stall and flush the FSM back to IDLE
    else if (i_flush) begin
@@ -132,13 +128,10 @@ always_ff @(posedge clk or negedge aresetn) begin
    else begin
       case (state_ff)
          ////////////////////////////////////////////////////////////
-         // IDLE state: 
+         // IDLE state:
          // Waits here to get a valid request from Host
          ////////////////////////////////////////////////////////////
          IDLE: begin
-            // Reload the wait counter
-            wait_cnt_ff  <= T_WAIT;
-
             // Pull down result valid 1->0 when the Host has accepted the result
             if (!i_host_stall) begin
                res_valid_ff <= 1'b0;
@@ -147,21 +140,18 @@ always_ff @(posedge clk or negedge aresetn) begin
             if (!i_host_stall && i_op_valid) begin
                 stall_ff     <= 1'b1;  // Stall the Host until the multiplication completes
                 en_mult_ff   <= 1'b1;  // Enable multiplier
-                op0_ff       <= {(i_is_signed_op0 ? i_op0[31] : 1'b0), i_op0};  // Sign extend & register the operands on valid
-                op1_ff       <= {(i_is_signed_op1 ? i_op1[31] : 1'b0), i_op1};
                 use_upp_ff   <= i_use_upperbits;
                 state_ff     <= EXEC;
-            end  
+            end
          end
 
          ////////////////////////////////////////////////////////////
-         // EXEC state: 
-         // Waits here for fixed no. of wait cycles until Multiplier 
+         // EXEC state:
+         // Waits here for fixed no. of wait cycles until Multiplier
          // pipeline executes through and the result is available.
          // Multiplier pipeline cannot be stalled by the Host
          ////////////////////////////////////////////////////////////
          EXEC: begin
-            wait_cnt_ff <= wait_cnt_ff - 2'd1;
             // Wait cycles expired?
             if (~|wait_cnt_ff) begin
                en_mult_ff <= 1'b0;  // Disable multipliers
@@ -170,7 +160,7 @@ always_ff @(posedge clk or negedge aresetn) begin
          end
 
          ////////////////////////////////////////////////////////////
-         // RESULT state: 
+         // RESULT state:
          // Sends the result to the Host
          ////////////////////////////////////////////////////////////
          RESULT: begin
@@ -182,11 +172,45 @@ always_ff @(posedge clk or negedge aresetn) begin
                state_ff     <= IDLE;
             end
          end
-         
+
          // DEFAULT
          default: ;
-      endcase 
+      endcase
    end
+end
+
+// Operand/wait-counter registers (op0_ff, op1_ff, wait_cnt_ff)
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   case (state_ff)
+      ////////////////////////////////////////////////////////////
+      // IDLE state:
+      // Waits here to get a valid request from Host
+      ////////////////////////////////////////////////////////////
+      IDLE: begin
+         // Valid request received and Host is ready?
+         if (!i_host_stall && i_op_valid) begin
+            // Sign extend & register the operands on valid
+            op0_ff <= {(i_is_signed_op0 ? i_op0[31] : 1'b0), i_op0};
+            op1_ff <= {(i_is_signed_op1 ? i_op1[31] : 1'b0), i_op1};
+            // Reload the wait counter
+            wait_cnt_ff <= T_WAIT;
+         end
+      end
+
+      ////////////////////////////////////////////////////////////
+      // EXEC state:
+      // Waits here for fixed no. of wait cycles until Multiplier
+      // pipeline executes through and the result is available.
+      // Multiplier pipeline cannot be stalled by the Host
+      ////////////////////////////////////////////////////////////
+      EXEC: begin
+         wait_cnt_ff <= wait_cnt_ff - 2'd1;
+      end
+
+      // DEFAULT
+      default: ;
+   endcase
 end
 
 //===================================================================

@@ -94,6 +94,8 @@ module fetch_unit #(
    output logic [`XLEN-1:0] o_du_pc            ,  // PC to DU
    output logic [`ILEN-1:0] o_du_instr         ,  // Instruction fetched and sent to DU
    output logic             o_du_br_taken      ,  // Branch taken status to DU; '0'- not taken, '1'- taken
+   output logic             o_du_is_op_jal     ,  // JAL instruction flag to DU
+   output logic             o_du_is_op_branch  ,  // Branch instruction flag (legal) to DU
    `ifdef BPREDICT_DYN
    output logic [GHRW-1:0]  o_du_ghr_snapshot  ,  // GHR snapshot to DU
    `endif
@@ -152,7 +154,9 @@ logic [6:0]       op                 ;  // Opcode in Buffer-1 instruction
 logic [2:0]       funct3             ;  // funct3 in Buffer-1 instruction
 logic [`XLEN-1:0] immJ, immB         ;  // Sign-extended Immediate (Jump/Branch) in Buffer-1 instruction
 logic             is_op_jal          ;  // To flag if JAL instruction in Buffer-1
+logic             is_op_jalr         ;  // To flag if JALR instruction in Buffer-1
 logic             is_op_branch       ;  // To flag if branch instruction in Buffer-1
+logic             is_legal_op_branch ;  // To flag if branch instruction in Buffer-1 is Legal branch
 
 // RAS predictor specific
 `ifdef RAS
@@ -298,7 +302,7 @@ if (!EN_BPREDICT_DYN) begin : GEN_BPREDICT_STT
       .i_pc           (instr_pc)     ,            
       .i_stall        (stall)        ,
       .i_is_op_jal    (is_op_jal)    ,    
-      .i_is_op_branch (is_op_branch) ,   
+      .i_is_op_branch (is_legal_op_branch) ,   
       .i_immJ         (immJ)         ,      
       .i_immB         (immB)         , 
       .i_instr_valid  (instr_valid & ~bu_or_ras_flush),  // BU/RAS flush should immediately invalidate to avoid any spurious BP flush in the next clk cycle... 
@@ -321,7 +325,7 @@ end else begin : GEN_BPREDICT_DYN
       .i_req_pc       (instr_pc)     ,   
       .i_stall        (stall)        ,
       .i_is_op_jal    (is_op_jal)    ,    
-      .i_is_op_branch (is_op_branch) ,  
+      .i_is_op_branch (is_legal_op_branch) ,  
       .i_immJ         (immJ)         ,      
       .i_immB         (immB)         ,  
       .i_instr_valid  (instr_valid & ~bu_or_ras_flush),  // BU/RAS flush should immediately invalidate to avoid any spurious BP flush in the next clock cycle... 
@@ -385,8 +389,8 @@ ras_predictor #(
 // Decode CALL, RET based on RV32 ABIs
 assign rs0     = instr[19:15];
 assign rdt     = instr[11:7];
-assign is_call = ((op == OP_JALR) || (op == OP_JAL)) && (rdt == 5'd1);
-assign is_ret  =  (op == OP_JALR) && (rs0 == 5'd1)   && (rdt == 5'd0);
+assign is_call = (is_op_jalr || is_op_jal) && (rdt == 5'd1);
+assign is_ret  = (is_op_jalr)              && (rs0 == 5'd1) && (rdt == 5'd0);
 
 //=========================================================
 // Pipe forward registered CALL, RET flags
@@ -419,7 +423,9 @@ assign immB         = {{(`XLEN-12){instr[31]}}, instr[7], instr[30:25], instr[11
 assign op           = instr[6:0]        ;
 assign funct3       = instr[14:12]      ;
 assign is_op_jal    = (op == OP_JAL)    ;  
-assign is_op_branch = (op == OP_BRANCH) && (funct3 != 3'b010) && (funct3 != 3'b011) ;
+assign is_op_jalr   = (op == OP_JALR)   ;
+assign is_op_branch = (op == OP_BRANCH) ;
+assign is_legal_op_branch = (op == OP_BRANCH) && (funct3[2:1] != 2'b01);
 
 //===================================================================================================================================================
 //  Stall logic
@@ -442,21 +448,23 @@ assign o_imem_flush    = fu_flush_ext               ;  // Flush signal to IMEMIF
 //===================================================================================================================================================
 //  All other outputs from FU
 //===================================================================================================================================================
-`ifdef DBG
-// Debug Interface
+// Registered JAL/Branch flags; piped forward to DU
 logic is_op_branch_rg, is_op_jal_rg;
 always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
+   // Reset
    if (!aresetn) begin
       is_op_branch_rg <= 1'b0;
-      is_op_jal_rg    <= 1'b0;   
+      is_op_jal_rg    <= 1'b0;
    end
    // Out of reset
-   else if (!stall) begin   
-      is_op_branch_rg <= is_op_branch;
-      is_op_jal_rg    <= is_op_jal;  
+   else if (!stall) begin
+      is_op_branch_rg <= is_legal_op_branch;
+      is_op_jal_rg    <= is_op_jal;
    end
 end
+
+`ifdef DBG
+// Debug Interface
 `ifdef RAS
 assign o_fu_dbg = {ras_flush, is_call_rg, is_ret_rg, bp_flush, is_op_branch_rg, is_op_jal_rg};
 `else
@@ -469,10 +477,12 @@ assign o_imem_pc       = pc2imem      ;
 assign o_imem_pc_valid = pc_valid_rg  ;
 
 // Payload to Decode Unit (DU)
-assign o_du_pc       =  instr_pc_rg[0]    ; 
-assign o_du_instr    =  instr_rg[0]       ;
-assign o_du_br_taken =  branch_taken      ;
-assign o_du_bubble   = ~instr_valid_rg[0] ;  // Insert bubble if invalid instruction
+assign o_du_pc          =  instr_pc_rg[0]    ;
+assign o_du_instr       =  instr_rg[0]       ;
+assign o_du_br_taken    =  branch_taken      ;
+assign o_du_is_op_jal   =  is_op_jal_rg      ;
+assign o_du_is_op_branch=  is_op_branch_rg   ;
+assign o_du_bubble      = ~instr_valid_rg[0] ;  // Insert bubble if invalid instruction
 `ifdef RAS
 assign o_du_is_call       = is_call_rg    ;
 assign o_du_ras_ret_addr  = ras_ret_addr  ;
