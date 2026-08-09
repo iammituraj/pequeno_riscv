@@ -12,7 +12,7 @@
 # Description      : This script is used by Makefile to generate wrappers over the generated IRAM & DRAM.
 #                    All arguments are assumed to be valid values from Makefile.
 #
-# Last modified on : Aug-2024
+# Last modified on : Apr-2025
 # Compatiblility   : Python 3.9 tested
 #
 # Copyright        : Open-source license, see LICENSE.

@@ -64,7 +64,7 @@
 //----%%                    - Valid-ready handshaking I/F for the ease of FIFO integration at input (TX) and output (RX).
 //----%%
 //----%% Tested on        : Xilinx Zybo Z7-20 (XC7-Z020-CLG400-1), Artix-7 FPGA based board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Feb-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : Timing verified up to 200 MHz core clock, and tested on board @baud rates 300-115200 bps
 //----%%
 //----%% IP User Guide    : https://chipmunklogic.com/wp-content/uploads/ip_cores/pdfs/uart_controller_v1_2_ug.pdf

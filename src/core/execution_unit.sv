@@ -36,7 +36,7 @@
 //----%%                    # Pipeline latency = 1 cycle at all execution units ALU, LSU, EXU-BU.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : July-2026
+//----%% Last modified on : Aug-2026
 //----%% Notes            : - 
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.

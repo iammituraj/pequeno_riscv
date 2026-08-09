@@ -26,7 +26,7 @@
 //----%% Description      : Glue logic that handles the reads to Register File (RF) of PQR5 core.   
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : June-2025
+//----%% Last modified on : Jun-2025
 //----%% Notes            : - 
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.

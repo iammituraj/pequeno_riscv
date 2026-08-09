@@ -31,7 +31,7 @@
 //----%%                    Refer to PeqFlash manual for more information.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Aug-2024
+//----%% Last modified on : Jul-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.

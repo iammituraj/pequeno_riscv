@@ -30,7 +30,7 @@
 //----%%                    # Supports debugging/dumping register space during simulation.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : Jul-2026
 //----%% Notes            : The register array can be configured to map to Block RAMs on FPGAs.
 //----%%                    Since, reset is not implemented, it should otherwise be mapped to LUT RAMs on FPGAs. 
 //----%%                    On ASIC, the register file translates to flip-flops based RAM with no reset.

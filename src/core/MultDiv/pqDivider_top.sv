@@ -26,7 +26,7 @@
 //----%% Description      : Top-level wrapper for the pqDivider. Instantiates the RV32IM compliant 32-bit non-restoring divider (Radix-2).
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : July-2026
+//----%% Last modified on : Jul-2026
 //----%% Notes            : -
 //----%%
 //----%% Copyright        : Open-source license, see LICENSE.

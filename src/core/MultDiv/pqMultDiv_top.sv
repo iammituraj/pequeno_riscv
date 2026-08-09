@@ -33,7 +33,7 @@
 //----%%                    - Result mux (MULT/DIV) is internal; results are mutually exclusive by construction.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : July-2026
+//----%% Last modified on : Jul-2026
 //----%% Notes            : -
 //----%%
 //----%% Copyright        : Open-source license, see LICENSE.

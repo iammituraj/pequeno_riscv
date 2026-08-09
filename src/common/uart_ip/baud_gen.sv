@@ -37,7 +37,7 @@
 //----%%                    - Tx baud clock rate = Clock freq / ((B + 1) * 8)
 //----%%
 //----%% Tested on        : Xilinx Zybo Z7-20 (XC7-Z020-CLG400-1), Artix-7 FPGA based board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Jan 2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : Timing verified up to 200 MHz core clock.
 //----%%
 //----%% Copyright        : Open-source license, see LICENSE

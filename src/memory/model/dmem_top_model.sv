@@ -43,7 +43,7 @@
 //----%%                    Debug UART module is supported ONLY in Zero latency model. Only TX is supported.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : June-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : RAM max. depth = 16K, i.e, max. 64kB RAM is supported. 
 //----%%                    All models are synthesisable.
 //----%%                  

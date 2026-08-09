@@ -25,7 +25,7 @@
 //----%% Description      : Single-port RAM with synchronous reads and writes. Configurable data width and depth.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Nov-2022
+//----%% Last modified on : Jul-2026
 //----%% Notes            : Infers Block RAM on FPGAs in Read-First configuration. Use appropriate attribute to direct Synthesiser tool.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.

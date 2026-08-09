@@ -71,7 +71,7 @@
 //----%%                    -- Debug interfaces/modules to probe internal CPU signals during simulation can be generated using DBG macro.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : July-2026
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%
 //----%% User Guide       : [TBD]
