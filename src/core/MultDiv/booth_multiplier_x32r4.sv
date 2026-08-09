@@ -247,7 +247,7 @@ always_comb begin
       // +M
       3'b001,
       3'b010: begin
-         booth_operand = mcand_ff;
+         booth_operand = {mcand_ff[32], mcand_ff};  // Sign extension by 1 bit
          booth_sub     = 1'b0;
       end
 
@@ -266,7 +266,7 @@ always_comb begin
       // -M
       3'b101,
       3'b110: begin
-         booth_operand = mcand_ff;
+         booth_operand = {mcand_ff[32], mcand_ff};  // Sign extension by 1 bit
          booth_sub     = 1'b1;
       end
 
