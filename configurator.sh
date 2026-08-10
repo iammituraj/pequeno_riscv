@@ -7,9 +7,7 @@
 ##           /_/                                    /___/                                              chipmunklogic.com
 #################################################################################################################################
 # File Name        : configurator.sh
-# Description      : Repo-root launcher for the PQR5 Interactive Configurator, so it can be run straight from the
-#                     repo root as ./configurator.sh, without having to cd into configurator/ first.
-#                     (The actual implementation lives in configurator/configurator.py)
+# Description      : Launcher for the PQR5 Interactive Configurator, configurator/configurator.py
 # Copyright        : Open-source license, see LICENSE.
 #################################################################################################################################
 

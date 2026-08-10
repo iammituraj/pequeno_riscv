@@ -8,7 +8,7 @@
 +=================================================================================================+
 |                                   R E L E A S E   N O T E S                                     |
 +=================================================================================================+
-| IP            : Pequeno RISC-V CPU (PQR5 / Pequeno R5)
+| IP            : Pequeno RISC-V CPU core (PQR5 / Pequeno R5)
 | Version       : v1.1
 | Type          : Soft core in SV
 | License       : [see LICENSE]
