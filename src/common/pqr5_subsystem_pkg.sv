@@ -48,7 +48,7 @@ import pqr5_core_pkg :: DSIZE    ;
 // Function to print Memory dump header
 function automatic void dump_mem_hdr (int fdump, string dumpname);
    $fdisplay(fdump, "+======================================");
-   $fdisplay(fdump, "| Pequeno RISC-V CPU v1.1 Simulation   ");
+   $fdisplay(fdump, "| Pequeno RISC-V CPU Simulation        ");
    $fdisplay(fdump, "+======================================");
    $fdisplay(fdump, "| %0s", dumpname);
    $fdisplay(fdump, "+---------------+----------------------");

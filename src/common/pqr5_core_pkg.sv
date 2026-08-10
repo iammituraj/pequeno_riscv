@@ -239,7 +239,7 @@ endfunction
 // Function to dump Register File
 function automatic void dump_regfile (int fdump, int n, logic [0:31][RSIZE-1:0] regarray, string dumpname);
    $fdisplay(fdump, "+======================================");
-   $fdisplay(fdump, "| Pequeno RISC-V CPU v1.1 Simulation   ");
+   $fdisplay(fdump, "| Pequeno RISC-V CPU Simulation        ");
    $fdisplay(fdump, "+======================================");
    $fdisplay(fdump, "| %0s", dumpname);
    $fdisplay(fdump, "+--------------------------------------");
