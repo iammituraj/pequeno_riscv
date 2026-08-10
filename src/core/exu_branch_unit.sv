@@ -111,11 +111,10 @@ logic [`XLEN-1:0] branch_pc, branch_pc_rg       ;  // Branch PC
 logic             bubble, bubble_rg             ;  // Bubble
 logic             flush                         ;  // Flush
 
-logic [`XLEN-1:0] immI, immB                    ;  // J/I/B-type immediates sign-extended                            
-logic [`XLEN-1:0] pc_plus_4                     ;  // PC+4           
-logic [`XLEN-1:0] pc_plus_immB                  ;  // PC+immJ and PC+immB  
-logic [`XLEN-1:0] op0_plus_immI                 ;  // op0+immI  
+logic [`XLEN-1:0] immI, immB                    ;  // J/I/B-type immediates sign-extended
+logic [`XLEN-1:0] pc_plus_4                     ;  // PC+4
 logic [`XLEN-1:0] jalr_branch_addr              ;  // JALR branch addr
+logic [`XLEN-1:0] br_branch_addr                ;  // Branch instr branch addr
 
 logic             is_op0_eq_op1, is_op0_lt_op1  ;  // Equality, Unsigned comparison flags 
 logic             is_sign_op0_lt_op1            ;  // Signed comparison flag 
@@ -125,6 +124,7 @@ logic             is_branch_taken_diff          ;  // Branch taken difference fl
 logic             ovr_bp_sts_btaken_rg          ;  // Branch taken status override to Branch predictor
 `endif
 `endif 
+
 //===================================================================================================================================================
 // Synchronous logic to register instruction, PC, branch status signals
 //===================================================================================================================================================
@@ -222,19 +222,31 @@ assign is_op0_eq_op1        = (i_op0 == i_op1)  ;  // Not implemented this in AL
 assign is_op0_lt_op1        = i_op0_lt_op1      ;  // Computed from ALU
 assign is_sign_op0_lt_op1   = i_sign_op0_lt_op1 ;  // Computed from ALU
 
+//===========================================================================================================
 // Combinatorial logic for Branch PC resolution
+//===========================================================================================================
 // JAL is not considered here cz branch_pc is relevant only when misprediction happens and flush is generated
 // and JAL never causes mispredictions!
 always_comb begin
    case ({i_is_jalr, i_is_b_type})
       2'b10   : branch_pc = jalr_branch_addr ;
-      2'b01   : branch_pc = branch_taken ? pc_plus_immB : pc_plus_4 ;
+      2'b01   : branch_pc = branch_taken ? br_branch_addr : pc_plus_4 ;
       default : branch_pc = pc_plus_4 ;
    endcase
 end
-assign jalr_branch_addr = op0_plus_immI & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
 
-// Flush generation logic
+// Branch address generator
+logic [`XLEN-1:0] addr_op, imm_op, jalr_or_br_branch_addr;
+assign addr_op                = i_is_jalr ? i_op0 : i_pc;
+assign imm_op                 = i_is_jalr ? immI  : immB;
+assign jalr_or_br_branch_addr = addr_op + imm_op;  // = op0+immI for JALR, pc+immB for Branch instructions
+
+assign jalr_branch_addr = jalr_or_br_branch_addr & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
+assign br_branch_addr   = jalr_or_br_branch_addr;
+
+//===========================================================================================================
+// Flush generation
+//===========================================================================================================
 assign is_branch_taken_diff = branch_taken_rg ^ bp_branch_taken_rg     ;  // Compare the predicted and resolved branch taken status and flag if different 
 assign flush                = is_branch_taken_diff & en_branch_comp_rg ;  // Generate flush if the comparison is enabled and status differ
 
@@ -247,8 +259,6 @@ assign bubble = i_is_j_or_jalr ? i_bubble : 1'b1 ;  // Every instruction inserts
 assign immI          = {{(`XLEN-12){i_immI[11]}}, i_immI}             ;  // Sign-extend
 assign immB          = {{(`XLEN-12){i_immB[11]}}, i_immB[10:0], 1'b0} ;  // Sign-extend after x2
 assign pc_plus_4     = i_pc  + `XLEN'(4) ;
-assign op0_plus_immI = i_op0 + immI      ;
-assign pc_plus_immB  = i_pc  + immB      ;
 
 // Outputs
 assign o_nxt_instr_pc = nxt_instr_pc_rg ;
