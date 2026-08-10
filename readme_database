@@ -10,9 +10,10 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 └── 📁 asm_pgm_dump_ref   - [BUILD GENERATED] Contains golden reference dump for simulation verification
 |
 📁 doc - All documentations
-├── 📄 pequeno_riscv_v1_0_ug.pdf             - PQR5 v1.0 User Guide (YET TO BE RELEASED)
-├── 📄 pqr5asm_imanual.pdf                   - pqr5asm Assembler Instruction Manual
-└── 📄 Programming_Pequeno_with_peqFlash.pdf - peqFlash User Guide
+├── 📄 pequeno_riscv_v1_1_ug.pdf             - PQR5 v1.1 User Guide (YET TO BE RELEASED)
+├── 📄 Programming_Pequeno_with_peqFlash.pdf - peqFlash User Guide
+├── 📁 misc                                  - Block diagram & other reference images
+└── 📁 riscv                                 - RISC-V ISA specs
 |
 📁 dump [RUN-TIME GENERATED]
 ├── 📄 *_dump.txt - IMEM/DMEM/Regfile dumps
@@ -49,7 +50,8 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 │ ├── 📄 areset_sync.sv        - Async Reset Synchronizer
 │ ├── 📄 cdc_sync.sv           - CDC Synchronizer
 │ ├── 📄 pqr5_core_pkg.sv      - PQR5 Core package
-│ └── 📄 pqr5_subsystem_pkg.sv - PQR5 Subsystem package
+│ ├── 📄 pqr5_subsystem_pkg.sv - PQR5 Subsystem package
+│ └── 📁 uart_ip                - UART IP
 │
 ├── 📁 core
 │ ├── 📄 alu.sv                - ALU
@@ -62,6 +64,13 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 │ ├── 📄 fetch_unit.sv         - Fetch Unit (FU)
 │ ├── 📄 loadstore_unit.sv     - Load-Store Unit (LSU)
 │ ├── 📄 memory_access_unit.sv - Memory Access Unit (MACCU)
+│ ├── 📁 MultDiv               - Multiplier/Divider (RV32IM)
+│ │ ├── 📄 booth_multiplier_x32r4.sv - x32 Radix-4 Booth Multiplier
+│ │ ├── 📄 dsp_multiplier_x32.sv     - x32 DSP-based Multiplier
+│ │ ├── 📄 nrestore_divider_x32r2.sv - Non-restoring Divider
+│ │ ├── 📄 pqDivider_top.sv          - Divider Top
+│ │ ├── 📄 pqMultDiv_top.sv          - Multiplier/Divider Top (PQMULTDIV)
+│ │ └── 📄 pqMultiplier_top.sv       - Multiplier Top
 │ ├── 📄 opfwd_control.sv      - Operand Forward Control
 │ ├── 📄 pqGshare_bpredictor.sv- Pequeno Gshare Branch Predictor (PQGBP) 
 │ ├── 📄 pqr5_core_top.sv      - PQR5 Core Top     // TOP FILE //
@@ -76,19 +85,28 @@ Pequeno RISC-V CPU & SoC - Directory Tree
 │ └── 📄 pqr5_subsystem_macros.svh - PQR5 Subsystem macros
 │
 ├── 📁 memory
-│ └── 📄 *.sv - [MAKEFILE GENERATED] Synthesizable RAM with bootable binary
+│ ├── 📄 *.sv        - [MAKEFILE GENERATED] Synthesizable RAM with bootable binary
+│ └── 📁 model       - Memory reference models, RAMs are generated from this reference models
 │
 └── 📁 subsystem
 ├── 📄 pqr5_subsystem_top.sv - PQR5 Subsystem Top  // TOP FILE //
-└── 📄 reset_ctl.sv          - Reset Controller
+├── 📄 reset_ctl.sv          - Reset Controller
+├── 📁 dbgUART               - Debug UART address-map wrapper
+└── 📁 loader                - UART based flasher (Loader)
 |
-📁 coremark - All source files to build CoreMark benchmark for the CPU
+📁 coremark    - All source files to build CoreMark benchmark for the CPU
 |
-📁 dhrystone - All source files to build Dhrystone benchmark for the CPU
+📁 dhrystone   - All source files to build Dhrystone benchmark for the CPU
 |
 📁 riscv_tests - All RISC-V Test Programs in C from riscv.org
 |
-📄 LICENSE - License info
+📁 configurator - Interactive CPU/Subsystem configurator
+└── 📄 configurator.py - Configurator tool
+|
+📄 configurator.sh   - Launcher of configurator
+📄 LICENSE           - License info
+📄 NOTICE            - Copyright/attribution notice
 📄 release_notes.txt - IP release notes
-📄 build_notes.txt   - Build, simulate, synthesize notes
+📄 build_notes.txt   - Build & compile, simulate, synthesize notes
 📄 Makefile          - Automates build/sim/synthesis
+📄 README.md         - Project README
