@@ -8,19 +8,21 @@
 #################################################################################################################################
 # File Name        : configurator.py
 # Module Name      : PQR5 Interactive Configurator
-# Author           : Mitu Raj, chip@chipmunklogic.com at Chipmunk Logic (TM), https://chipmunklogic.com
+# Developer        : Mitu Raj, chip@chipmunklogic.com
+# Vendor           : Chipmunk Logic™, https://chipmunklogic.com
 #
 # Description      : Menu-driven, interactive configurator for the Pequeno RISC-V (PQR5) database. Helps configure the
-#                     macros in src/include/*.svh and the Makefile of CoreMark & Dhrystone benchmarks, without the user
-#                     having to hand-edit multiple files for every run (example programs/regressions/synthesis/
-#                     CoreMark/Dhrystone). Note: linker.ld IRAM/DRAM LENGTH is kept in sync automatically whenever the
-#                     Benchmark flow sets IRAM/DRAM size; it is otherwise never touched by this tool.
+#                    macros in src/include/*.svh and the Makefile of CoreMark & Dhrystone benchmarks, without the user
+#                    having to hand-edit multiple files for every run (example programs/regressions/synthesis/
+#                    CoreMark/Dhrystone). Note: linker.ld IRAM/DRAM LENGTH is kept in sync automatically whenever the
+#                    Benchmark flow sets IRAM/DRAM size; it is otherwise never touched by this tool.
 #
 # Usage            : ./configurator.sh -- interactive main menu (run from the repo root)
 #
 # Copyright        : Open-source license, see LICENSE.
 #################################################################################################################################
 
+# Libraries
 import argparse
 import difflib
 import os
@@ -28,6 +30,7 @@ import re
 import sys
 from pathlib import Path
 
+# Try libraries
 try:
     import termios
     import tty

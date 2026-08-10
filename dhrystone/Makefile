@@ -4,7 +4,7 @@ GCC_PREFIX = riscv64-unknown-elf
 GCC_VER    = 14.2.0
 
 # [CONFIGURE] Dhrystone specific definitions
-ITERATIONS     = 5000       # Iterations of Dhrystone
+ITERATIONS     = 50000       # Iterations of Dhrystone
 CLOCKS_PER_SEC = 12000000   # Core clock speed
 
 # Target architecture and tools
