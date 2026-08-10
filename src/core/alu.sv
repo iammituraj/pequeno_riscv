@@ -62,6 +62,8 @@ module alu (
 // Combinatorial logic to compute result
 //===================================================================================================================================================
 logic [`XLEN-1:0] result             ;  // ALU result
+logic [`XLEN-1:0] op0_plus_op1       ;  // op0+op1
+logic [`XLEN-1:0] op0_minus_op1      ;  // op0-op1
 logic             is_op0_lt_op1      ;  // Unsigned comparison flag
 logic             is_sign_op0_lt_op1 ;  // Signed comparison flag
 logic             bubble             ;  // Bubble
@@ -69,8 +71,8 @@ logic             bubble             ;  // Bubble
 always_comb begin
    casez (i_opcode)
       // Legal ALU instructions
-      ALU_ADD  : result = i_op0 + i_op1 ; 
-      ALU_SUB  : result = i_op0 - i_op1 ;
+      ALU_ADD  : result = op0_plus_op1  ; 
+      ALU_SUB  : result = op0_minus_op1 ;
       ALU_SLT  : result = {{`XLEN-1{1'b0}}, is_sign_op0_lt_op1} ;
       ALU_SLTU : result = {{`XLEN-1{1'b0}}, is_op0_lt_op1} ;
       ALU_XOR  : result = i_op0 ^ i_op1 ;
@@ -79,12 +81,14 @@ always_comb begin
       ALU_SLL  : result = i_op0 << i_op1[4:0] ;
       ALU_SRL  : result = i_op0 >> i_op1[4:0] ;
       ALU_SRA  : result = (signed'(i_op0)) >>> i_op1[4:0] ;
-      default  : result = '0 ;  // Illegal ALU instruction. Currently bubble is not generated, allows to go fwd in pipeline as it's non-critical...  	
+      default  : result = '0 ;  // CHECKME: Illegal ALU instruction. Currently bubble is not generated, allows to go fwd in pipeline as it's non-critical...  	
    endcase
 end
-assign is_op0_lt_op1      = (i_op0 < i_op1) ;                    // Unsigned comparison
-assign is_sign_op0_lt_op1 = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
-assign bubble             = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
+assign op0_plus_op1            = i_op0 + i_op1;
+assign op0_minus_op1           = i_op0 - i_op1;
+assign is_op0_lt_op1           = (i_op0 < i_op1);
+assign is_sign_op0_lt_op1      = (signed'(i_op0) < signed'(i_op1)) ;  // Signed comparison
+assign bubble                  = i_is_alu_op? i_bubble : 1'b1 ;  // If not ALU operation, insert bubble...
 
 //===================================================================================================================================================
 // Synchronous logic to register outputs
