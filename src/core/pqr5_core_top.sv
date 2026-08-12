@@ -247,7 +247,7 @@ logic [19:0]      du_exu_u_type_imm   ;  // U-type immediate from DU to EXU; Tap
 logic [`XLEN-1:0] exu_maccu_pc            ;  // PC from EXU to MACCU    
 logic [`ILEN-1:0] exu_maccu_instr         ;  // Instruction from EXU to MACCU
 `endif
-logic             exu_maccu_is_riuj       ;  // RIUJ flag from EXU to MACCU
+logic             exu_maccu_is_wbck       ;  // Writeback valid from EXU to MACCU
 logic [2:0]       exu_maccu_funct3        ;  // Funct3 from EXU to MACCU
 logic             exu_maccu_bubble        ;  // Bubble from EXU to MACCU
 logic             maccu_exu_stall         ;  // Stall signal from MACCU to EXU
@@ -266,7 +266,7 @@ logic [`XLEN-1:0] exu_maccu_data          ;  // Memory access data (for Store) f
 logic [`XLEN-1:0] maccu_wbu_pc            ;  // PC from MACCU to WBU   
 logic [`ILEN-1:0] maccu_wbu_instr         ;  // Instruction from MACCU to WBU
 `endif
-logic             maccu_wbu_is_riuj       ;  // RIUJ flag from MACCU to WBU
+logic             maccu_wbu_is_wbck       ;  // Writeback valid from MACCU to WBU
 logic [2:0]       maccu_wbu_funct3        ;  // Funct3 from MACCU to WBU
 logic             maccu_wbu_bubble        ;  // Bubble from MACCU to WBU
 logic             wbu_maccu_stall         ;  // Stall signal from WBU to MACCU  
@@ -293,12 +293,11 @@ logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
 logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
 `endif
 `endif
-logic             wbu_is_riuj_out      ;  // RIUJ flag from WBU
+logic             wbu_is_wbck_out      ;  // Writeback valid from WBU
 logic             wbu_pkt_valid_out    ;  // Packet valid from WBU
 logic             wbu_rdt_wren_out     ;  // rdt write enable from WBU
 logic [4:0]       wbu_rdt_addr_out     ;  // rdt address from WBU
 logic [`XLEN-1:0] wbu_rdt_data_out     ;  // rdt data from WBU
-logic             wbu_rdt_not_x0_out   ;  // rdt neq x0
 //logic             wbu_stall_in         ;  // Stall to WBU
 
 // Debug signals
@@ -579,22 +578,19 @@ opfwd_control inst_opfwd_control (
    .i_du_instr_rsb      (du_exu_is_rsb)        ,
    .i_du_instr_risb     (du_exu_is_risb)       ,
 
-   .i_exu_result        (exu_maccu_rdt_data)   ,  
-   .i_exu_rdt           (exu_maccu_rdt_addr)   ,  
-   .i_exu_rdt_not_x0    (exu_maccu_rdt_not_x0) ,
-   .i_exu_instr_riuj    (exu_maccu_is_riuj)    ,  
-   
+   .i_exu_result        (exu_maccu_rdt_data)   ,
+   .i_exu_rdt           (exu_maccu_rdt_addr)   ,
+   .i_exu_is_wbck       (exu_maccu_is_wbck)    ,
+
    .i_dmem_load_data    (dmem_load_data)       ,
    .i_maccu_wbdata      (maccu_wbu_rdt_data)   ,
    .i_is_load           (maccu_wbu_is_load)    ,
    .i_maccu_rdt         (maccu_wbu_rdt_addr)   ,
-   .i_maccu_rdt_not_x0  (maccu_wbu_rdt_not_x0) ,
-   .i_maccu_instr_riuj  (maccu_wbu_is_riuj)    ,
+   .i_maccu_is_wbck     (maccu_wbu_is_wbck)    ,
 
-   .i_wbu_result        (wbu_rdt_data_out)     ,  
-   .i_wbu_rdt           (wbu_rdt_addr_out)     ,  
-   .i_wbu_rdt_not_x0    (wbu_rdt_not_x0_out)   ,
-   .i_wbu_instr_riuj    (wbu_is_riuj_out)      ,  
+   .i_wbu_result        (wbu_rdt_data_out)     ,
+   .i_wbu_rdt           (wbu_rdt_addr_out)     ,
+   .i_wbu_is_wbck       (wbu_is_wbck_out)      ,
 
    .o_fwd_op0           (opfwd_exu_op0)        , 
    .o_fwd_op1           (opfwd_exu_op1) 
@@ -683,7 +679,7 @@ execution_unit #(
    .o_maccu_pc         (exu_maccu_pc),
    .o_maccu_instr      (exu_maccu_instr),
    `endif
-   .o_maccu_is_riuj    (exu_maccu_is_riuj),
+   .o_maccu_is_wbck    (exu_maccu_is_wbck),
    .o_maccu_funct3     (exu_maccu_funct3),
    .o_maccu_bubble     (exu_maccu_bubble),
    .i_maccu_stall      (maccu_exu_stall),
@@ -709,7 +705,7 @@ memory_access_unit #(
    .i_exu_pc            (exu_maccu_pc)         ,
    .i_exu_instr         (exu_maccu_instr)      ,
    `endif
-   .i_exu_is_riuj       (exu_maccu_is_riuj)    ,
+   .i_exu_is_wbck       (exu_maccu_is_wbck)    ,
    .i_exu_funct3        (exu_maccu_funct3)     ,
    .i_exu_bubble        (exu_maccu_bubble)     ,
    .o_exu_stall         (maccu_exu_stall)      ,
@@ -735,7 +731,7 @@ memory_access_unit #(
    .o_wbu_pc            (maccu_wbu_pc)         ,
    .o_wbu_instr         (maccu_wbu_instr)      ,
    `endif
-   .o_wbu_is_riuj       (maccu_wbu_is_riuj)    ,
+   .o_wbu_is_wbck       (maccu_wbu_is_wbck)    ,
    .o_wbu_funct3        (maccu_wbu_funct3)     ,
    .o_wbu_bubble        (maccu_wbu_bubble)     ,
    .i_wbu_stall         (wbu_maccu_stall)      ,
@@ -769,7 +765,7 @@ writeback_unit #(
    .i_maccu_pc            (maccu_wbu_pc),
    .i_maccu_instr         (maccu_wbu_instr),
    `endif
-   .i_maccu_is_riuj       (maccu_wbu_is_riuj),
+   .i_maccu_is_wbck       (maccu_wbu_is_wbck),
    .i_maccu_funct3        (maccu_wbu_funct3),
    .i_maccu_bubble        (maccu_wbu_bubble),
    .o_maccu_stall         (wbu_maccu_stall),
@@ -793,13 +789,12 @@ writeback_unit #(
    .o_instr               (wbu_instr_out),
    `endif
    `endif
-   .o_is_riuj             (wbu_is_riuj_out),  
+   .o_is_wbck             (wbu_is_wbck_out),
    .o_pkt_valid           (wbu_pkt_valid_out),
    .o_rdt_wren            (wbu_rdt_wren_out),
    .o_rdt_addr            (wbu_rdt_addr_out),
-   .o_rdt_data            (wbu_rdt_data_out), 
-   .o_rdt_not_x0          (wbu_rdt_not_x0_out), 
-   .i_stall               (i_ext_stall)        
+   .o_rdt_data            (wbu_rdt_data_out),
+   .i_stall               (i_ext_stall)
 );
 
 //assign wbu_stall_in = 1'b0 ;

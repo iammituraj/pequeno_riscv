@@ -74,7 +74,7 @@ module writeback_unit #(
    input  logic [`XLEN-1:0] i_maccu_pc            ,  // PC from MACCU
    input  logic [`ILEN-1:0] i_maccu_instr         ,  // Instruction from MACCU
    `endif
-   input  logic             i_maccu_is_riuj       ,  // RIUJ flag from MACCU
+   input  logic             i_maccu_is_wbck       ,  // Writeback valid from MACCU
    input  logic [2:0]       i_maccu_funct3        ,  // Funct3 from MACCU
    input  logic             i_maccu_bubble        ,  // Bubble from MACCU
    output logic             o_maccu_stall         ,  // Stall signal to MACCU   
@@ -100,11 +100,10 @@ module writeback_unit #(
    output logic [`ILEN-1:0] o_instr               ,  // Instruction from WBU
    `endif
    `endif
-   output logic             o_is_riuj             ,  // RIUJ flag from WBU
+   output logic             o_is_wbck             ,  // Writeback valid from WBU
    output logic             o_rdt_wren            ,  // rdt write enable from WBU
    output logic [4:0]       o_rdt_addr            ,  // rdt address from WBU
    output logic [`XLEN-1:0] o_rdt_data            ,  // rdt data from WBU
-   output logic             o_rdt_not_x0          ,  // rdt neq x0
    output logic             o_pkt_valid           ,  // Packet valid from WBU
    input  logic             i_stall                  // Stall to WBU
 );
@@ -121,7 +120,7 @@ logic [`ILEN-1:0] wbu_instr_rg      ;  // Instruction
 logic [`ILEN-1:0] wbu_instr_rg      ;  // Instruction
 `endif
 `endif
-logic             wbu_is_riuj_rg    ;  // RIUJ flag
+logic             wbu_is_wbck_rg    ;  // Writeback valid
 logic             wbu_pkt_valid_rg  ;  // Packet valid
 
 // Memory access/writeback specific
@@ -145,7 +144,6 @@ logic [`XLEN-1:0] rdt_data         ;  // Writeback data
 logic             rdt_wren_rg      ;  // Write Enable copy buffer //**CHECKME**// Debug purpose only...
 logic [4:0]       rdt_addr_rg      ;  // Writeback address copy buffer
 logic [`XLEN-1:0] rdt_data_rg      ;  // Writeback data copy buffer
-logic             rdt_not_x0_rg    ;  // rdt neq x0
 
 // Stall logic specific
 logic             ext_stall        ;  // External stall coming to WBU
@@ -163,7 +161,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       `ifdef DBG
       wbu_instr_rg     <= `INSTR_NOP ;
       `endif
-      wbu_is_riuj_rg   <= 1'b0       ;
+      wbu_is_wbck_rg   <= 1'b0       ;
       wbu_pkt_valid_rg <= 1'b0       ;
    end
    // Out of reset
@@ -171,7 +169,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       `ifdef DBG
       wbu_instr_rg     <= i_maccu_instr     ;
       `endif
-      wbu_is_riuj_rg   <= i_maccu_is_riuj & ~i_maccu_bubble ;
+      wbu_is_wbck_rg   <= i_maccu_is_wbck & ~i_maccu_bubble ;
       wbu_pkt_valid_rg <= ~i_maccu_bubble ;
    end
 end
@@ -192,15 +190,13 @@ always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin
       rdt_wren_rg   <= 1'b0 ;
       rdt_addr_rg   <= '0   ;
-      rdt_data_rg   <= '0   ; 
-      rdt_not_x0_rg <= 1'b0 ;     
+      rdt_data_rg   <= '0   ;
    end
    // Out of reset
    else if (!pipe_stall) begin
-      rdt_wren_rg   <= rdt_wren ;      	
+      rdt_wren_rg   <= rdt_wren ;
       rdt_data_rg   <= rdt_data ;
       rdt_addr_rg   <= rdt_addr ;
-      rdt_not_x0_rg <= i_maccu_rdt_not_x0 ;       
    end
 end
 
@@ -278,11 +274,10 @@ assign o_instr       = wbu_instr_rg     ;
 assign o_instr       = wbu_instr_rg     ;
 `endif
 `endif
-assign o_is_riuj     = wbu_is_riuj_rg   ;
+assign o_is_wbck     = wbu_is_wbck_rg   ;
 assign o_rdt_wren    = rdt_wren_rg      ;
 assign o_rdt_addr    = rdt_addr_rg      ;
 assign o_rdt_data    = rdt_data_rg      ;
-assign o_rdt_not_x0  = rdt_not_x0_rg    ;
 assign o_pkt_valid   = wbu_pkt_valid_rg ;
 
 endmodule

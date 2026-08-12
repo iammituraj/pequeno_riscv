@@ -60,7 +60,7 @@ module memory_access_unit #(
    input  logic [`XLEN-1:0] i_exu_pc           ,  // PC from EXU
    input  logic [`ILEN-1:0] i_exu_instr        ,  // Instruction from EXU
    `endif
-   input  logic             i_exu_is_riuj      ,  // RIUJ flag from EXU
+   input  logic             i_exu_is_wbck      ,  // Writeback valid from EXU
    input  logic [2:0]       i_exu_funct3       ,  // Funct3 from EXU
    input  logic             i_exu_bubble       ,  // Bubble from EXU
    output logic             o_exu_stall        ,  // Stall signal to EXU
@@ -88,7 +88,7 @@ module memory_access_unit #(
    output logic [`XLEN-1:0] o_wbu_pc           ,  // PC to WBU
    output logic [`ILEN-1:0] o_wbu_instr        ,  // Instruction to WBU
    `endif
-   output logic             o_wbu_is_riuj      ,  // RIUJ flag to WBU
+   output logic             o_wbu_is_wbck      ,  // Writeback valid to WBU
    output logic [2:0]       o_wbu_funct3       ,  // Funct3 to WBU
    output logic             o_wbu_bubble       ,  // Bubble to WBU
    input  logic             i_wbu_stall        ,  // Stall signal from WBU   
@@ -119,7 +119,7 @@ logic [`XLEN-1:0] maccu_pc_rg         ;  // PC
 logic [`ILEN-1:0] maccu_instr_rg      ;  // Instruction
 `endif
 logic [2:0]       maccu_funct3_rg     ;  // Funct3
-logic             maccu_is_riuj_rg    ;  // RIUJ flag
+logic             maccu_is_wbck_rg    ;  // Writeback valid
 logic             maccu_bubble_rg     ;  // Bubble
 logic [4:0]       rdt_addr_rg         ;  // rdt address
 logic [`XLEN-1:0] rdt_data_rg         ;  // rdt data
@@ -149,7 +149,7 @@ always_ff @(posedge clk or negedge aresetn) begin
       `ifdef DBG
       maccu_instr_rg      <= `INSTR_NOP ;
       `endif
-      maccu_is_riuj_rg    <= 1'b0       ;
+      maccu_is_wbck_rg    <= 1'b0       ;
       maccu_funct3_rg     <= 3'h0       ;
       maccu_bubble_rg     <= 1'b1       ;
       rdt_addr_rg         <= '0         ;
@@ -165,9 +165,9 @@ always_ff @(posedge clk or negedge aresetn) begin
       `ifdef DBG
       maccu_instr_rg      <= i_exu_instr      ;
       `endif
-      maccu_is_riuj_rg    <= i_exu_is_riuj & ~exu_bubble ;
+      maccu_is_wbck_rg    <= i_exu_is_wbck    ;  // Not required to condition with valid because wbck=1 only when valid=1
       maccu_funct3_rg     <= i_exu_funct3     ;
-      maccu_bubble_rg     <= exu_bubble       ;
+      maccu_bubble_rg     <= i_exu_bubble     ;
       rdt_addr_rg         <= i_exu_rdt_addr   ;
       rdt_data_rg         <= i_exu_rdt_data   ;
       rdt_not_x0_rg       <= i_exu_rdt_not_x0 ;
@@ -196,8 +196,8 @@ assign is_dwback   = ~i_exu_is_macc_op & ~exu_bubble ;
 //===================================================================================================================================================
 //  Stall logic
 //===================================================================================================================================================
-assign stall           = (i_wbu_stall | i_dmem_stall) & ~maccu_bubble_rg ;  // WBU, DMEMIF can stall MACCU from outside
-                                                                            // Conditioned with valid to burst unwanted pipeline bubbles.
+assign stall           = (i_wbu_stall | i_dmem_stall) ;  // WBU, DMEMIF can stall MACCU from outside
+                                                         // Not conditioned with valid from EXU cz memacc should be lockstep with maccu registering
 assign maccu_stall_ext = stall           ;  
 assign o_exu_stall     = maccu_stall_ext ;  // Stall signal to EXU
 
@@ -220,7 +220,7 @@ assign o_dmem_flush = 1'b0 ;  //**CHECKME**// Flush is unused as of now
 assign o_wbu_pc            = maccu_pc_rg         ;
 assign o_wbu_instr         = maccu_instr_rg      ;
 `endif
-assign o_wbu_is_riuj       = maccu_is_riuj_rg    ;
+assign o_wbu_is_wbck       = maccu_is_wbck_rg    ;
 assign o_wbu_funct3        = maccu_funct3_rg     ;
 assign o_wbu_bubble        = maccu_bubble_rg     ;
 assign o_wbu_rdt_addr      = rdt_addr_rg         ;

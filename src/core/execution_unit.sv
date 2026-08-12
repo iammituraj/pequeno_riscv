@@ -70,17 +70,17 @@ module execution_unit #(
    `ifdef DBG
    // Debug Interface
    `ifdef RAS
-      `ifdef MULTDIV
-      output logic [6:0]       o_exu_dbg           ,  // Debug signal
-      `else
-      output logic [5:0]       o_exu_dbg           ,  // Debug signal
-      `endif
+   `ifdef MULTDIV
+   output logic [6:0]       o_exu_dbg           ,  // Debug signal
    `else
-      `ifdef MULTDIV
-      output logic [5:0]       o_exu_dbg           ,  // Debug signal
-      `else
-      output logic [4:0]       o_exu_dbg           ,  // Debug signal
-      `endif
+   output logic [5:0]       o_exu_dbg           ,  // Debug signal
+   `endif
+   `else
+   `ifdef MULTDIV
+   output logic [5:0]       o_exu_dbg           ,  // Debug signal
+   `else
+   output logic [4:0]       o_exu_dbg           ,  // Debug signal
+   `endif
    `endif
    output logic             o_dbg_is_b_instr    ,  // Branch instruction flag
    output logic             o_dbg_is_pred_wrong ,  // Prediction wrong?
@@ -157,7 +157,7 @@ module execution_unit #(
    output logic [`XLEN-1:0] o_maccu_pc          ,  // PC to MACCU
    output logic [`ILEN-1:0] o_maccu_instr       ,  // Executed instruction to MACCU
    `endif
-   output logic             o_maccu_is_riuj     ,  // RIUJ flag to MACCU
+   output logic             o_maccu_is_wbck     ,  // Writeback valid to MACCU
    output logic [2:0]       o_maccu_funct3      ,  // Funct3 to MACCU
    output logic             o_maccu_bubble      ,  // Bubble to MACCU
    input  logic             i_maccu_stall       ,  // Stall signal from MACCU
@@ -212,7 +212,7 @@ logic [`XLEN-1:0] exu_pc_rg          ;  // PC
 logic [`ILEN-1:0] exu_instr_rg       ;  // Instruction
 `endif
 logic [2:0]       exu_funct3_rg      ;  // Funct3
-logic             exu_is_riuj_rg     ;  // RIUJ flag
+logic             exu_is_wbck_rg     ;  // Writeback valid
 logic [4:0]       exu_rdt_rg         ;  // rdt address
 logic             exu_rdt_not_x0_rg  ;  // rdt neq x0
 
@@ -435,13 +435,13 @@ end
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin 
-      exu_is_riuj_rg    <= 1'b0 ;
+      exu_is_wbck_rg    <= 1'b0 ;
       exu_funct3_rg     <= 3'h0 ;
       exu_rdt_rg        <= '0   ; 
       exu_rdt_not_x0_rg <= 1'b0 ;
    end
    else if (!stall) begin  // Pipe forward...
-      exu_is_riuj_rg    <= i_du_is_riuj & ~exu_bubble ; 
+      exu_is_wbck_rg    <= (i_du_is_riuj & ~exu_bubble) & i_du_rdt_not_x0 ; 
       exu_funct3_rg     <= i_du_funct3     ;
       exu_rdt_rg        <= i_du_rdt        ;  
       exu_rdt_not_x0_rg <= i_du_rdt_not_x0 ;
@@ -576,7 +576,7 @@ assign o_maccu_pc         = exu_pc_rg         ;
 assign o_maccu_instr      = exu_instr_rg      ;
 `endif
 assign o_maccu_funct3     = exu_funct3_rg     ;
-assign o_maccu_is_riuj    = exu_is_riuj_rg    ;
+assign o_maccu_is_wbck    = exu_is_wbck_rg    ;
 assign o_maccu_bubble     = exu_bubble_rg     ;
 
 assign o_maccu_rdt_addr   = exu_rdt_rg        ;

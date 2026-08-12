@@ -75,22 +75,19 @@ module opfwd_control (
    // Interface with Execution Unit (EXU)
    input  logic [`XLEN-1:0] i_exu_result        ,  // Result from EXU
    input  logic [4:0]       i_exu_rdt           ,  // rdt from EXU
-   input  logic             i_exu_rdt_not_x0    ,  // rdt neq x0
-   input  logic             i_exu_instr_riuj    ,  // RIUJ instruction flag from EXU
+   input  logic             i_exu_is_wbck       ,  // Writeback valid from EXU
 
    // Interface with Memory Access Unit (MACCU)
    input  logic [`XLEN-1:0] i_dmem_load_data    ,  // Load data from DMEM
    input  logic [`XLEN-1:0] i_maccu_wbdata      ,  // Writeback data from MACCU
    input  logic             i_is_load           ,  // Load flag
    input  logic [4:0]       i_maccu_rdt         ,  // rdt from MACCU
-   input  logic             i_maccu_rdt_not_x0  ,  // rdt neq x0
-   input  logic             i_maccu_instr_riuj  ,  // RIUJ instruction flag from MACCU
+   input  logic             i_maccu_is_wbck     ,  // Writeback valid from MACCU
 
    // Interface with Write Back Unit (WBU)
    input  logic [`XLEN-1:0] i_wbu_result        ,  // Result from WBU
    input  logic [4:0]       i_wbu_rdt           ,  // rdt from WBU
-   input  logic             i_wbu_rdt_not_x0    ,  // rdt neq x0
-   input  logic             i_wbu_instr_riuj    ,  // RIUJ instruction flag from WBU
+   input  logic             i_wbu_is_wbck       ,  // Writeback valid from WBU
 
    // Forwarded Operands
    output logic [`XLEN-1:0] o_fwd_op0           ,  // Forwarded Operand-0
@@ -102,15 +99,8 @@ module opfwd_control (
 //===================================================================================================================================================
 logic [`XLEN-1:0] maccu_result           ;  // MACCU result to be forwarded
 
-logic             is_exu_rdt_not_x0      ;  // Flags if EXU rdt != x0
-logic             is_maccu_rdt_not_x0    ;  // Flags if MACCU rdt != x0
-logic             is_wbu_rdt_not_x0      ;  // Flags if WBU rdt != x0
-
 logic             is_du_instr_rsb        ;  // Flags if DU instruction = RSB-type
 logic             is_du_instr_risb       ;  // Flags if DU instruction = RISB-type
-logic             is_exu_instr_riuj      ;  // Flags if EXU instruction = RIUJ-type
-logic             is_maccu_instr_riuj    ;  // Flags if MACCU instruction = RIUJ-type
-logic             is_wbu_instr_riuj      ;  // Flags if WBU instruction = RIUJ-type
 
 logic             is_exu_wback_valid     ;  // Flags if EXU writes back to destination
 logic             is_maccu_wback_valid   ;  // Flags if MACCU writes back to destination
@@ -158,7 +148,7 @@ assign immU = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;  // LSbs to fill 0s
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access b/w DU and EXU
 //===================================================================================================================================================
-assign is_exu_wback_valid = is_exu_instr_riuj & is_exu_rdt_not_x0 ;
+assign is_exu_wback_valid = i_exu_is_wbck ;
 
 // Operand-0 forwarding
 assign is_du_exu_op0_raw = (is_exu_wback_valid && is_du_instr_risb && (i_du_rs0 == i_exu_rdt));
@@ -173,7 +163,7 @@ assign is_du_exu_op1_raw = (is_exu_wback_valid && is_du_instr_rsb  && (i_du_rs1 
 // If Load access happened at MACCU, forward load data from DMEM access, else forward register writeback data from MACCU
 assign maccu_result  = (i_is_load)? i_dmem_load_data : i_maccu_wbdata ;
 
-assign is_maccu_wback_valid = is_maccu_instr_riuj & is_maccu_rdt_not_x0 ;
+assign is_maccu_wback_valid = i_maccu_is_wbck ;
 
 // Operand-0 forwarding
 assign is_du_maccu_op0_raw = (is_maccu_wback_valid && is_du_instr_risb && (i_du_rs0_cpy == i_maccu_rdt));
@@ -184,7 +174,7 @@ assign is_du_maccu_op1_raw = (is_maccu_wback_valid && is_du_instr_rsb &&  (i_du_
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access b/w DU and WBU
 //===================================================================================================================================================
-assign is_wbu_wback_valid = is_wbu_instr_riuj & is_wbu_rdt_not_x0 ;
+assign is_wbu_wback_valid = i_wbu_is_wbck ;
 
 // Operand-0 forwarding
 assign is_du_wbu_op0_raw = (is_wbu_wback_valid && is_du_instr_risb && (i_du_rs0_cpy2 == i_wbu_rdt));
@@ -221,15 +211,8 @@ end
 //===================================================================================================================================================
 // Internal signals derived
 //===================================================================================================================================================
-assign is_exu_rdt_not_x0   = i_exu_rdt_not_x0   ;
-assign is_maccu_rdt_not_x0 = i_maccu_rdt_not_x0 ;
-assign is_wbu_rdt_not_x0   = i_wbu_rdt_not_x0   ;
-
 assign is_du_instr_rsb     = i_du_instr_rsb     ;
 assign is_du_instr_risb    = i_du_instr_risb    ;
-assign is_exu_instr_riuj   = i_exu_instr_riuj   ;
-assign is_maccu_instr_riuj = i_maccu_instr_riuj ;
-assign is_wbu_instr_riuj   = i_wbu_instr_riuj   ;
 
 endmodule
 //###################################################################################################################################################
