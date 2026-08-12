@@ -236,13 +236,8 @@ always_comb begin
 end
 
 // Branch address generator
-logic [`XLEN-1:0] addr_op, imm_op, jalr_or_br_branch_addr;
-assign addr_op                = i_is_jalr ? i_op0 : i_pc;
-assign imm_op                 = i_is_jalr ? immI  : immB;
-assign jalr_or_br_branch_addr = addr_op + imm_op;  // = op0+immI for JALR, pc+immB for Branch instructions
-
-assign jalr_branch_addr = jalr_or_br_branch_addr & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
-assign br_branch_addr   = jalr_or_br_branch_addr;
+assign jalr_branch_addr = (i_op0 + immI) & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
+assign br_branch_addr   = (i_pc + immB);
 
 //===========================================================================================================
 // Flush generation
@@ -275,7 +270,7 @@ logic is_legal_branch     ;  // Flags legal branch instruction
 logic upd_ghr, upd_ghr_ff ;  // Update GHR signal
 logic upd_bht, upd_bht_ff ;  // Update BHT signal
 
-assign is_legal_branch = i_is_b_type && (i_funct3 != 3'b010) && (i_funct3 != 3'b011);
+assign is_legal_branch = i_is_b_type;
 
 assign upd_ghr = (i_is_j_or_jalr || is_legal_branch) & ~i_bubble ;  // GHR must be updated on every jump/branch instr resolution
 assign upd_bht = is_legal_branch & ~i_bubble ;                      // BHT must be updated on every branch instr resolution

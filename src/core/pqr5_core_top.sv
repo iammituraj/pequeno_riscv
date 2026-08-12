@@ -211,8 +211,10 @@ logic             du_exu_is_signed_rs1 ;  // rs1 operand signedness flag from DU
 `endif
 logic [4:0]       du_exu_rs0        ;  // rs0 from DU to EXU
 logic [4:0]       du_exu_rs0_cpy    ;  // rs0 copy from DU to EXU
+logic [4:0]       du_exu_rs0_cpy2   ;  // rs0 copy-2 from DU to EXU; for WBU fwd path
 logic [4:0]       du_exu_rs1        ;  // rs1 from DU to EXU
 logic [4:0]       du_exu_rs1_cpy    ;  // rs1 copy from DU to EXU
+logic [4:0]       du_exu_rs1_cpy2   ;  // rs1 copy-2 from DU to EXU; for WBU fwd path
 logic [4:0]       du_exu_rdt        ;  // rdt from DU to EXU
 logic             du_exu_rdt_not_x0 ;  // rdt neq x0
 logic [2:0]       du_exu_funct3     ;  // funct3 from DU to EXU
@@ -490,8 +492,10 @@ decode_unit #(
    `endif
    .o_exu_rs0         (du_exu_rs0),
    .o_exu_rs0_cpy_ff  (du_exu_rs0_cpy),
+   .o_exu_rs0_cpy2_ff (du_exu_rs0_cpy2),
    .o_exu_rs1         (du_exu_rs1),
    .o_exu_rs1_cpy_ff  (du_exu_rs1_cpy),
+   .o_exu_rs1_cpy2_ff (du_exu_rs1_cpy2),
    .o_exu_rdt         (du_exu_rdt), 
    .o_exu_rdt_not_x0  (du_exu_rdt_not_x0),
    .o_exu_funct3      (du_exu_funct3), 
@@ -563,8 +567,10 @@ opfwd_control inst_opfwd_control (
    .i_du_pc             (du_exu_pc)            ,
    .i_du_rs0            (du_exu_rs0)           ,
    .i_du_rs0_cpy        (du_exu_rs0_cpy)       ,
-   .i_du_rs1            (du_exu_rs1)           , 
+   .i_du_rs0_cpy2       (du_exu_rs0_cpy2)      ,
+   .i_du_rs1            (du_exu_rs1)           ,
    .i_du_rs1_cpy        (du_exu_rs1_cpy)       ,
+   .i_du_rs1_cpy2       (du_exu_rs1_cpy2)      ,
    .i_du_is_i_type      (du_exu_is_i_type)     ,
    .i_du_i_type_imm     (du_exu_i_type_imm)    ,
    .i_du_is_u_type      (du_exu_is_u_type)     ,

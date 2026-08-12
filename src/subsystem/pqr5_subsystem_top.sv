@@ -292,8 +292,10 @@ dmem_top #(
    `ifdef DBGUART
    .o_uart_tx (o_dbg_uart_tx) ,
    `endif
-
+    
+    `ifdef DBGUART
    .i_clktick_cnt    (clktick_cnt_rg) ,
+   `endif
 
    `ifdef EN_LOADER  
    .i_pgm_en         (ldr_cpu_stall)  ,

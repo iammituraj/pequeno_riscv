@@ -60,8 +60,10 @@ module opfwd_control (
    input  logic [`XLEN-1:0] i_du_pc             ,  // PC from DU
    input  logic [4:0]       i_du_rs0            ,  // rs0 from DU
    input  logic [4:0]       i_du_rs0_cpy        ,  // rs0 copy from DU
-   input  logic [4:0]       i_du_rs1            ,  // rs1 from DU 
+   input  logic [4:0]       i_du_rs0_cpy2       ,  // rs0 copy-2 from DU; for WBU fwd path
+   input  logic [4:0]       i_du_rs1            ,  // rs1 from DU
    input  logic [4:0]       i_du_rs1_cpy        ,  // rs1 copy from DU
+   input  logic [4:0]       i_du_rs1_cpy2       ,  // rs1 copy-2 from DU; for WBU fwd path
    input  logic             i_du_is_i_type      ,  // I-type instruction flag from DU
    input  logic [11:0]      i_du_i_type_imm     ,  // I-type immediate from DU   
    input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU
@@ -185,54 +187,34 @@ assign is_du_maccu_op1_raw = (is_maccu_wback_valid && is_du_instr_rsb &&  (i_du_
 assign is_wbu_wback_valid = is_wbu_instr_riuj & is_wbu_rdt_not_x0 ;
 
 // Operand-0 forwarding
-assign is_du_wbu_op0_raw = (is_wbu_wback_valid && is_du_instr_risb && (i_du_rs0_cpy == i_wbu_rdt));
+assign is_du_wbu_op0_raw = (is_wbu_wback_valid && is_du_instr_risb && (i_du_rs0_cpy2 == i_wbu_rdt));
 
 // Operand-1 forwarding
-assign is_du_wbu_op1_raw = (is_wbu_wback_valid && is_du_instr_rsb &&  (i_du_rs1_cpy == i_wbu_rdt));
+assign is_du_wbu_op1_raw = (is_wbu_wback_valid && is_du_instr_rsb &&  (i_du_rs1_cpy2 == i_wbu_rdt));
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-0 to output
 //===================================================================================================================================================
-logic [1:0] op0_fwd_sel ;  // Priority-encoded forward select for Operand-0
-// 3:1 Mux to resolve priority
+// Priority Mux to forward the operand
 always_comb begin
    casez ({is_du_exu_op0_raw, is_du_maccu_op0_raw, is_du_wbu_op0_raw})
-      3'b1?? : op0_fwd_sel = 2'b00;  // EXU fwd, highest priority
-      3'b01? : op0_fwd_sel = 2'b01;  // MACCU fwd
-      3'b001 : op0_fwd_sel = 2'b10;  // WBU fwd
-      default: op0_fwd_sel = 2'b11;  // RF/DU bypass
-   endcase
-end
-// 4:1 Mux to forward the operand
-always_comb begin
-   case (op0_fwd_sel)
-      2'b00  : o_fwd_op0 = i_exu_result  ;
-      2'b01  : o_fwd_op0 = maccu_result  ;
-      2'b10  : o_fwd_op0 = i_wbu_result  ;
-      default: o_fwd_op0 = rf_bypass_op0 ;
+      3'b1?? : o_fwd_op0 = i_exu_result  ;  // EXU fwd, highest priority
+      3'b01? : o_fwd_op0 = maccu_result  ;  // MACCU fwd
+      3'b001 : o_fwd_op0 = i_wbu_result  ;  // WBU fwd
+      default: o_fwd_op0 = rf_bypass_op0 ;  // RF/DU bypass
    endcase
 end
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-1 to output
 //===================================================================================================================================================
-logic [1:0] op1_fwd_sel ;  // Priority-encoded forward select for Operand-1
+// Priority Mux to forward the operand
 always_comb begin
-// 3:1 Mux to resolve priority
-casez ({is_du_exu_op1_raw, is_du_maccu_op1_raw, is_du_wbu_op1_raw})
-      3'b1?? : op1_fwd_sel = 2'b00;  // EXU fwd, highest priority
-      3'b01? : op1_fwd_sel = 2'b01;  // MACCU fwd
-      3'b001 : op1_fwd_sel = 2'b10;  // WBU fwd
-      default: op1_fwd_sel = 2'b11;  // RF/DU bypass
-   endcase
-end
-// 4:1 Mux to forward the operand
-always_comb begin
-   case (op1_fwd_sel)
-      2'b00  : o_fwd_op1 = i_exu_result  ;
-      2'b01  : o_fwd_op1 = maccu_result  ;
-      2'b10  : o_fwd_op1 = i_wbu_result  ;
-      default: o_fwd_op1 = rf_bypass_op1 ;
+   casez ({is_du_exu_op1_raw, is_du_maccu_op1_raw, is_du_wbu_op1_raw})
+      3'b1?? : o_fwd_op1 = i_exu_result  ;  // EXU fwd, highest priority
+      3'b01? : o_fwd_op1 = maccu_result  ;  // MACCU fwd
+      3'b001 : o_fwd_op1 = i_wbu_result  ;  // WBU fwd
+      default: o_fwd_op1 = rf_bypass_op1 ;  // RF/DU bypass
    endcase
 end
 
