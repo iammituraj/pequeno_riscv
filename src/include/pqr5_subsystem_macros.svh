@@ -111,7 +111,7 @@
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Debug UART (To print debug messages to serial terminal)
 //---------------------------------------------------------------------------------------------------------------------------------------------------
-`define DBGUART                              // Define this macro to enable Debug UART; SUPPORTED ONLY in DMEM Zero latency model
+//`define DBGUART                              // Define this macro to enable Debug UART; SUPPORTED ONLY in DMEM Zero latency model
 `define DBGUART_BRATE        115200          // Baud rate @programming I/F; [shouldn't be faster than 1/16 FCLK]
                                              // Validate: 
                                              // 1. (FCLK in Hz/BAUDRATE) < 2^16
