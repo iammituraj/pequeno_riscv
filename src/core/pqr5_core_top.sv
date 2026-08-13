@@ -275,7 +275,9 @@ logic [`XLEN-1:0] maccu_wbu_rdt_data      ;  // rdt data from MACCU to WBU
 logic             maccu_wbu_rdt_not_x0    ;  // rdt neq x0
 logic             maccu_wbu_is_macc       ;  // Memory access flag from MACCU to WBU
 logic             maccu_wbu_is_load       ;  // Load operation flag from MACCU to WBU
+`ifdef DBG
 logic             maccu_wbu_is_dwback     ;  // Direct writeback operation flag from MACCU to WBU
+`endif
 logic [`XLSB-1:0] maccu_wbu_macc_addr_lsb ;  // Memory access address from MACCU to WBU
 logic [`XLEN-1:0] dmem_load_data          ;  // Load data from memory access
 
@@ -294,7 +296,13 @@ logic [`ILEN-1:0] wbu_instr_out        ;  // Instruction from WBU
 `endif
 `endif
 logic             wbu_is_wbck_out      ;  // Writeback valid from WBU
+`ifdef DBG
 logic             wbu_pkt_valid_out    ;  // Packet valid from WBU
+`else
+`ifdef SIMEXIT_INSTR_END
+logic             wbu_pkt_valid_out    ;  // Packet valid from WBU
+`endif
+`endif
 logic             wbu_rdt_wren_out     ;  // rdt write enable from WBU
 logic [4:0]       wbu_rdt_addr_out     ;  // rdt address from WBU
 logic [`XLEN-1:0] wbu_rdt_data_out     ;  // rdt data from WBU
@@ -740,8 +748,10 @@ memory_access_unit #(
    .o_wbu_rdt_not_x0    (maccu_wbu_rdt_not_x0) ,
    .o_wbu_is_macc       (maccu_wbu_is_macc)    ,
    .o_wbu_is_load       (maccu_wbu_is_load)    ,
+   `ifdef DBG
    .o_wbu_is_dwback     (maccu_wbu_is_dwback)  ,
-   .o_wbu_macc_addr_lsb (maccu_wbu_macc_addr_lsb)  
+   `endif
+   .o_wbu_macc_addr_lsb (maccu_wbu_macc_addr_lsb)
 );
 
 // WriteBack Unit (WBU)
@@ -774,7 +784,9 @@ writeback_unit #(
    .i_maccu_rdt_not_x0    (maccu_wbu_rdt_not_x0),
    .i_maccu_is_macc       (maccu_wbu_is_macc),
    .i_maccu_is_load       (maccu_wbu_is_load),
+   `ifdef DBG
    .i_maccu_is_dwback     (maccu_wbu_is_dwback),
+   `endif
    .i_maccu_macc_addr_lsb (maccu_wbu_macc_addr_lsb),
    
    .o_rf_wren             (wbu_rf_wren),
@@ -790,7 +802,13 @@ writeback_unit #(
    `endif
    `endif
    .o_is_wbck             (wbu_is_wbck_out),
+   `ifdef DBG
    .o_pkt_valid           (wbu_pkt_valid_out),
+   `else
+   `ifdef SIMEXIT_INSTR_END
+   .o_pkt_valid           (wbu_pkt_valid_out),
+   `endif
+   `endif
    .o_rdt_wren            (wbu_rdt_wren_out),
    .o_rdt_addr            (wbu_rdt_addr_out),
    .o_rdt_data            (wbu_rdt_data_out),

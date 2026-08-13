@@ -83,7 +83,9 @@ module writeback_unit #(
    input  logic             i_maccu_rdt_not_x0    ,  // rdt neq x0
    input  logic             i_maccu_is_macc       ,  // Memory access flag from MACCU
    input  logic             i_maccu_is_load       ,  // Load operation flag from MACCU
-   input  logic             i_maccu_is_dwback     ,  // Direct writeback operation flag from MACCU
+   `ifdef DBG
+   input  logic             i_maccu_is_dwback     ,  // Direct writeback operation flag from MACCU; debug only
+   `endif
    input  logic [`XLSB-1:0] i_maccu_macc_addr_lsb ,  // Memory access address from MACCU (LSbs)
 
    // Interface with Register File (RF)
@@ -104,7 +106,13 @@ module writeback_unit #(
    output logic             o_rdt_wren            ,  // rdt write enable from WBU
    output logic [4:0]       o_rdt_addr            ,  // rdt address from WBU
    output logic [`XLEN-1:0] o_rdt_data            ,  // rdt data from WBU
+   `ifdef DBG
    output logic             o_pkt_valid           ,  // Packet valid from WBU
+   `else
+   `ifdef SIMEXIT_INSTR_END
+   output logic             o_pkt_valid           ,  // Packet valid from WBU
+   `endif
+   `endif
    input  logic             i_stall                  // Stall to WBU
 );
 
@@ -121,12 +129,20 @@ logic [`ILEN-1:0] wbu_instr_rg      ;  // Instruction
 `endif
 `endif
 logic             wbu_is_wbck_rg    ;  // Writeback valid
+`ifdef DBG
 logic             wbu_pkt_valid_rg  ;  // Packet valid
+`else
+`ifdef SIMEXIT_INSTR_END
+logic             wbu_pkt_valid_rg  ;  // Packet valid
+`endif
+`endif
 
 // Memory access/writeback specific
 logic             is_dmem_acc      ;  // Flags if memory access required
 logic             is_dmem_acc_load ;  // Flags if Load operation
-logic             is_dir_writeback ;  // Flags if direct writeback operation w/o any memory access
+`ifdef DBG
+logic             is_dir_writeback ;  // Flags if direct writeback operation w/o any memory access; debug only
+`endif
 logic             is_usig_macc     ;  // Flags if unsigned memory access
 logic [`XLSB-1:0] maddr_lsb        ;  // Memory access address (LSbs)
 logic [1:0]       msize            ;  // Memory access size
@@ -161,16 +177,28 @@ always_ff @(posedge clk or negedge aresetn) begin
       `ifdef DBG
       wbu_instr_rg     <= `INSTR_NOP ;
       `endif
-      wbu_is_wbck_rg   <= 1'b0       ;
-      wbu_pkt_valid_rg <= 1'b0       ;
+      wbu_is_wbck_rg   <= 1'b0 ;
+      `ifdef DBG
+      wbu_pkt_valid_rg <= 1'b0 ;
+      `else
+      `ifdef SIMEXIT_INSTR_END
+      wbu_pkt_valid_rg <= 1'b0 ;
+      `endif
+      `endif
    end
    // Out of reset
    else if (!pipe_stall) begin
       `ifdef DBG
-      wbu_instr_rg     <= i_maccu_instr     ;
+      wbu_instr_rg     <= i_maccu_instr   ;
       `endif
-      wbu_is_wbck_rg   <= i_maccu_is_wbck & ~i_maccu_bubble ;
+      wbu_is_wbck_rg   <= i_maccu_is_wbck ;
+      `ifdef DBG
       wbu_pkt_valid_rg <= ~i_maccu_bubble ;
+      `else
+      `ifdef SIMEXIT_INSTR_END
+      wbu_pkt_valid_rg <= ~i_maccu_bubble ;
+      `endif
+      `endif
    end
 end
 
@@ -201,7 +229,7 @@ always_ff @(posedge clk or negedge aresetn) begin
 end
 
 // Writeback to RF: combi routing to sync RF write with WBU pipe outputs
-assign rdt_wren = pipe_stall ? 1'b0 : ((is_dmem_acc_load | is_dir_writeback) && i_maccu_rdt_not_x0);
+assign rdt_wren = pipe_stall ? 1'b0 : i_maccu_is_wbck ;  // Load, other writeback instructions (RIUJ)
 assign rdt_addr = i_maccu_rdt_addr ;
 assign rdt_data = is_dmem_acc_load ? load_data : i_maccu_rdt_data ;  // Writeback data selected from memory (Load data) or MACCU (Direct writeback)
 
@@ -223,6 +251,7 @@ assign is_usig_macc = i_maccu_funct3[2]     ;
 assign maddr_lsb    = i_maccu_macc_addr_lsb ;
 assign msize        = i_maccu_funct3[1:0]   ;
 
+// BYTE, HWORD, WORD
 always_comb begin
    case (maddr_lsb)   
       2'b00   : load_hword = i_dmem_rdata[15:0] ;
@@ -258,7 +287,9 @@ assign o_wbu_dbg = {is_usig_macc, msize, is_dmem_acc_load, is_dir_writeback, pip
 
 assign is_dmem_acc      = i_maccu_is_macc   ;  // Load/Store?
 assign is_dmem_acc_load = i_maccu_is_load   ;  // Load?
+`ifdef DBG
 assign is_dir_writeback = i_maccu_is_dwback ;  // Direct writeback, not Load/Store?
+`endif
 
 // Write-side control signals to Register File (RF)
 assign o_rf_wren     = rdt_wren ;
@@ -278,7 +309,13 @@ assign o_is_wbck     = wbu_is_wbck_rg   ;
 assign o_rdt_wren    = rdt_wren_rg      ;
 assign o_rdt_addr    = rdt_addr_rg      ;
 assign o_rdt_data    = rdt_data_rg      ;
+`ifdef DBG
 assign o_pkt_valid   = wbu_pkt_valid_rg ;
+`else
+`ifdef SIMEXIT_INSTR_END
+assign o_pkt_valid   = wbu_pkt_valid_rg ;
+`endif
+`endif
 
 endmodule
 //###################################################################################################################################################
