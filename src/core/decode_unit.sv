@@ -138,8 +138,6 @@ module decode_unit #(
    output logic             o_exu_is_s_type    ,  // S-type instruction flag to EXU
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
    output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU; Tapped by opfwd block...
-   output logic             o_exu_is_rsb       ,  // RSB flag to EXU
-   output logic             o_exu_is_risb      ,  // RISB flag to EXU
    output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
    output logic             o_exu_is_jalr      ,  // JALR flag to EXU
    output logic             o_exu_is_j_or_jalr ,  // J/JALR flag to EXU
@@ -161,13 +159,15 @@ logic [6:0]       fu_opcode           ;  // Opcode decoded from FU instr
 logic [2:0]       fu_funct3           ;  // Funct3 decoded from FU instr
 logic [6:0]       fu_funct7           ;  // Funct7 decoded from FU instr
 
+// Decoded rs0/rs1
+logic [4:0]       rs0_rg              ;  // rs0
+logic [4:0]       rs1_rg              ;  // rs1
+
 // Decoded flags --> Payload to EXU
 logic [5:0]       instr_type          ;  // {R, I, S, B, U, J} type instruction flag (one-hot encoded)
 logic [5:0]       instr_type_rg       ;  // Instruction type flag (registered)
 logic             is_rsb              ;  // RSB flag
-logic             is_rsb_rg           ;  // RSB flag (registered)
 logic             is_risb             ;  // RISB flag (registered)
-logic             is_risb_rg          ;  // RISB flag
 logic             is_jal              ;  // JAL flag
 logic             is_jalr             ;  // JALR flag
 logic             is_jalr_rg          ;  // JALR flag (registered)
@@ -209,7 +209,6 @@ logic             is_s_type           ;  // S-type instruction flag
 logic             is_b_type           ;  // B-type instruction flag
 logic             is_u_type           ;  // U-type instruction flag
 logic             is_j_type           ;  // J-type instruction flag
-logic [4:0]       reg_src0, reg_src1  ;  // Source register addresses
 logic [4:0]       reg_dest            ;  // Destination register address
 logic [6:0]       du_opcode           ;  // Opcode
 logic [2:0]       funct3              ;  // Funct3
@@ -236,9 +235,7 @@ logic             flush               ;  // Flush from outside FU
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      instr_type_rg   <= 6'b000000 ;   
-      is_risb_rg      <= 1'b0 ; 
-      is_rsb_rg       <= 1'b0 ;
+      instr_type_rg   <= 6'b000000 ;
       is_jalr_rg      <= 1'b0 ;
       is_j_or_jalr_rg <= 1'b0 ;
       is_load_rg      <= 1'b0 ;
@@ -251,8 +248,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       if (!stall) begin
          // Flags
          instr_type_rg   <= instr_type   ;
-         is_risb_rg      <= is_risb      ;
-         is_rsb_rg       <= is_rsb       ;
          is_jalr_rg      <= is_jalr      ;
          is_j_or_jalr_rg <= is_j_or_jalr ;
          is_load_rg      <= is_load      ; 
@@ -262,11 +257,16 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
 end
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Combi logic to decode the flags
-// J-type and B-type bits of instr_type are taken directly from FU's pre-decoded i_fu_is_op_jal/i_fu_is_op_branch
-// (piped forward from FU for the same instruction) instead of re-deriving fu_opcode==OP_JAL/OP_BRANCH here.
+// -------------------------------
+// 1. All R/I/S/B/U/J instructions are considered potentially legal and allowed to propagate forward
+// 2. Illegal ALU (R/I)/Load/Store instructions propagate forward; no exceptions supported currently
+// 3. Illegal Branch instructions DO NOT propagate forward
+// 4. J/B-type bits of instr_type are driven directly from FU's pre-decoded flags
+///////////////////////////////////////////////////////////////////////////////////////////////////
 logic [3:0] instr_type_risu ;  // {R,I,S,U} bits of instr_type; J,B come from FU directly
-logic       is_ris, is_rs   ;  // R/I/S/U contribution to is_risb/is_rsb; Branch contribution ORed in below
+logic       is_ris, is_rs   ;  // R/I/S flags
 always_comb begin
    case (fu_opcode)
       OP_ALU    : begin
@@ -323,7 +323,7 @@ assign is_lui          = (fu_opcode == OP_LUI)  ;
 assign is_auipc        = (fu_opcode == OP_AUIPC);
 assign is_lui_or_auipc = (is_lui || is_auipc)   ;
 assign is_sli_sri      = (fu_funct3 == F3_SLLX || fu_funct3 == F3_SRXX);
-assign is_illegal      = ~|(instr_type);  // DBG only, not consumed by any functional logic
+assign is_illegal      = ~|(instr_type);  // Not R/I/S/B/U/J = Illegal; DBG only, not consumed by any functional logic
 
 //===================================================================================================================================================
 // Synchronous logic to decode ALU operation
@@ -474,7 +474,8 @@ end
 `endif
 
 //===================================================================================================================================================
-// Synchronous logic to generate rs0/rs1 copies to relax fanout & timing at opfwd block
+// Synchronous logic to generate rs0/rs1 registered copies to relax fanout & timing at opfwd block
+// Also registers rs0_rg/rs1_rg, masked to x0 when RISB/RSB=0 --> This optimization is for opfwd, pipeline interlock logic reduction
 //===================================================================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin
@@ -482,12 +483,16 @@ always_ff @(posedge clk or negedge aresetn) begin
       o_exu_rs1_cpy_ff  <= '0;
       o_exu_rs0_cpy2_ff <= '0;
       o_exu_rs1_cpy2_ff <= '0;
+      rs0_rg            <= '0;
+      rs1_rg            <= '0;
    end
    else if (!stall)   begin
-      o_exu_rs0_cpy_ff  <= i_fu_instr[19:15];
-      o_exu_rs1_cpy_ff  <= i_fu_instr[24:20];
-      o_exu_rs0_cpy2_ff <= i_fu_instr[19:15];
-      o_exu_rs1_cpy2_ff <= i_fu_instr[24:20];
+      o_exu_rs0_cpy_ff  <= is_risb ? i_fu_instr[19:15] : 5'd0;
+      o_exu_rs1_cpy_ff  <= is_rsb  ? i_fu_instr[24:20] : 5'd0;
+      o_exu_rs0_cpy2_ff <= is_risb ? i_fu_instr[19:15] : 5'd0;
+      o_exu_rs1_cpy2_ff <= is_rsb  ? i_fu_instr[24:20] : 5'd0;
+      rs0_rg            <= is_risb ? i_fu_instr[19:15] : 5'd0;
+      rs1_rg            <= is_rsb  ? i_fu_instr[24:20] : 5'd0;
    end
 end
 
@@ -520,8 +525,6 @@ assign o_du_dbg = {is_lui_rg, is_jalr_rg, is_load_rg, is_alui_rg, instr_type_rg}
 assign fu_opcode  = i_fu_instr[6:0]    ;
 assign fu_funct3  = i_fu_instr[14:12]  ;
 assign fu_funct7  = i_fu_instr[31:25]  ;
-assign reg_src0   = du_instr_rg[19:15] ;
-assign reg_src1   = du_instr_rg[24:20] ;
 assign reg_dest   = du_instr_rg[11:7]  ;
 assign du_opcode  = du_instr_rg[6:0]   ;  // DBG only, not consumed by any functional logic
 assign is_r_type  = instr_type_rg[5]   ;
@@ -559,8 +562,8 @@ assign o_exu_is_upp_or_rem= is_upp_or_rem_rg ;
 assign o_exu_is_signed_rs0= is_signed_rs0_rg ;
 assign o_exu_is_signed_rs1= is_signed_rs1_rg ;
 `endif
-assign o_exu_rs0          = reg_src0      ;
-assign o_exu_rs1          = is_i_type? reg_src0 : reg_src1 ;  // Optimization for Pipeline interlock in case of I-type instructions
+assign o_exu_rs0          = rs0_rg        ;
+assign o_exu_rs1          = rs1_rg        ;
 assign o_exu_rdt          = reg_dest      ;
 assign o_exu_rdt_not_x0   = |reg_dest     ;
 assign o_exu_funct3       = funct3        ;
@@ -569,8 +572,6 @@ assign o_exu_is_i_type    = is_i_type  ;
 assign o_exu_is_s_type    = is_s_type  ;
 assign o_exu_is_b_type    = is_b_type  ;
 assign o_exu_is_u_type    = is_u_type  ;
-assign o_exu_is_rsb       = is_rsb_rg  ;
-assign o_exu_is_risb      = is_risb_rg ; 
 assign o_exu_is_riuj      = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
 assign o_exu_is_jalr      = is_jalr_rg ;
 assign o_exu_is_j_or_jalr = is_j_or_jalr_rg ;

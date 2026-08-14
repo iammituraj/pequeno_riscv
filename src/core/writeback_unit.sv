@@ -67,7 +67,7 @@ module writeback_unit #(
    output logic             o_dmem_stall          ,  // Stall signal to DMEMIF
 
    // Operand Forward Interface
-   output logic [`XLEN-1:0] o_load_data           ,  // Load data from DMEM access 
+   output logic [`XLEN-1:0] o_dwback_or_load_data ,  // Direct writeback data (MACCU) or Load data (DMEM), muxed
 
    // Interface with Memory Access Unit (MACCU)
    `ifdef DBG
@@ -76,11 +76,16 @@ module writeback_unit #(
    `endif
    input  logic             i_maccu_is_wbck       ,  // Writeback valid from MACCU
    input  logic [2:0]       i_maccu_funct3        ,  // Funct3 from MACCU
+   `ifdef DBG
    input  logic             i_maccu_bubble        ,  // Bubble from MACCU
-   output logic             o_maccu_stall         ,  // Stall signal to MACCU   
+   `else
+   `ifdef SIMEXIT_INSTR_END
+   input  logic             i_maccu_bubble        ,  // Bubble from MACCU
+   `endif
+   `endif
+   output logic             o_maccu_stall         ,  // Stall signal to MACCU
    input  logic [4:0]       i_maccu_rdt_addr      ,  // rdt address from MACCU
    input  logic [`XLEN-1:0] i_maccu_rdt_data      ,  // rdt data from MACCU
-   input  logic             i_maccu_rdt_not_x0    ,  // rdt neq x0
    input  logic             i_maccu_is_macc       ,  // Memory access flag from MACCU
    input  logic             i_maccu_is_load       ,  // Load operation flag from MACCU
    `ifdef DBG
@@ -263,8 +268,8 @@ end
 assign load_byte    = load_hword[7:0];
 assign load_word    = i_dmem_rdata ;
 
-// Load data out
-assign o_load_data  = load_data ;
+// Direct writeback data (MACCU) or Load data (DMEM), muxed
+assign o_dwback_or_load_data = rdt_data ;
 
 //===================================================================================================================================================
 //  Stall logic

@@ -114,7 +114,7 @@ module execution_unit #(
    output logic             o_du_stall          ,  // Stall signal to DU
 
    `ifdef RAS
-   input  logic             i_du_is_call        ,  // CALL flag from DU
+   input  logic             i_du_is_call        ,  // CALL flag from DU; Unused as of now
    input  logic [`XLEN-1:0] i_du_ras_ret_addr   ,  // RAS predicted RET address from DU
    input  logic             i_du_ras_ret_taken  ,  // RAS predicted RET taken status from DU
    input  logic [RPTW-1:0]  i_du_ras_snap_ptr   ,  // RAS pointer snapshot from DU
@@ -144,7 +144,6 @@ module execution_unit #(
    input  logic             i_du_is_s_type      ,  // S-type instruction flag from DU
    input  logic             i_du_is_b_type      ,  // B-type instruction flag from DU 
    input  logic             i_du_is_riuj        ,  // RIUJ flag from DU
-   input  logic             i_du_is_risb        ,  // RISB flag from DU
    input  logic             i_du_is_jalr        ,  // JALR flag from DU
    input  logic             i_du_is_jal_or_jalr ,  // J/JALR flag from DU
    input  logic             i_du_is_load        ,  // Load flag from DU
@@ -164,7 +163,6 @@ module execution_unit #(
 
    output logic [4:0]       o_maccu_rdt_addr    ,  // Writeback address to MACCU
    output logic [`XLEN-1:0] o_maccu_rdt_data    ,  // Writeback data to MACCU
-   output logic             o_maccu_rdt_not_x0  ,  // Write back address neq x0
    output logic             o_maccu_is_macc_op  ,  // Memory access operation flag to MACCU
    output logic             o_maccu_macc_cmd    ,  // Memory access command to MACCU; '0'- Load, '1'- Store
    output logic [`XLEN-1:0] o_maccu_macc_addr   ,  // Memory access address to MACCU
@@ -231,7 +229,6 @@ logic             is_du_rs0_eq_exu_rdt ;  // Flags if DU rs0 == EXU rdt
 logic             is_du_rs1_eq_exu_rdt ;  // Flags if DU rs1 == EXU rdt
 logic             is_du_rsx_eq_exu_rdt ;  // Flags if DU rs0/1 == EXU rdt
 logic             is_exu_rdt_not_x0    ;  // Flags if EXU rdt != x0
-logic             is_du_instr_risb     ;  // Flags if DU instr = R/I/S/B-type
 logic             is_exu_result_wb     ;  // Flags if EXU result requires writeback; DBG only, not consumed by any functional logic
 logic             is_exu_result_mem    ;  // Flags if EXU result requires memory access
 logic             is_pipe_inlock       ;  // Flags if pipeline interlock required
@@ -269,9 +266,9 @@ exu_branch_unit #(
    .i_funct3          (i_du_funct3)       ,    
    .i_immI            (i_du_i_type_imm)   ,    
    .i_immB            (i_du_b_type_imm)   ,    
-   .i_op0             (i_op0)             ,    
-   .i_op1             (i_op1)             ,  
-   .i_op0_lt_op1      (op0_lt_op1)        ,  
+   .i_op0             (i_op0)             ,
+   .i_op1             (i_op1)             ,
+   .i_op0_lt_op1      (op0_lt_op1)        ,
    .i_sign_op0_lt_op1 (sign_op0_lt_op1)   ,
    .i_branch_taken    (i_exu_bu_pred_btaken) ,
    `ifdef RAS
@@ -308,8 +305,8 @@ alu inst_alu (
    .i_stall           (stall)          ,
    .i_bubble          (du_bubble)      ,
    .i_is_alu_op       (i_du_is_alu_op) ,  
-   .i_op0             (alu_op0)        , 
-   .i_op1             (alu_op1)        , 
+   .i_op0             (alu_op0)        ,
+   .i_op1             (alu_op1)        ,
    .i_opcode          (alu_opcode)     ,
    .o_result          (alu_result)     ,
    .o_op0_lt_op1      (op0_lt_op1)     ,
@@ -376,6 +373,10 @@ assign du_bubble     = i_du_bubble | bubble_insert  ;
 
 //===================================================================================================================================================
 //  Bubble/Packet valid propagation logic
+//  -------------------------------------
+//  1. Both legal/illegal ALU (R/I/U) instructions propagate forward
+//  2. I/S/U/J instructions propagate forward (ALU-I)
+//  3. Branch instructions do not propagate forward
 //===================================================================================================================================================
 always_comb begin
    `ifdef MULTDIV
@@ -452,38 +453,26 @@ end
 // Rollback generation logic
 //===================================================================================================================================================
 `ifdef RAS
-logic [RPTW-1:0] ras_rbk_ptr_rg      ;  // RAS roll back pointer
-logic            ras_rbk_full_rg     ;  // RAS roll back to full
-logic            ras_rbk_incr_ptr_rg ;  // RAS roll back pointer increment flag
-`ifdef DBG
-logic            is_ras_mispred_rg   ;  // RAS misprediction flag registered 
-`endif
+logic [RPTW-1:0] ras_rbk_ptr_rg  ;  // RAS roll back pointer
+logic            ras_rbk_full_rg ;  // RAS roll back to full
 always_ff @(posedge clk or negedge aresetn) begin
-   if (!aresetn) begin 
-      ras_rbk_ptr_rg      <= '0;
-      ras_rbk_full_rg     <= 1'b0;
-      ras_rbk_incr_ptr_rg <= 1'b0;
-      `ifdef DBG
-      is_ras_mispred_rg   <= 1'b0;
-      `endif
+   if (!aresetn) begin
+      ras_rbk_ptr_rg  <= '0;
+      ras_rbk_full_rg <= 1'b0;
    end
    else if (!stall) begin
       // If RAS misprediction on RET is detected-
       // Rollback pointer in the snapshot = ptr-1, cz the stack was popped by the RET, hence spare buffers use that as the reference to rollback
       // But the stack should be rolled back to top pointer = ptr, not ptr-1, hence the increment flag must be set!
-      ras_rbk_ptr_rg      <= i_du_ras_snap_ptr;
-      ras_rbk_full_rg     <= i_du_ras_snap_full;
-      ras_rbk_incr_ptr_rg <= is_ras_mispred;  // Set increment flag on RET misprediction
-      `ifdef DBG
-      is_ras_mispred_rg   <= is_ras_mispred;
-      `endif
-   end 
+      ras_rbk_ptr_rg  <= i_du_ras_snap_ptr;
+      ras_rbk_full_rg <= i_du_ras_snap_full;
+   end
 end
 assign o_ras_rbk_en       = bu_flush            ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
-                                                   // All of the cases, it should rollback the RAS
+                                                   // All of the cases, it should rollback the RAS. Rollback enable must be pulse always.
 assign o_ras_rbk_ptr      = ras_rbk_ptr_rg      ;
 assign o_ras_rbk_full     = ras_rbk_full_rg     ; 
-assign o_ras_rbk_incr_ptr = ras_rbk_incr_ptr_rg ;
+assign o_ras_rbk_incr_ptr = is_ras_mispred      ;
 `endif//RAS
 
 //===================================================================================================================================================
@@ -516,18 +505,17 @@ assign is_exu_result_mem = ~lsu_bubble  ;               // Load/Store instructio
 //===================================================================================================================================================
 //  Pipeline Interlock logic
 //  ------------------------
-//  If current instr is Load, and next instr is RISB-type with RAW access, then
+//  If current instr is Load, and next instr (from DU) is RISB-type with RAW access, then
 //  EXU result doesn't contain the Load data for operand forwarding, so the RAW access may lead to RAW hazard...
-//  This is mitigated by generating pipeline interlock. This logic generates 1-cycle stall to DU, inserts bubble in pipeline, allowing MACCU to load
+//  This is mitigated by generating pipeline interlock. This logic generates 1-cycle stall to DU, inserts a bubble in pipeline, allowing MACCU to load
 //  the data in the next cycle (if available, else MACCU generates stall next cycle). 
-//  Once MACCU registers the result ie., Load data, operand forwarding can take over this data and mitigate the RAW hazard...
+//  Once MACCU registers the result, Operand Forward block can forward this Load data and mitigate the RAW hazard...
 //===================================================================================================================================================
 assign is_du_rs0_eq_exu_rdt = (i_du_rs0 == exu_rdt_rg) ;
 assign is_du_rs1_eq_exu_rdt = (i_du_rs1 == exu_rdt_rg) ;
 assign is_du_rsx_eq_exu_rdt = is_du_rs0_eq_exu_rdt | is_du_rs1_eq_exu_rdt ;
 assign is_exu_rdt_not_x0    = exu_rdt_not_x0_rg ;
-assign is_du_instr_risb     = i_du_is_risb;
-assign is_src_eq_dest       = is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0 && is_du_instr_risb;
+assign is_src_eq_dest       = is_du_rsx_eq_exu_rdt && is_exu_rdt_not_x0;
 assign is_exu_instr_load    = ~lsu_mem_cmd  ;
 
 // Valid Load instruction and RAW access detected? => potential RAW hazard => pipeline interlock!
@@ -553,9 +541,9 @@ assign o_du_stall    = exu_stall_ext         ;  // Stall signal to DU
 // Debug Interface
 `ifdef RAS
    `ifdef MULTDIV
-   assign o_exu_dbg = {multdiv_res_valid, is_ras_mispred_rg, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   assign o_exu_dbg = {multdiv_res_valid, is_ras_mispred, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
    `else
-   assign o_exu_dbg = {is_ras_mispred_rg, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
+   assign o_exu_dbg = {is_ras_mispred, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
    `endif
 `else
    `ifdef MULTDIV
@@ -581,7 +569,6 @@ assign o_maccu_bubble     = exu_bubble_rg     ;
 
 assign o_maccu_rdt_addr   = exu_rdt_rg        ;
 assign o_maccu_rdt_data   = exu_result        ;
-assign o_maccu_rdt_not_x0 = exu_rdt_not_x0_rg ;
 assign o_maccu_is_macc_op = is_exu_result_mem ;
 assign o_maccu_macc_cmd   = lsu_mem_cmd       ;
 assign o_maccu_macc_addr  = lsu_mem_addr      ;

@@ -67,7 +67,6 @@ module memory_access_unit #(
 
    input  logic [4:0]       i_exu_rdt_addr     ,  // Writeback address from EXU
    input  logic [`XLEN-1:0] i_exu_rdt_data     ,  // Writeback data from EXU
-   input  logic             i_exu_rdt_not_x0   ,  // rdt neq x0 
    input  logic             i_exu_is_macc_op   ,  // Memory access operation flag from EXU
    input  logic             i_exu_macc_cmd     ,  // Memory access command from EXU
    input  logic [`XLEN-1:0] i_exu_macc_addr    ,  // Memory access address from EXU
@@ -94,7 +93,6 @@ module memory_access_unit #(
    input  logic             i_wbu_stall        ,  // Stall signal from WBU   
    output logic [4:0]       o_wbu_rdt_addr     ,  // rdt address to WBU
    output logic [`XLEN-1:0] o_wbu_rdt_data     ,  // rdt data to WBU
-   output logic             o_wbu_rdt_not_x0   ,  // rdt neq x0
    output logic             o_wbu_is_macc      ,  // Memory access flag to WBU
    output logic             o_wbu_is_load      ,  // Load operation flag to WBU
    `ifdef DBG
@@ -123,7 +121,6 @@ logic             maccu_is_wbck_rg    ;  // Writeback valid
 logic             maccu_bubble_rg     ;  // Bubble
 logic [4:0]       rdt_addr_rg         ;  // rdt address
 logic [`XLEN-1:0] rdt_data_rg         ;  // rdt data
-logic             rdt_not_x0_rg       ;  // rdt neq x0
 
 // Other packets in the Payload to WBU
 logic             is_macc             ;  // Memory access flag
@@ -157,7 +154,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       maccu_bubble_rg     <= 1'b1       ;
       rdt_addr_rg         <= '0         ;
       rdt_data_rg         <= '0         ;
-      rdt_not_x0_rg       <= 1'b0       ;
       is_macc_rg          <= 1'b0       ;
       is_load_rg          <= 1'b0       ;
       macc_addr_lsb_rg    <= '0         ;
@@ -173,7 +169,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       maccu_bubble_rg     <= i_exu_bubble     ;
       rdt_addr_rg         <= i_exu_rdt_addr   ;
       rdt_data_rg         <= i_exu_rdt_data   ;
-      rdt_not_x0_rg       <= i_exu_rdt_not_x0 ;
       is_macc_rg          <= is_macc          ;
       is_load_rg          <= is_load          ;
       macc_addr_lsb_rg    <= i_exu_macc_addr[`XLSB-1:0];
@@ -228,7 +223,6 @@ assign o_wbu_funct3        = maccu_funct3_rg  ;
 assign o_wbu_bubble        = maccu_bubble_rg  ;
 assign o_wbu_rdt_addr      = rdt_addr_rg      ;
 assign o_wbu_rdt_data      = rdt_data_rg      ;
-assign o_wbu_rdt_not_x0    = rdt_not_x0_rg    ;
 assign o_wbu_is_macc       = is_macc_rg       ;
 assign o_wbu_is_load       = is_load_rg       ;
 `ifdef DBG

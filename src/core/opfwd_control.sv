@@ -69,18 +69,14 @@ module opfwd_control (
    input  logic             i_du_is_u_type      ,  // U-type instruction flag from DU
    input  logic [19:0]      i_du_u_type_imm     ,  // U-type immediate from DU
    input  logic             i_du_is_lui         ,  // LUI flag from DU
-   input  logic             i_du_instr_rsb      ,  // RSB flag from DU
-   input  logic             i_du_instr_risb     ,  // RISB instruction flag from DU
-  
+
    // Interface with Execution Unit (EXU)
    input  logic [`XLEN-1:0] i_exu_result        ,  // Result from EXU
    input  logic [4:0]       i_exu_rdt           ,  // rdt from EXU
    input  logic             i_exu_is_wbck       ,  // Writeback valid from EXU
 
    // Interface with Memory Access Unit (MACCU)
-   input  logic [`XLEN-1:0] i_dmem_load_data    ,  // Load data from DMEM
-   input  logic [`XLEN-1:0] i_maccu_wbdata      ,  // Writeback data from MACCU
-   input  logic             i_is_load           ,  // Load flag
+   input  logic [`XLEN-1:0] i_maccu_result      ,  // Direct writeback or Load data from MACCU (muxed at WBU)
    input  logic [4:0]       i_maccu_rdt         ,  // rdt from MACCU
    input  logic             i_maccu_is_wbck     ,  // Writeback valid from MACCU
 
@@ -97,11 +93,6 @@ module opfwd_control (
 //===================================================================================================================================================
 // Internal Registers/Signals
 //===================================================================================================================================================
-logic [`XLEN-1:0] maccu_result           ;  // MACCU result to be forwarded
-
-logic             is_du_instr_rsb        ;  // Flags if DU instruction = RSB-type
-logic             is_du_instr_risb       ;  // Flags if DU instruction = RISB-type
-
 logic             is_exu_wback_valid     ;  // Flags if EXU writes back to destination
 logic             is_maccu_wback_valid   ;  // Flags if MACCU writes back to destination
 logic             is_wbu_wback_valid     ;  // Flags if WBU writes back to destination
@@ -151,25 +142,21 @@ assign immU = {i_du_u_type_imm, {(`XLEN-20){1'b0}}} ;  // LSbs to fill 0s
 assign is_exu_wback_valid = i_exu_is_wbck ;
 
 // Operand-0 forwarding
-assign is_du_exu_op0_raw = (is_exu_wback_valid && is_du_instr_risb && (i_du_rs0 == i_exu_rdt));
+assign is_du_exu_op0_raw = (is_exu_wback_valid && (i_du_rs0 == i_exu_rdt));
 
 // Operand-1 forwarding
-assign is_du_exu_op1_raw = (is_exu_wback_valid && is_du_instr_rsb  && (i_du_rs1 == i_exu_rdt));
+assign is_du_exu_op1_raw = (is_exu_wback_valid && (i_du_rs1 == i_exu_rdt));
 
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access b/w DU and MACCU
 //===================================================================================================================================================
-// Select the data to be forwarded as MACCU result... 
-// If Load access happened at MACCU, forward load data from DMEM access, else forward register writeback data from MACCU
-assign maccu_result  = (i_is_load)? i_dmem_load_data : i_maccu_wbdata ;
-
 assign is_maccu_wback_valid = i_maccu_is_wbck ;
 
 // Operand-0 forwarding
-assign is_du_maccu_op0_raw = (is_maccu_wback_valid && is_du_instr_risb && (i_du_rs0_cpy == i_maccu_rdt));
+assign is_du_maccu_op0_raw = (is_maccu_wback_valid && (i_du_rs0_cpy == i_maccu_rdt));
 
 // Operand-1 forwarding
-assign is_du_maccu_op1_raw = (is_maccu_wback_valid && is_du_instr_rsb &&  (i_du_rs1_cpy == i_maccu_rdt));
+assign is_du_maccu_op1_raw = (is_maccu_wback_valid && (i_du_rs1_cpy == i_maccu_rdt));
 
 //===================================================================================================================================================
 // Combinatorial logic to flag RAW access b/w DU and WBU
@@ -177,10 +164,10 @@ assign is_du_maccu_op1_raw = (is_maccu_wback_valid && is_du_instr_rsb &&  (i_du_
 assign is_wbu_wback_valid = i_wbu_is_wbck ;
 
 // Operand-0 forwarding
-assign is_du_wbu_op0_raw = (is_wbu_wback_valid && is_du_instr_risb && (i_du_rs0_cpy2 == i_wbu_rdt));
+assign is_du_wbu_op0_raw = (is_wbu_wback_valid && (i_du_rs0_cpy2 == i_wbu_rdt));
 
 // Operand-1 forwarding
-assign is_du_wbu_op1_raw = (is_wbu_wback_valid && is_du_instr_rsb &&  (i_du_rs1_cpy2 == i_wbu_rdt));
+assign is_du_wbu_op1_raw = (is_wbu_wback_valid && (i_du_rs1_cpy2 == i_wbu_rdt));
 
 //===================================================================================================================================================
 // Combinatorial logic to forward Operand-0 to output
@@ -189,7 +176,7 @@ assign is_du_wbu_op1_raw = (is_wbu_wback_valid && is_du_instr_rsb &&  (i_du_rs1_
 always_comb begin
    casez ({is_du_exu_op0_raw, is_du_maccu_op0_raw, is_du_wbu_op0_raw})
       3'b1?? : o_fwd_op0 = i_exu_result  ;  // EXU fwd, highest priority
-      3'b01? : o_fwd_op0 = maccu_result  ;  // MACCU fwd
+      3'b01? : o_fwd_op0 = i_maccu_result;  // MACCU fwd
       3'b001 : o_fwd_op0 = i_wbu_result  ;  // WBU fwd
       default: o_fwd_op0 = rf_bypass_op0 ;  // RF/DU bypass
    endcase
@@ -202,17 +189,11 @@ end
 always_comb begin
    casez ({is_du_exu_op1_raw, is_du_maccu_op1_raw, is_du_wbu_op1_raw})
       3'b1?? : o_fwd_op1 = i_exu_result  ;  // EXU fwd, highest priority
-      3'b01? : o_fwd_op1 = maccu_result  ;  // MACCU fwd
+      3'b01? : o_fwd_op1 = i_maccu_result;  // MACCU fwd
       3'b001 : o_fwd_op1 = i_wbu_result  ;  // WBU fwd
       default: o_fwd_op1 = rf_bypass_op1 ;  // RF/DU bypass
    endcase
 end
-
-//===================================================================================================================================================
-// Internal signals derived
-//===================================================================================================================================================
-assign is_du_instr_rsb     = i_du_instr_rsb     ;
-assign is_du_instr_risb    = i_du_instr_risb    ;
 
 endmodule
 //###################################################################################################################################################

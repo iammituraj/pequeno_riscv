@@ -71,10 +71,10 @@ assign rdbk_en_rs0               = i_wbk_en & is_wbk_rdt_eq_pkt2exu_rs0;  // Rea
 assign rdbk_en_rs1               = i_wbk_en & is_wbk_rdt_eq_pkt2exu_rs1;  // Readback rs1 enable
 
 // Outputs to RF
-assign o_rf_rden0    = i_du_stall? rdbk_en_rs0 : i_du_rf_rden ;             // Enable readback rs0 only if stalling 
-assign o_rf_rden1    = i_du_stall? rdbk_en_rs1 : i_du_rf_rden ;             // Enable readback rs1 only if stalling
-assign o_rf_rs0_addr = (i_du_stall && rdbk_en_rs0)? i_wbk_rdt : i_du_rs0 ;  // rs0 address
-assign o_rf_rs1_addr = (i_du_stall && rdbk_en_rs1)? i_wbk_rdt : i_du_rs1 ;  // rs1 address
+assign o_rf_rden0    = i_du_stall? rdbk_en_rs0 : i_du_rf_rden ;  // Enable readback rs0 only if stalling 
+assign o_rf_rden1    = i_du_stall? rdbk_en_rs1 : i_du_rf_rden ;  // Enable readback rs1 only if stalling
+assign o_rf_rs0_addr = i_du_stall? i_wbk_rdt   : i_du_rs0     ;  // rs0 address; rdt forwarding not qualified with rdbk_en_rs0, but it's harmless...
+assign o_rf_rs1_addr = i_du_stall? i_wbk_rdt   : i_du_rs1     ;  // rs1 address; rdt forwarding not qualified with rdbk_en_rs0, but it's harmless...
 
 endmodule
 //###################################################################################################################################################

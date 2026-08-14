@@ -71,7 +71,7 @@ logic             bubble             ;  // Bubble
 always_comb begin
    casez (i_opcode)
       // Legal ALU instructions
-      ALU_ADD  : result = op0_plus_op1  ; 
+      ALU_ADD  : result = op0_plus_op1  ;
       ALU_SUB  : result = op0_minus_op1 ;
       ALU_SLT  : result = {{`XLEN-1{1'b0}}, is_sign_op0_lt_op1} ;
       ALU_SLTU : result = {{`XLEN-1{1'b0}}, is_op0_lt_op1} ;

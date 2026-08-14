@@ -105,7 +105,8 @@ module exu_branch_unit #(
 //===================================================================================================================================================
 logic [`XLEN-1:0] nxt_instr_pc_rg               ;  // Next instruction PC
 logic             branch_taken, branch_taken_rg ;  // Branch taken status registered
-logic             bp_branch_taken_rg            ;  // Branch Predictor status registered
+logic             bp_branch_taken_rg            ;  // Branch Predictor (BP) branch taken status registered
+logic             bp_or_ras_branch_taken        ;  // BP or RAS branch taken status
 logic             en_branch_comp_rg             ;  // Branch comparison enable
 logic [`XLEN-1:0] branch_pc, branch_pc_rg       ;  // Branch PC
 logic             bubble, bubble_rg             ;  // Bubble
@@ -129,32 +130,34 @@ logic             ovr_bp_sts_btaken_rg          ;  // Branch taken status overri
 // Synchronous logic to register instruction, PC, branch status signals
 //===================================================================================================================================================
 `ifdef RAS
-logic is_ras_pred_true ;  // RAS prediction flag
+logic is_ras_pred_true   ;  // RAS prediction flag
+logic is_ras_ret_taken_ff;  // RET taken status retimed
+logic is_ras_pred_true_ff;  // RAS prediction flag retimed
 `endif
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      bubble_rg          <= 1'b1      ;
-      branch_taken_rg    <= 1'b0      ;
-      bp_branch_taken_rg <= 1'b0      ;
+      bubble_rg          <= 1'b1   ;
+      branch_taken_rg    <= 1'b0   ;
+      bp_branch_taken_rg <= 1'b0   ;
       `ifdef RAS
+      is_ras_ret_taken_ff  <= 1'b0 ;
+      is_ras_pred_true_ff  <= 1'b0 ;
       `ifdef BPREDICT_DYN
-      ovr_bp_sts_btaken_rg <= 1'b0    ;
+      ovr_bp_sts_btaken_rg <= 1'b0 ;
       `endif 
       `endif
    end
    // Out of reset
    else if (!i_stall) begin 
-      bubble_rg          <= bubble         ;  
-      branch_taken_rg    <= branch_taken   ;
+      bubble_rg       <= bubble       ;  
+      branch_taken_rg <= branch_taken ;
       `ifdef RAS
-      // For RAS-predicted RET instructions:
-      // Compare RAS-predicted RET addr with JALR branch address, and check if the predicted address matches....
-      // - If RAS prediction is FALSE --> bp_branch_taken must be overriden as 0, so that flush is generated... cz branch is resolved as 1 for RET
-      // - If RAS prediction is TRUE  --> bp_branch_taken must be overriden as 1, so that NO flush is generated... cz branch is resolved as 1 for RET
-      bp_branch_taken_rg <= i_ras_ret_taken? is_ras_pred_true : i_branch_taken ;
+      bp_branch_taken_rg  <= i_branch_taken ;
+      is_ras_ret_taken_ff <= i_ras_ret_taken;
+      is_ras_pred_true_ff <= is_ras_pred_true;
       `else 
-      bp_branch_taken_rg <= i_branch_taken ;
+      bp_branch_taken_rg  <= i_branch_taken ;
       `endif
       `ifdef RAS
       `ifdef BPREDICT_DYN
@@ -172,7 +175,7 @@ always_ff @(posedge clk) begin
 end
 `ifdef RAS
 assign is_ras_pred_true = (i_ras_ret_addr == jalr_branch_addr);
-assign o_is_ras_mispred = i_ras_ret_taken & ~is_ras_pred_true ;  // Unpredicted RET (stack was empty) can cause flush & rollback, but not treated as mispredicted.
+assign o_is_ras_mispred = is_ras_ret_taken_ff & ~is_ras_pred_true_ff ;  // Unpredicted RET (stack was empty) can cause flush & rollback, but not treated as mispredicted.
 `endif
 
 // Branch compare signal generation
@@ -218,9 +221,9 @@ always_comb begin
    endcase
 end
 
-assign is_op0_eq_op1        = (i_op0 == i_op1)  ;  // Not implemented this in ALU as it's unused by ALU instructions, so implemented here for locality, and reduce routing delays...
-assign is_op0_lt_op1        = i_op0_lt_op1      ;  // Computed from ALU
-assign is_sign_op0_lt_op1   = i_sign_op0_lt_op1 ;  // Computed from ALU
+assign is_op0_eq_op1      = (i_op0 == i_op1)  ;  // Not implemented this in ALU as it's unused by ALU instructions, so implemented here for locality, and reduce routing delays...
+assign is_op0_lt_op1      = i_op0_lt_op1      ;  // Computed from ALU
+assign is_sign_op0_lt_op1 = i_sign_op0_lt_op1 ;  // Computed from ALU
 
 //===========================================================================================================
 // Combinatorial logic for Branch PC resolution
@@ -242,8 +245,17 @@ assign br_branch_addr   = (i_pc + immB);
 //===========================================================================================================
 // Flush generation
 //===========================================================================================================
-assign is_branch_taken_diff = branch_taken_rg ^ bp_branch_taken_rg     ;  // Compare the predicted and resolved branch taken status and flag if different 
-assign flush                = is_branch_taken_diff & en_branch_comp_rg ;  // Generate flush if the comparison is enabled and status differ
+// For RAS-predicted RET instructions:
+// Compare RAS-predicted RET addr with JALR branch address, and check if the predicted address matches....
+// - If RAS prediction is FALSE --> BP's branch taken status must be overriden as 0, so that flush is generated... cz branch is resolved as 1 for RET
+// - If RAS prediction is TRUE  --> BP's branch taken status must be overriden as 1, so that NO flush is generated... cz branch is resolved as 1 for RET
+`ifdef RAS
+assign bp_or_ras_branch_taken = is_ras_ret_taken_ff? is_ras_pred_true_ff : bp_branch_taken_rg ;
+`else
+assign bp_or_ras_branch_taken = bp_branch_taken_rg ;
+`endif
+assign is_branch_taken_diff   = branch_taken_rg ^ bp_or_ras_branch_taken ;  // Compare the predicted and resolved branch taken status and flag if different
+assign flush                  = is_branch_taken_diff & en_branch_comp_rg ;  // Generate flush if the comparison is enabled and status differ
 
 // Bubble
 assign bubble = i_is_j_or_jalr ? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
