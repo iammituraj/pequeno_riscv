@@ -14,6 +14,7 @@
 #                    - Compile assembly programs and generate the pgm/data binaries with pqr5asm.
 #                    - Generate IRAM and DRAM with the generated firmware binary.
 #                    - Compile and simulate the core with firmware (HW-SW co-RTL-sim), and dump results. 
+#                    - Run regression test suite to validate the core.
 #                    - On-board testing: 
 #                         - Synthesis, implementation for Xilinx FPGAs.
 #                         - Generate bitstream & burn to the FPGA. 
@@ -22,7 +23,7 @@
 #                    - Compile and build Dhrystone CPU Benchmark and generate the binary for on-board validation/simulation.
 #                    - Compile and build Standard RISC-V Test pgms (by riscv.org) with GCC for on-board validation/simulation.
 #
-# Last Modified on : Jul-2026
+# Last Modified on : Aug-2026
 # Compatibility    : Linux/Unix, Windows require terminal programs like MSYS/Gitbash
 #                    ModelSim/QuestaSim for RTL simulation
 #                    Pequeno SW toolchain for ASM compiling, flashing Pequeno
@@ -177,7 +178,7 @@ help:
 	@echo "   OFT=0"
 	@echo "   GUI=0"
 	@echo "   ARCH=rv32i"
-	@echo "   OFT, PC_INIT, program (text section) offset address have constraints, refer to: build_notes.txt"
+	@echo "   OFT, PC_INIT, .origin in ASM programs have constraints, refer to: build_notes.txt"
 	@echo "3) ASM flags (ASMF) available are: -pcrel. It is added by default for relocatable program binary."
 	@echo "   Override ASMF=<empty> to create non-relocatable program binary"
 	@echo "   For more details, refer to: pqr5asm_imanual.pdf"
