@@ -71,17 +71,17 @@ module opfwd_control (
    input  logic             i_du_is_lui         ,  // LUI flag from DU
 
    // Interface with Execution Unit (EXU)
-   input  logic [`XLEN-1:0] i_exu_result        ,  // Result from EXU
+   input  logic [`XLEN-1:0] i_exu_wbckdata      ,  // Writeback data from EXU
    input  logic [4:0]       i_exu_rdt           ,  // rdt from EXU
    input  logic             i_exu_is_wbck       ,  // Writeback valid from EXU
 
    // Interface with Memory Access Unit (MACCU)
-   input  logic [`XLEN-1:0] i_maccu_result      ,  // Direct writeback or Load data from MACCU (muxed at WBU)
+   input  logic [`XLEN-1:0] i_maccu_wbckdata    ,  // Direct writeback or Load data from MACCU (muxed at WBU)
    input  logic [4:0]       i_maccu_rdt         ,  // rdt from MACCU
    input  logic             i_maccu_is_wbck     ,  // Writeback valid from MACCU
 
    // Interface with Write Back Unit (WBU)
-   input  logic [`XLEN-1:0] i_wbu_result        ,  // Result from WBU
+   input  logic [`XLEN-1:0] i_wbu_wbckdata      ,  // Writeback data from WBU
    input  logic [4:0]       i_wbu_rdt           ,  // rdt from WBU
    input  logic             i_wbu_is_wbck       ,  // Writeback valid from WBU
 
@@ -175,9 +175,9 @@ assign is_du_wbu_op1_raw = (is_wbu_wback_valid && (i_du_rs1_cpy2 == i_wbu_rdt));
 // Priority Mux to forward the operand
 always_comb begin
    casez ({is_du_exu_op0_raw, is_du_maccu_op0_raw, is_du_wbu_op0_raw})
-      3'b1?? : o_fwd_op0 = i_exu_result  ;  // EXU fwd, highest priority
-      3'b01? : o_fwd_op0 = i_maccu_result;  // MACCU fwd
-      3'b001 : o_fwd_op0 = i_wbu_result  ;  // WBU fwd
+      3'b1?? : o_fwd_op0 = i_exu_wbckdata  ;  // EXU fwd, highest priority
+      3'b01? : o_fwd_op0 = i_maccu_wbckdata;  // MACCU fwd
+      3'b001 : o_fwd_op0 = i_wbu_wbckdata  ;  // WBU fwd
       default: o_fwd_op0 = rf_bypass_op0 ;  // RF/DU bypass
    endcase
 end
@@ -188,9 +188,9 @@ end
 // Priority Mux to forward the operand
 always_comb begin
    casez ({is_du_exu_op1_raw, is_du_maccu_op1_raw, is_du_wbu_op1_raw})
-      3'b1?? : o_fwd_op1 = i_exu_result  ;  // EXU fwd, highest priority
-      3'b01? : o_fwd_op1 = i_maccu_result;  // MACCU fwd
-      3'b001 : o_fwd_op1 = i_wbu_result  ;  // WBU fwd
+      3'b1?? : o_fwd_op1 = i_exu_wbckdata  ;  // EXU fwd, highest priority
+      3'b01? : o_fwd_op1 = i_maccu_wbckdata;  // MACCU fwd
+      3'b001 : o_fwd_op1 = i_wbu_wbckdata  ;  // WBU fwd
       default: o_fwd_op1 = rf_bypass_op1 ;  // RF/DU bypass
    endcase
 end
