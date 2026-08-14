@@ -79,9 +79,9 @@ module ras_predictor #(
    output logic               o_flush          // Flush generated on return taken
 );
 
-//===================================================================================================================================================
+//==================================================================================================
 // Internal Registers/Signals
-//===================================================================================================================================================
+//==================================================================================================
 logic               is_call_valid       ;  // Valid CALL instr received
 logic               is_ret_valid        ;  // Valid RET instr received
 logic               ret_taken           ;  // RET taken status
@@ -126,30 +126,30 @@ call_stack #(
    .o_empty        (st_empty)
 );
 
-//===================================================================
+//==================================================================================================
 // Push & Pop control
-//-------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 // - Push should be performed on valid CALLs
 // - Pop should be performed on valid RETs
 // - Push/pop must be blocked on FU stall or RAS flush
-//===================================================================
+//==================================================================================================
 assign is_call_valid    = i_is_call & i_instr_valid ;
 assign is_ret_valid     = i_is_ret  & i_instr_valid ;
 assign push_en          = is_call_valid  & ~i_stall & ~ras_flush_rg ;
 assign pop_en           = is_ret_valid   & ~i_stall & ~ras_flush_rg ;
 assign ret_addr_on_call = i_pc + `XLEN'(4);  // Return address after exiting a subroutine CALL is always PC+4
 
-//===================================================================
+//==================================================================================================
 // Encode speculative state of the CPU pipeline
-//===================================================================
+//==================================================================================================
 always_comb begin
    if   (i_is_ret_taken_du && i_is_call_fu) cpu_spec_state = 2'b11;
    else                                     cpu_spec_state = {1'b0, i_is_call_du} + {1'b0, i_is_call_fu};
 end
 
-//===================================================================
+//==================================================================================================
 // Stack Snapshot
-//===================================================================
+//==================================================================================================
 logic [ST_PTRW-1:0] curr_st_ptr_p1;
 logic [ST_PTRW-1:0] curr_st_ptr_m1;
 always_ff @(posedge clk or negedge aresetn) begin
@@ -170,28 +170,33 @@ end
 assign curr_st_ptr_p1 = curr_st_ptr + 1;
 assign curr_st_ptr_m1 = curr_st_ptr - 1;
 
-//===================================================================
-// RET address prediction
-//===================================================================
+//==================================================================================================
+// RET taken status & RET address predicted
+//==================================================================================================
+// RET taken status
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      ret_addr_on_ret_rg <= '0;
-      ret_taken_rg       <= '0;
+      ret_taken_rg <= '0;
    end
    // Out of reset
    else if (!i_stall) begin 
+      ret_taken_rg <= ret_taken ;  // Pipe forward...         
+   end
+end
+// RET addr; no reset for better PPA
+always_ff @(posedge clk) begin
+  if (!i_stall) begin 
       ret_addr_on_ret_rg <= ret_addr_on_ret ;  // Pipe forward...
-      ret_taken_rg       <= ret_taken       ;  // Pipe forward...         
    end
 end
 assign o_ret_addr  = ret_addr_on_ret_rg ;
 assign o_ret_taken = ret_taken_rg       ;
 assign ret_taken   = (is_ret_valid && !st_empty);  // If stack is not empty and is valid RET instr, then pop from RAS may have happened => RET is taken
 
-//===================================================================
+//==================================================================================================
 // RAS flush generation on RET address prediction
-//===================================================================
+//==================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin

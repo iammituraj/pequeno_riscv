@@ -23,8 +23,8 @@
 //----%% Developer        : Mitu Raj, chip@chipmunklogic.com
 //----%% Vendor           : Chipmunk Logic ™ , https://chipmunklogic.com
 //----%%
-//----%% Description      : This is the branch unit used by Execution Unit (EXU) of PQR5 Core. Decodes all Jump and Branch instructions and generate
-//----%%                    branch status signals.
+//----%% Description      : This is the branch unit used by Execution Unit (EXU) of PQR5 Core. Decodes all Jump and Branch instructions,
+//----%%                    resolves the branch addresses, verify the branch/RAS prediction and generates flush if necessary.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
 //----%% Last modified on : Aug-2026
@@ -92,17 +92,17 @@ module exu_branch_unit #(
    output logic             o_bp_sts_btaken  ,  // Branch taken status after branch resolution
    `endif
 
-   // Status signals
+   // Status signals & Flush
    output logic [`XLEN-1:0] o_nxt_instr_pc   ,  // Next instruction PC; address used to return from subroutines after JAL/JALR
    output logic             o_bubble         ,  // Bubble out
    output logic             o_branch_taken   ,  // Branch taken status after execution; '0'- not taken, '1'- taken  
    output logic [`XLEN-1:0] o_branch_pc      ,  // Branch PC; PC to branch to
-   output logic             o_flush             // Flush signal
+   output logic             o_flush             // Flush signal __/''\__
 );
 
-//===================================================================================================================================================
+//==================================================================================================
 // Internal Registers/Signals
-//===================================================================================================================================================
+//==================================================================================================
 logic [`XLEN-1:0] nxt_instr_pc_rg               ;  // Next instruction PC
 logic             branch_taken, branch_taken_rg ;  // Branch taken status registered
 logic             bp_branch_taken_rg            ;  // Branch Predictor (BP) branch taken status registered
@@ -126,9 +126,9 @@ logic             ovr_bp_sts_btaken_rg          ;  // Branch taken status overri
 `endif
 `endif 
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to register instruction, PC, branch status signals
-//===================================================================================================================================================
+//==================================================================================================
 `ifdef RAS
 logic is_ras_pred_true   ;  // RAS prediction flag
 logic is_ras_ret_taken_ff;  // RET taken status retimed
@@ -153,11 +153,11 @@ always_ff @(posedge clk or negedge aresetn) begin
       bubble_rg       <= bubble       ;  
       branch_taken_rg <= branch_taken ;
       `ifdef RAS
-      bp_branch_taken_rg  <= i_branch_taken ;
-      is_ras_ret_taken_ff <= i_ras_ret_taken;
+      bp_branch_taken_rg  <= i_branch_taken  ;
+      is_ras_ret_taken_ff <= i_ras_ret_taken ;
       is_ras_pred_true_ff <= is_ras_pred_true;
       `else 
-      bp_branch_taken_rg  <= i_branch_taken ;
+      bp_branch_taken_rg  <= i_branch_taken  ;
       `endif
       `ifdef RAS
       `ifdef BPREDICT_DYN
@@ -173,8 +173,14 @@ always_ff @(posedge clk) begin
       branch_pc_rg    <= branch_pc ;
    end
 end
+
+// Bubble
+assign bubble = i_is_j_or_jalr ? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
+                                                    // JAL/JALR instructions need to propagate fwd in pipeline for writeback
+                                                    // Invalid/Branch instructions need not propagate fwd in pipeline 
+// RAS prediction signals out
 `ifdef RAS
-assign is_ras_pred_true = (i_ras_ret_addr == jalr_branch_addr);
+assign is_ras_pred_true = (i_ras_ret_addr == jalr_branch_addr);         // RAS predicted address == resolved address?
 assign o_is_ras_mispred = is_ras_ret_taken_ff & ~is_ras_pred_true_ff ;  // Unpredicted RET (stack was empty) can cause flush & rollback, but not treated as mispredicted.
 `endif
 
@@ -189,14 +195,14 @@ always_ff @(posedge clk or negedge aresetn) begin
    else if (!i_stall) begin en_branch_comp_rg <= ~i_bubble ; end
 end
 
-//===================================================================================================================================================
+//==================================================================================================
 // Combinatorial logic for branch decoding & resolution
-//===================================================================================================================================================
+//==================================================================================================
 // - JAL never generates flush because it is already resolved by the Branch Predictor in FU correctly, and the branch is always taken.
 // - JALR (other than RAS-predicted RET) always generates flush, cz the Branch predictor can never resolve the branch address.
 //   The branch is always resolved as taken, while the Branch predictor always predicts it as NOT taken.
 // - Branch instructions: flush iff resolved branch status != predicted status.
-//===================================================================================================================================================
+//==================================================================================================
 always_comb begin
    case ({i_is_j_or_jalr, i_is_b_type})
       // JAL or JALR
@@ -225,9 +231,9 @@ assign is_op0_eq_op1      = (i_op0 == i_op1)  ;  // Not implemented this in ALU 
 assign is_op0_lt_op1      = i_op0_lt_op1      ;  // Computed from ALU
 assign is_sign_op0_lt_op1 = i_sign_op0_lt_op1 ;  // Computed from ALU
 
-//===========================================================================================================
+//==================================================================================================
 // Combinatorial logic for Branch PC resolution
-//===========================================================================================================
+//==================================================================================================
 // JAL is not considered here cz branch_pc is relevant only when misprediction happens and flush is generated
 // and JAL never causes mispredictions!
 always_comb begin
@@ -238,13 +244,18 @@ always_comb begin
    endcase
 end
 
+// Decoded immediates
+assign immI      = {{(`XLEN-12){i_immI[11]}}, i_immI}             ;  // Sign-extend
+assign immB      = {{(`XLEN-12){i_immB[11]}}, i_immB[10:0], 1'b0} ;  // Sign-extend after x2
+assign pc_plus_4 = i_pc  + `XLEN'(4) ;
+
 // Branch address generator
 assign jalr_branch_addr = (i_op0 + immI) & {{`XLEN-1{1'b1}}, 1'b0} ;  // LSb should be cleared to 0 for JALR
 assign br_branch_addr   = (i_pc + immB);
 
-//===========================================================================================================
+//==================================================================================================
 // Flush generation
-//===========================================================================================================
+//==================================================================================================
 // For RAS-predicted RET instructions:
 // Compare RAS-predicted RET addr with JALR branch address, and check if the predicted address matches....
 // - If RAS prediction is FALSE --> BP's branch taken status must be overriden as 0, so that flush is generated... cz branch is resolved as 1 for RET
@@ -257,17 +268,9 @@ assign bp_or_ras_branch_taken = bp_branch_taken_rg ;
 assign is_branch_taken_diff   = branch_taken_rg ^ bp_or_ras_branch_taken ;  // Compare the predicted and resolved branch taken status and flag if different
 assign flush                  = is_branch_taken_diff & en_branch_comp_rg ;  // Generate flush if the comparison is enabled and status differ
 
-// Bubble
-assign bubble = i_is_j_or_jalr ? i_bubble : 1'b1 ;  // Every instruction inserts bubble except JAL/JALR
-                                                    // JAL/JALR instructions need to propagate fwd in pipeline for writeback
-                                                    // Invalid/Branch instructions need not propagate fwd in pipeline 
-
-// Decoded immediates
-assign immI          = {{(`XLEN-12){i_immI[11]}}, i_immI}             ;  // Sign-extend
-assign immB          = {{(`XLEN-12){i_immB[11]}}, i_immB[10:0], 1'b0} ;  // Sign-extend after x2
-assign pc_plus_4     = i_pc  + `XLEN'(4) ;
-
+///////////////////////////////////////////////////////////////////////////////
 // Outputs
+///////////////////////////////////////////////////////////////////////////////
 assign o_nxt_instr_pc = nxt_instr_pc_rg ;
 assign o_branch_taken = branch_taken_rg ;
 assign o_branch_pc    = branch_pc_rg    ;

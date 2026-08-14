@@ -62,7 +62,6 @@
 // Sample configurations:
 // ----------------------
 // Light         = 
-// Standard      = RAS
 // Performance   = BPREDICT_DYN
 // Performance++ = BPREDICT_DYN + RAS
 //====================================================================================================================================================
@@ -96,7 +95,7 @@
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 // Multiplier & Divider unit
 //----------------------------------------------------------------------------------------------------------------------------------------------------
-//`define MULTDIV                           // Define this macro to generate HW Multiplier and Divider and adds M-extension
+`define MULTDIV                           // Define this macro to generate HW Multiplier and Divider and adds M-extension
 `define EN_FPGA_DSP_MULT  1               // 1 = use x32 DSP multiplier, 0 = use x32 Radix-4 Booth multiplier. This macro is valid iff MULTDIV is defined
 `define MULT_PIPE_STAGES  2               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
 

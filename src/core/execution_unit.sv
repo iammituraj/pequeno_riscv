@@ -170,9 +170,9 @@ module execution_unit #(
    output logic [`XLEN-1:0] o_maccu_macc_data      // Memory access data (for Store) to MACCU   
 );
 
-//===================================================================================================================================================
+//==================================================================================================
 // Internal Registers/Signals
-//===================================================================================================================================================
+//==================================================================================================
 // EXU-BU specific
 logic [`XLEN-1:0] bu_result          ;  // EXU-BU result ie., Next Instruction PC
 logic             bu_bubble          ;  // Bubble from EXU-BU
@@ -188,10 +188,10 @@ logic             alu_bubble         ;  // Bubble from ALU
 
 `ifdef MULTDIV
 // MULT/DIV specific
-logic             multdiv_op_valid         ;  // MULT/DIV operands valid; this will be qualified against i_is_mult/div_op inside MULT/DIV
-logic             multdiv_stall            ;  // Stall to other EXU units and upstream pipeline from MULT/DIV
-logic [`XLEN-1:0] multdiv_res              ;  // MULT/DIV result
-logic             multdiv_res_valid        ;  // MULT/DIV result valid
+logic             multdiv_op_valid   ;  // MULT/DIV operands valid; this will be qualified against i_is_mult/div_op inside MULT/DIV
+logic             multdiv_stall      ;  // Stall to other EXU units and upstream pipeline from MULT/DIV
+logic [`XLEN-1:0] multdiv_res        ;  // MULT/DIV result
+logic             multdiv_res_valid  ;  // MULT/DIV result valid
 `endif
 
 // LSU specific
@@ -245,9 +245,9 @@ logic             sign_op0_lt_op1 ;  // Signed comparison flag
 logic             is_ras_mispred  ;  // RAS misprediction flag
 `endif
 
-//===================================================================================================================================================
+//==================================================================================================
 // Instances of EXU functional blocks
-//===================================================================================================================================================
+//==================================================================================================
 // Branch Unit (EXU-BU)
 exu_branch_unit #(
    .PC_INIT         (PC_INIT),
@@ -371,13 +371,13 @@ assign multdiv_op_valid = ~du_bubble ;
 assign bubble_insert = bu_flush    | is_pipe_inlock ;
 assign du_bubble     = i_du_bubble | bubble_insert  ;
 
-//===================================================================================================================================================
+//==================================================================================================
 //  Bubble/Packet valid propagation logic
 //  -------------------------------------
 //  1. Both legal/illegal ALU (R/I/U) instructions propagate forward
 //  2. I/S/U/J instructions propagate forward (ALU-I)
 //  3. Branch instructions do not propagate forward
-//===================================================================================================================================================
+//==================================================================================================
 always_comb begin
    `ifdef MULTDIV
    case ({i_du_is_jal_or_jalr, i_du_is_alu_op, i_du_is_s_type, i_du_is_load, i_du_is_mult_op | i_du_is_div_op})
@@ -404,17 +404,17 @@ always_ff @(posedge clk or negedge aresetn) begin
    else if (!stall)   begin exu_bubble_rg <= exu_bubble ; end 
 end
 
-//===================================================================================================================================================
+//==================================================================================================
 //  Operands and Opcode to ALU
-//===================================================================================================================================================
+//==================================================================================================
 assign alu_op1    = i_op1 ;
 assign alu_op0    = i_op0 ;
 assign alu_opcode = i_du_alu_opcode ;
 
 `ifdef DBG
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe PC
-//===================================================================================================================================================
+//==================================================================================================
 // No reset for better PPA
 always_ff @(posedge clk) begin
    if (!stall) begin exu_pc_rg <= i_du_pc  ; end  // Pipe forward...
@@ -422,18 +422,18 @@ end
 `endif
 
 `ifdef DBG
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe instruction
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin exu_instr_rg <= `INSTR_NOP ; end
-   else if (!stall)   begin exu_instr_rg <= i_du_instr ; end  // Pipe forward... 
+//==================================================================================================
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin exu_instr_rg <= i_du_instr ; end  // Pipe forward... 
 end
 `endif
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe other packets in DU Payload
-//===================================================================================================================================================
+//==================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if (!aresetn) begin 
       exu_is_wbck_rg    <= 1'b0 ;
@@ -449,10 +449,10 @@ always_ff @(posedge clk or negedge aresetn) begin
    end 
 end
 
-//===================================================================================================================================================
-// Rollback generation logic
-//===================================================================================================================================================
 `ifdef RAS
+//==================================================================================================
+// Rollback generation logic
+//==================================================================================================
 logic [RPTW-1:0] ras_rbk_ptr_rg  ;  // RAS roll back pointer
 logic            ras_rbk_full_rg ;  // RAS roll back to full
 always_ff @(posedge clk or negedge aresetn) begin
@@ -468,16 +468,16 @@ always_ff @(posedge clk or negedge aresetn) begin
       ras_rbk_full_rg <= i_du_ras_snap_full;
    end
 end
-assign o_ras_rbk_en       = bu_flush            ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
-                                                   // All of the cases, it should rollback the RAS. Rollback enable must be pulse always.
-assign o_ras_rbk_ptr      = ras_rbk_ptr_rg      ;
-assign o_ras_rbk_full     = ras_rbk_full_rg     ; 
-assign o_ras_rbk_incr_ptr = is_ras_mispred      ;
+assign o_ras_rbk_en       = bu_flush        ;  // BU flush could be due to Branch misprediction, CALL/JALR, RET(RAS) misprediction. 
+                                               // All of the cases, it should rollback the RAS. Rollback enable must be pulse always.
+assign o_ras_rbk_ptr      = ras_rbk_ptr_rg  ;
+assign o_ras_rbk_full     = ras_rbk_full_rg ; 
+assign o_ras_rbk_incr_ptr = is_ras_mispred  ;  // This is already registered signal from EXU-BU
 `endif//RAS
 
-//===================================================================================================================================================
+//==================================================================================================
 // Combinatorial logic to compute EXU result for writeback
-//===================================================================================================================================================
+//==================================================================================================
 always_comb begin
    `ifdef MULTDIV
    case ({bu_bubble, alu_bubble, ~multdiv_res_valid})
@@ -502,15 +502,16 @@ assign is_exu_result_wb  = ~bu_bubble | ~alu_bubble ;   // JAL/JALR/ALU/LUI/AUIP
 `endif
 assign is_exu_result_mem = ~lsu_bubble  ;               // Load/Store instructions require memory access          
 
-//===================================================================================================================================================
+//==================================================================================================
 //  Pipeline Interlock logic
 //  ------------------------
 //  If current instr is Load, and next instr (from DU) is RISB-type with RAW access, then
 //  EXU result doesn't contain the Load data for operand forwarding, so the RAW access may lead to RAW hazard...
-//  This is mitigated by generating pipeline interlock. This logic generates 1-cycle stall to DU, inserts a bubble in pipeline, allowing MACCU to load
-//  the data in the next cycle (if available, else MACCU generates stall next cycle). 
+//  This is mitigated by generating pipeline interlock. This logic generates 1-cycle stall to DU, 
+//  inserts a bubble in pipeline, allowing MACCU to load the data from DMEM in the next clock cycle,
+//  if available, else MACCU generates stall next cycle.... 
 //  Once MACCU registers the result, Operand Forward block can forward this Load data and mitigate the RAW hazard...
-//===================================================================================================================================================
+//==================================================================================================
 assign is_du_rs0_eq_exu_rdt = (i_du_rs0 == exu_rdt_rg) ;
 assign is_du_rs1_eq_exu_rdt = (i_du_rs1 == exu_rdt_rg) ;
 assign is_du_rsx_eq_exu_rdt = is_du_rs0_eq_exu_rdt | is_du_rs1_eq_exu_rdt ;
@@ -521,24 +522,23 @@ assign is_exu_instr_load    = ~lsu_mem_cmd  ;
 // Valid Load instruction and RAW access detected? => potential RAW hazard => pipeline interlock!
 assign is_pipe_inlock = (is_exu_result_mem && is_exu_instr_load && is_src_eq_dest) ;
 
-//===================================================================================================================================================
-//  Stall logic
-//===================================================================================================================================================
+//==================================================================================================
+// Stall logic
+//==================================================================================================
 `ifdef MULTDIV
 assign stall  = i_maccu_stall | multdiv_stall;  // MACCU and MULT/DIV can stall the upstream pipeline and other EXU units
 `else
 assign stall  = i_maccu_stall;  // Only MACCU can stall EXU from outside.
-                                                  // NOT conditioned with valid cz the bubble maybe intentionally added by Pipeline Interlock.
-                                                  // So, the bubble shouldn't be bursted...!!
+                                // NOT conditioned with valid cz the bubble maybe intentionally added by Pipeline Interlock.
+                                // So, the bubble shouldn't be bursted...!!
 `endif
 assign exu_stall_ext = stall | is_pipe_inlock;  // Pipeline interlock should stall the upstream pipeline...
 assign o_du_stall    = exu_stall_ext         ;  // Stall signal to DU
 
-//===================================================================================================================================================
-// All other output signals from EXU
-//===================================================================================================================================================
-`ifdef DBG
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Debug Interface
+///////////////////////////////////////////////////////////////////////////////////////////////////
+`ifdef DBG
 `ifdef RAS
    `ifdef MULTDIV
    assign o_exu_dbg = {multdiv_res_valid, is_ras_mispred, is_pipe_inlock, bu_branch_taken, ~lsu_bubble, ~alu_bubble, ~bu_bubble} ;
@@ -554,11 +554,15 @@ assign o_du_stall    = exu_stall_ext         ;  // Stall signal to DU
 `endif
 `endif
 
-// EXU-BU outputs to the Core pipeline
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// EXU-BU Flush to the Core pipeline
+///////////////////////////////////////////////////////////////////////////////////////////////////
 assign o_exu_bu_flush = bu_flush     ;
 assign o_exu_bu_pc    = bu_branch_pc ;
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Payload to MACCU
+///////////////////////////////////////////////////////////////////////////////////////////////////
 `ifdef DBG
 assign o_maccu_pc         = exu_pc_rg         ;
 assign o_maccu_instr      = exu_instr_rg      ;
