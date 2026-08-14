@@ -155,7 +155,6 @@ logic [2:0]       funct3             ;  // funct3 in Buffer-1 instruction
 logic [`XLEN-1:0] immJ, immB         ;  // Sign-extended Immediate (Jump/Branch) in Buffer-1 instruction
 logic             is_op_jal          ;  // To flag if JAL instruction in Buffer-1
 logic             is_op_jalr         ;  // To flag if JALR instruction in Buffer-1
-logic             is_op_branch       ;  // To flag if branch instruction in Buffer-1
 logic             is_legal_op_branch ;  // To flag if branch instruction in Buffer-1 is Legal branch
 
 // RAS predictor specific
@@ -420,9 +419,8 @@ assign immJ         = {{(`XLEN-20){instr[31]}}, instr[19:12], instr[20], instr[3
 assign immB         = {{(`XLEN-12){instr[31]}}, instr[7], instr[30:25], instr[11:8], 1'b0}   ;
 assign op           = instr[6:0]        ;
 assign funct3       = instr[14:12]      ;
-assign is_op_jal    = (op == OP_JAL)    ;  
+assign is_op_jal    = (op == OP_JAL)    ;
 assign is_op_jalr   = (op == OP_JALR)   ;
-assign is_op_branch = (op == OP_BRANCH) ;
 assign is_legal_op_branch = (op == OP_BRANCH) && (funct3[2:1] != 2'b01);
 
 //==================================================================================================

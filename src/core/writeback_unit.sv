@@ -58,7 +58,7 @@ module writeback_unit #(
    
    `ifdef DBG
    // Debug Interface  	
-   output logic [4:0]       o_wbu_dbg             ,  // Debug signal
+   output logic [6:0]       o_wbu_dbg             ,  // Debug signal
    `endif
 
    // Data Memory/Cache Acknowledge Interface (DMEMIF) 
