@@ -30,7 +30,7 @@
 //----%%                    # Flush is generated on predicting branch taken.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Sept-2025
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -91,16 +91,21 @@ assign branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_
 //---------------------------------------------------------------------------------------
 logic             branch_taken_rg ;  // Branch taken status registered
 logic [`XLEN-1:0] branch_pc_rg    ;  // Branch PC registered
+// Branch taken
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
       branch_taken_rg <= 1'b0 ;
-      branch_pc_rg    <=  '0  ;
    end
    // Out of reset
    else if (!i_stall) begin 
       branch_taken_rg <= branch_taken ; 
-      branch_pc_rg    <= branch_pc    ;
+   end
+end
+// Branch PC; No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!i_stall) begin 
+      branch_pc_rg <= branch_pc ;
    end
 end
 assign o_branch_taken = branch_taken_rg ;

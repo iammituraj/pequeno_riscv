@@ -26,7 +26,7 @@
 //----%% Description      : This Header file contains all macros (constants/configurable) used by PQR5 Core source files.
 //----%%
 //----%% Tested on        : -
-//----%% Last modified on : August-2025
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE
@@ -39,12 +39,12 @@
 `ifndef PQR5_CORE_MACROS_HEADER
 `define PQR5_CORE_MACROS_HEADER
 
-//---------------------------------------------------------------------------------------------------------------------------------------------------
+//===================================================================================================================================================
 // Generic constants - DO NOT MODIFY
-//---------------------------------------------------------------------------------------------------------------------------------------------------
+//===================================================================================================================================================
 `define CPU           "Pequeno RISC-V (PQR5)"
-`define VERS          "v1.0.2"
-`define ISA           "RV32I"
+`define VERS          "v1.1"
+`define ISA           "RV32IM"
 
 `define XLEN          32                   // Size of register
 `define ILEN          32                   // Size of instruction
@@ -62,41 +62,60 @@
 // Sample configurations:
 // ----------------------
 // Light         = 
-// Standard      = RAS
 // Performance   = BPREDICT_DYN
 // Performance++ = BPREDICT_DYN + RAS
 //====================================================================================================================================================
-// PC 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+// On-Reset PC
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 `define PC_INIT       32'h0000_0000       // PC init address after CPU reset i.e., the reset vector (32-bit aligned address)
 //`define RF_ON_BRAM                        // Define this macro to generate Block RAM based Register File, 
                                           // Else Flops/LUT RAM based Register File is generated
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 // Branch Predictor & RAS
-`define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor, else Static predictor
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+//`define BPREDICT_DYN                      // Define this macro to generate Pequeno GShare Dynamic Branch Predictor,
                                           // Else generate Static Branch Predictor (backward always taken strategy)
-`define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries of 2-bit. This macro is qualified by IS_BPREDICT_DYN = 1
-`define BHT_TYPE          "lutram"        // Branch History Table (BHT) target configuration. This macro is qualified by IS_BPREDICT_DYN = 1
+`define BHT_IDW           10              // BHT index width; for eg: 6 = 2^6 = 64 entries of 2-bit. This macro is valid iff BREDICT_DYN is defined
+`define BHT_TYPE          "lutram"        // Branch History Table (BHT) target configuration. This macro is valid iff BREDICT_DYN is defined
                                           // "blkram" - BHT is generated on Block RAMs on FPGAs
                                           // "lutram" - BHT is generated on LUT RAMs on FPGAs
                                           // "flops"  - BHT is generated on flip-flops; ideal for ASIC
 `define BHT_BIAS          2'b10           // BHT entries reset value = BIAS for 2-bit saturating counters, 2'b10 - best for embedded applications
+                                          // 2'b00 - Strongly not taken
+                                          // 2'b01 - Weakly not taken
+                                          // 2'b10 - Weakly taken
+                                          // 2'b11 - Strongly taken
 `define GHRW              (`BHT_IDW+2)    // Global History Register (GHR) width
 
-`define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
+//`define RAS                               // Define this macro to generate RAS (Return Address Stack) predictor
 `define RAS_DPT           8               // RAS depth, size = (N x 32) bits; Depth must be 2^N
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+// Multiplier & Divider unit
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+`define MULTDIV                           // Define this macro to generate HW Multiplier and Divider and adds M-extension
+`define EN_FPGA_DSP_MULT  1               // 1 = use x32 DSP multiplier, 0 = use x32 Radix-4 Booth multiplier. This macro is valid iff MULTDIV is defined
+`define MULT_PIPE_STAGES  2               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 // Test & Debug
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 //`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 // Synthesis related
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 //`define CORE_SYNTH                        // Define this macro to configure the core for SYNTHESIS
 
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 // Simulation related
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 `define DBG                               // Define this macro to generate all Debug interfaces, and display performance summary ; OVERRIDEN FOR SYNTHESIS
 //`define DBG_PRINT                         // If DBG is enabled: Define this macro to display per-cycle debug messages  ; OVERRIDEN FOR SYNTHESIS
 `define SIMEXIT_INSTR_END                 // Define this macro to exit simulation on receiving END sim instruction     ; OVERRIDEN FOR SYNTHESIS
 `define REGFILE_DUMP  1                   // If DBG is enabled: '1'- Dump Register File @end of sim, '0'- No dump      ; OVERRIDEN to 0 for SYNTHESIS
-//---------------------------------------------------------------------------------------------------------------------------------------------------
 
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 // Derived macros - DO NOT MODIFY
@@ -130,9 +149,16 @@
 
 `ifdef RAS
 `define EN_RAS 1
-`else 
+`else
 `define EN_RAS 0
 `endif
+
+`ifdef MULTDIV
+`define EN_MULTDIV 1
+`else 
+`define EN_MULTDIV 0
+`endif
+
 // PARAM Macro generation ........ //
 
 `endif

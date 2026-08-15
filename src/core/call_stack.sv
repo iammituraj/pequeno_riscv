@@ -32,7 +32,7 @@
 //----%%                    in the pipeline got flushed.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Sept-2025
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -92,9 +92,9 @@ logic [PTRW:0]   count_ff;         // Counter
 logic            push_en, pop_en;  // Conditioned push & pop enable
 logic [DW-1:0]   spare_buff[2];    // Spare buffers. Max. outstanding speculative calls/returns = 2 in the pipeline
 
-//=============================================================================
+//==================================================================================================
 // Logic to update stack pointer/counter
-//=============================================================================
+//==================================================================================================
 logic [PTRW-1:0] rbk_ptr_p1;
 logic [PTRW-1:0] top_ptr_post_rbk;
 always_ff @(posedge clk or negedge aresetn) begin
@@ -122,9 +122,9 @@ end
 assign rbk_ptr_p1       = i_rbk_ptr + 1 ;
 assign top_ptr_post_rbk = i_rbk_incr_ptr? rbk_ptr_p1 : i_rbk_ptr ;
 
-//=============================================================================
+//==================================================================================================
 // Rollback control signals
-//=============================================================================
+//==================================================================================================
 logic rbk_en_ff    ;  // Rollback enable registered
 logic rbk_en_gated ;  // Rollback enable gated
 logic rbk_en_extnd ;  // Rollback enable extended
@@ -190,9 +190,9 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
 end
 
-//=============================================================================
+//==================================================================================================
 // Logic to push data/rollback
-//=============================================================================
+//==================================================================================================
 always_ff @(posedge clk) begin
    if (wr_en) stack[wr_ptr] <= wr_data;
 end
@@ -228,7 +228,7 @@ assign o_full     = (count_ff[PTRW] == 1'b1);  // Equivalent to count_ff == DPT;
 assign o_empty    = (count_ff == 0);
 assign o_alm_full = &count_ff[PTRW-1:0];  // If the counter = (MAX_CNT -1) => Almost full!
 
-//===================================================================
+//==================================================================================================
 // Logic to update spare buffers
 //-------------------------------------------------------------------
 // On every push, there is a potential data overwrite at the top,
@@ -236,15 +236,10 @@ assign o_alm_full = &count_ff[PTRW-1:0];  // If the counter = (MAX_CNT -1) => Al
 //
 // spare_buff[0] = latest data
 // spare_buff[1] = older data
-//===================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   // Reset
-   if (!aresetn) begin
-      spare_buff[0] <= '0 ;
-      spare_buff[1] <= '0 ;
-   end  
-   // Update the buffer on every push when no rollback
-   else if (push_en && !i_rbk_en) begin
+//==================================================================================================
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (push_en && !i_rbk_en) begin
       spare_buff[0] <= stack[wr_ptr];
       spare_buff[1] <= spare_buff[0];
    end

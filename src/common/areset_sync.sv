@@ -26,7 +26,7 @@
 //----%% Description      : Async Reset Synchronizer synchronizes the de-assertion of asynchronous reset to the design's clock domain.    
 //----%% 
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Aug-17-2022
+//----%% Last modified on : Apr-2025
 //----%% Notes            : Attribute ASYNC_REG used to PAR the flops together in Xilinx FPGAs.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE

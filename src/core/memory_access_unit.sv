@@ -29,7 +29,7 @@
 //----%%                    # Pipeline latency = 1 cycle 
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -60,14 +60,13 @@ module memory_access_unit #(
    input  logic [`XLEN-1:0] i_exu_pc           ,  // PC from EXU
    input  logic [`ILEN-1:0] i_exu_instr        ,  // Instruction from EXU
    `endif
-   input  logic             i_exu_is_riuj      ,  // RIUJ flag from EXU
+   input  logic             i_exu_is_wbck      ,  // Writeback valid from EXU
    input  logic [2:0]       i_exu_funct3       ,  // Funct3 from EXU
    input  logic             i_exu_bubble       ,  // Bubble from EXU
    output logic             o_exu_stall        ,  // Stall signal to EXU
 
    input  logic [4:0]       i_exu_rdt_addr     ,  // Writeback address from EXU
    input  logic [`XLEN-1:0] i_exu_rdt_data     ,  // Writeback data from EXU
-   input  logic             i_exu_rdt_not_x0   ,  // rdt neq x0 
    input  logic             i_exu_is_macc_op   ,  // Memory access operation flag from EXU
    input  logic             i_exu_macc_cmd     ,  // Memory access command from EXU
    input  logic [`XLEN-1:0] i_exu_macc_addr    ,  // Memory access address from EXU
@@ -88,30 +87,29 @@ module memory_access_unit #(
    output logic [`XLEN-1:0] o_wbu_pc           ,  // PC to WBU
    output logic [`ILEN-1:0] o_wbu_instr        ,  // Instruction to WBU
    `endif
-   output logic             o_wbu_is_riuj      ,  // RIUJ flag to WBU
+   output logic             o_wbu_is_wbck      ,  // Writeback valid to WBU
    output logic [2:0]       o_wbu_funct3       ,  // Funct3 to WBU
    output logic             o_wbu_bubble       ,  // Bubble to WBU
    input  logic             i_wbu_stall        ,  // Stall signal from WBU   
    output logic [4:0]       o_wbu_rdt_addr     ,  // rdt address to WBU
    output logic [`XLEN-1:0] o_wbu_rdt_data     ,  // rdt data to WBU
-   output logic             o_wbu_rdt_not_x0   ,  // rdt neq x0
    output logic             o_wbu_is_macc      ,  // Memory access flag to WBU
    output logic             o_wbu_is_load      ,  // Load operation flag to WBU
-   output logic             o_wbu_is_dwback    ,  // Direct writeback operation flag to WBU
-   output logic [`XLSB-1:0] o_wbu_macc_addr_lsb   // Memory access address to WBU (LSbs) 
+   `ifdef DBG
+   output logic             o_wbu_is_dwback    ,  // Direct writeback operation flag to WBU; debug only
+   `endif
+   output logic [`XLSB-1:0] o_wbu_macc_addr_lsb   // Memory access address to WBU (LSbs)
 );
 
-//===================================================================================================================================================
+//==================================================================================================
 // Localparams
-//===================================================================================================================================================
+//==================================================================================================
 localparam LOAD  = 1'b0 ;
 localparam STORE = 1'b1 ;
 
-//===================================================================================================================================================
+//==================================================================================================
 // Internal Registers/Signals
-//===================================================================================================================================================
-// EXU signals
-logic             exu_bubble          ;  // Bubble from EXU conditioned with stall
+//==================================================================================================
 
 // Packets buffered from EXU
 `ifdef DBG
@@ -119,11 +117,10 @@ logic [`XLEN-1:0] maccu_pc_rg         ;  // PC
 logic [`ILEN-1:0] maccu_instr_rg      ;  // Instruction
 `endif
 logic [2:0]       maccu_funct3_rg     ;  // Funct3
-logic             maccu_is_riuj_rg    ;  // RIUJ flag
+logic             maccu_is_wbck_rg    ;  // Writeback valid
 logic             maccu_bubble_rg     ;  // Bubble
 logic [4:0]       rdt_addr_rg         ;  // rdt address
 logic [`XLEN-1:0] rdt_data_rg         ;  // rdt data
-logic             rdt_not_x0_rg       ;  // rdt neq x0
 
 // Other packets in the Payload to WBU
 logic             is_macc             ;  // Memory access flag
@@ -132,73 +129,84 @@ logic             is_cmd_load         ;  // Memory access command from EXU is Lo
 logic             is_load             ;  // Load operation flag
 logic             is_load_rg          ;  // Load operation flag registered
 logic             is_store            ;  // Store operation flag
-logic             is_dwback           ;  // Direct writeback operation flag i.e, result is ready from EXU
-logic             is_dwback_rg        ;  // Direct writeback operation flag registered
+`ifdef DBG
+logic             is_dwback           ;  // Direct writeback operation flag i.e, result is ready from EXU; debug only
+logic             is_dwback_rg        ;  // Direct writeback operation flag registered; debug only
+`endif
 logic [`XLSB-1:0] macc_addr_lsb_rg    ;  // Memory access address (LSbs)
 
 // Stall logic specific
 logic             stall           ;  // Local stall generated by MACCU
 logic             maccu_stall_ext ;  // External stall generated by MACCU
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe MACCU packets
-//===================================================================================================================================================
+//==================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset
    if (!aresetn) begin
       `ifdef DBG
-      maccu_pc_rg         <= PC_INIT    ;
       maccu_instr_rg      <= `INSTR_NOP ;
+      is_dwback_rg        <= 1'b0       ;
       `endif
-      maccu_is_riuj_rg    <= 1'b0       ;
+      maccu_is_wbck_rg    <= 1'b0       ;
       maccu_funct3_rg     <= 3'h0       ;
       maccu_bubble_rg     <= 1'b1       ;
-      rdt_addr_rg         <= '0         ;  
-      rdt_data_rg         <= '0         ;
-      rdt_not_x0_rg       <= 1'b0       ;
       is_macc_rg          <= 1'b0       ;
       is_load_rg          <= 1'b0       ;
-      is_dwback_rg        <= 1'b0       ;
       macc_addr_lsb_rg    <= '0         ;
    end
    // Out of reset
    else if (!stall) begin  // Pipe forward...
       `ifdef DBG
-      maccu_pc_rg         <= i_exu_pc         ;
       maccu_instr_rg      <= i_exu_instr      ;
-      `endif
-      maccu_is_riuj_rg    <= i_exu_is_riuj & ~exu_bubble ;
-      maccu_funct3_rg     <= i_exu_funct3     ;
-      maccu_bubble_rg     <= exu_bubble       ;
-      rdt_addr_rg         <= i_exu_rdt_addr   ;  
-      rdt_data_rg         <= i_exu_rdt_data   ;
-      rdt_not_x0_rg       <= i_exu_rdt_not_x0 ;
-      is_macc_rg          <= is_macc          ;  
-      is_load_rg          <= is_load          ;
       is_dwback_rg        <= is_dwback        ;
+      `endif
+      maccu_is_wbck_rg    <= i_exu_is_wbck    ;  // Not required to condition with valid because wbck=1 only when valid=1
+      maccu_funct3_rg     <= i_exu_funct3     ;
+      maccu_bubble_rg     <= i_exu_bubble     ;
+      is_macc_rg          <= is_macc          ;
+      is_load_rg          <= is_load          ;
       macc_addr_lsb_rg    <= i_exu_macc_addr[`XLSB-1:0];
    end
 end
 
-assign exu_bubble  =  i_exu_bubble | i_wbu_stall ;    // WBU stall should invalidate EXU instr to disable new memory access requests @MACCU
-                                                      // This is a strict in-order requirement
-assign is_macc     =  i_exu_is_macc_op & ~exu_bubble ;
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin
+      rdt_addr_rg <= i_exu_rdt_addr ;
+      rdt_data_rg <= i_exu_rdt_data ;
+   end
+end
+
+`ifdef DBG
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin maccu_pc_rg <= i_exu_pc ; end  // Pipe forward...
+end
+`endif
+
+// Decoded signals
+assign is_macc     =  i_exu_is_macc_op & ~i_wbu_stall ;  // WBU stall should disable new memory access requests @MACCU
+                                                         // This is a strict in-order requirement
 assign is_cmd_load =  (i_exu_macc_cmd == LOAD);
 assign is_load     =  is_macc &&  is_cmd_load ;
 assign is_store    =  is_macc && !is_cmd_load ;
-assign is_dwback   = ~i_exu_is_macc_op & ~exu_bubble ;
+`ifdef DBG
+assign is_dwback   = ~i_exu_is_macc_op & ~i_exu_bubble ;
+`endif
 
-//===================================================================================================================================================
-//  Stall logic
-//===================================================================================================================================================
-assign stall           = (i_wbu_stall | i_dmem_stall) & ~maccu_bubble_rg ;  // WBU, DMEMIF can stall MACCU from outside
-                                                                            // Conditioned with valid to burst unwanted pipeline bubbles.
+//==================================================================================================
+// Stall logic
+//==================================================================================================
+assign stall           = (i_wbu_stall | i_dmem_stall) ;  // WBU, DMEMIF can stall MACCU from outside
+                                                         // Not conditioned with valid from EXU cz memacc should be lockstep with maccu registering
 assign maccu_stall_ext = stall           ;  
 assign o_exu_stall     = maccu_stall_ext ;  // Stall signal to EXU
 
-//===================================================================================================================================================
-// DMEMIF and WBU outputs
-//===================================================================================================================================================
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// DMEMIF control
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Control signals to Data Memory/Cache Request Interface
 // All control signals are combi routed to memory w/o registering @MACCU so that memory pipeline is sync with MACCU pipeline to pipe MACCU packets
 // This will ensure no extra latency if memory/cache supports max. access speed of = 1 cycle on hit
@@ -210,21 +218,24 @@ assign o_dmem_wdata = i_exu_macc_data ;
 assign o_dmem_req   = is_macc ;
 assign o_dmem_flush = 1'b0 ;  //**CHECKME**// Flush is unused as of now
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
 // Payload to WriteBack Unit (WBU)
+///////////////////////////////////////////////////////////////////////////////////////////////////
 `ifdef DBG
-assign o_wbu_pc            = maccu_pc_rg         ;
-assign o_wbu_instr         = maccu_instr_rg      ;
+assign o_wbu_pc            = maccu_pc_rg      ;
+assign o_wbu_instr         = maccu_instr_rg   ;
 `endif
-assign o_wbu_is_riuj       = maccu_is_riuj_rg    ;
-assign o_wbu_funct3        = maccu_funct3_rg     ;
-assign o_wbu_bubble        = maccu_bubble_rg     ;
-assign o_wbu_rdt_addr      = rdt_addr_rg         ;
-assign o_wbu_rdt_data      = rdt_data_rg         ;
-assign o_wbu_rdt_not_x0    = rdt_not_x0_rg       ;
-assign o_wbu_is_macc       = is_macc_rg          ;
-assign o_wbu_is_load       = is_load_rg          ;
-assign o_wbu_is_dwback     = is_dwback_rg        ;
-assign o_wbu_macc_addr_lsb = macc_addr_lsb_rg    ;
+assign o_wbu_is_wbck       = maccu_is_wbck_rg ;
+assign o_wbu_funct3        = maccu_funct3_rg  ;
+assign o_wbu_bubble        = maccu_bubble_rg  ;
+assign o_wbu_rdt_addr      = rdt_addr_rg      ;
+assign o_wbu_rdt_data      = rdt_data_rg      ;
+assign o_wbu_is_macc       = is_macc_rg       ;
+assign o_wbu_is_load       = is_load_rg       ;
+`ifdef DBG
+assign o_wbu_is_dwback     = is_dwback_rg     ;
+`endif
+assign o_wbu_macc_addr_lsb = macc_addr_lsb_rg ;
 
 endmodule
 //###################################################################################################################################################

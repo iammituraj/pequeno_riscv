@@ -28,7 +28,7 @@
 //----%%                    Supports debugging/dumping memory content during simulation.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Aug-2024
+//----%% Last modified on : Jul-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -72,7 +72,10 @@ module dram_model_4x8 #(
 logic [7:0]        wdata [4] ;  // Write-data to each bank
 logic [7:0]        rdata [4] ;  // Read-data from each bank
 `ifdef MEM_DBG
-logic [7:0]        ram      [4] [DEPTH_2N] ;  // 2D RAM array to store RAM array from each bank
+logic [7:0]        ram_b0   [DEPTH_2N] ;  // RAM array from Bank-0
+logic [7:0]        ram_b1   [DEPTH_2N] ;  // RAM array from Bank-1
+logic [7:0]        ram_b2   [DEPTH_2N] ;  // RAM array from Bank-2
+logic [7:0]        ram_b3   [DEPTH_2N] ;  // RAM array from Bank-3
 logic [DATA_W-1:0] ram_dram [DEPTH_2N]     ;  // RAM array which accumulates data of all banks
 `endif
 
@@ -87,7 +90,7 @@ dram_b0 #(
 inst_dram_b0 (
    .clk    (clk)       , 
    `ifdef MEM_DBG
-   .o_ram  (ram[0])    ,
+   .o_ram  (ram_b0)    ,
    `endif  
    .i_en   (i_en[0])   ,
    .i_wen  (i_wen)     , 
@@ -104,7 +107,7 @@ dram_b1 #(
 inst_dram_b1 (
    .clk    (clk)       ,
    `ifdef MEM_DBG
-   .o_ram  (ram[1])    ,
+   .o_ram  (ram_b1)    ,
    `endif   
    .i_en   (i_en[1])   ,
    .i_wen  (i_wen)     , 
@@ -121,7 +124,7 @@ dram_b2 #(
 inst_dram_b2 (
    .clk    (clk)       ,
    `ifdef MEM_DBG
-   .o_ram  (ram[2])    ,
+   .o_ram  (ram_b2)    ,
    `endif   
    .i_en   (i_en[2])   ,
    .i_wen  (i_wen)     , 
@@ -138,7 +141,7 @@ dram_b3 #(
 inst_dram_b3 (
    .clk    (clk)       ,
    `ifdef MEM_DBG
-   .o_ram  (ram[3])    ,
+   .o_ram  (ram_b3)    ,
    `endif   
    .i_en   (i_en[3])   ,
    .i_wen  (i_wen)     , 
@@ -153,10 +156,10 @@ inst_dram_b3 (
 `ifdef MEM_DBG
 genvar i ;
 for (i=0; i<DEPTH_2N; i++) begin    
-   assign ram_dram[i][7:0]   = ram[0][i] ;  // Bank-0
-   assign ram_dram[i][15:8]  = ram[1][i] ;  // Bank-1
-   assign ram_dram[i][23:16] = ram[2][i] ;  // Bank-2
-   assign ram_dram[i][31:24] = ram[3][i] ;  // Bank-3 
+   assign ram_dram[i][7:0]   = ram_b0[i] ;  // Bank-0
+   assign ram_dram[i][15:8]  = ram_b1[i] ;  // Bank-1
+   assign ram_dram[i][23:16] = ram_b2[i] ;  // Bank-2
+   assign ram_dram[i][31:24] = ram_b3[i] ;  // Bank-3
 end
 `endif
 
@@ -189,8 +192,10 @@ end
 final begin
    fdump = $fopen(fdump_fname, "w");    
    if (!fdump) begin $display("| PQR5_SIM_DMEM: [ERROR] Can't dump to pqr5_dmem_dump.txt!!");  end
-   else        begin dump_mem(fdump, DEPTH_2N, 32, ram_dram, "DMEM Dump"); 
-                     $display("| PQR5_SIM_DMEM: [INFO ] Dumped DMEM content successfully..."); end 
+   else        begin dump_mem_hdr(fdump, "DMEM Dump");
+                     for (int d=0; d<DEPTH_2N; d++) dump_mem_row(fdump, 32, d, ram_dram[d]);
+                     dump_mem_ftr(fdump);
+                     $display("| PQR5_SIM_DMEM: [INFO ] Dumped DMEM content successfully..."); end
    $fclose(fdump);       
 end
 end//GENERATE: DBG_DMEM_DUMP 

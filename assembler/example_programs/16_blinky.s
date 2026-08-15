@@ -2,7 +2,7 @@
 # Implements software counter to invert a bit in x31
 
 .section .data
-.org 0x00000004
+.org 0x00000000
 timeout_val:
 .word 0x002DC6C0  # Assuming 10 MHz clock, so approx toggles x31 bit every 1s: 0x01C9C380 if 100 MHz, 0x002DC6C0  if 10 MHz
 

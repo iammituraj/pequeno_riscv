@@ -30,7 +30,7 @@
 //----%%                    # Supports debugging/dumping register space during simulation.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Apr-2025
+//----%% Last modified on : Jul-2026
 //----%% Notes            : The register array can be configured to map to Block RAMs on FPGAs.
 //----%%                    Since, reset is not implemented, it should otherwise be mapped to LUT RAMs on FPGAs. 
 //----%%                    On ASIC, the register file translates to flip-flops based RAM with no reset.
@@ -59,7 +59,7 @@ module regfile #(
 
    `ifdef DBG
    // Debug Interface  
-   output logic [`XLEN-1:0] o_regf_dbg [32] ,  // Debug signal
+   output logic [0:31][`XLEN-1:0] o_regf_dbg ,  // Debug signal
    `endif
 
    `ifdef TEST_PORTS
@@ -83,16 +83,16 @@ module regfile #(
    input  logic [`XLEN-1:0] i_rdt_data    // Register data in
 );
 
-//===================================================================================================================================================
+//==================================================================================================
 // Internal Registers/Signals
-//===================================================================================================================================================
+//==================================================================================================
 logic wren ;                         // Write enable to Register array
 logic rden0, rden1 ;                 // Read enable to Register array
 logic [`XLEN-1:0] reg_file [1:31] ;  // Register file: x1-x31, x0 is implicitly 0...
 
-//===================================================================================================================================================
+//==================================================================================================
 // Register Array of RF
-//===================================================================================================================================================
+//==================================================================================================
 generate
 if (IS_RF_ON_BRAM) begin : GEN_RF_ON_BRAM
 ////////////////////////////////////////////// BRAM based RF /////////////////////////////////////////////////////
@@ -207,11 +207,11 @@ endgenerate
 assign o_x31_tst = reg_file[31] ;
 `endif
 
-//===================================================================================================================================================
+//==================================================================================================
 // Generate Debug Blocks
-//===================================================================================================================================================
+//==================================================================================================
 `ifdef DBG
-logic [`XLEN-1:0] reg_file_pp [0:31] ;  // Register file
+logic [0:31][`XLEN-1:0] reg_file_pp ;  // Register file
 
 generate   
 if (`REGFILE_DUMP) begin : DBG_REGFILE_DUMP
@@ -246,7 +246,7 @@ for (i=1; i<32; i++) begin
 end
 endgenerate
 
-assign o_regf_dbg  = {reg_file_pp};
+assign o_regf_dbg  = reg_file_pp;
 `endif
 
 endmodule

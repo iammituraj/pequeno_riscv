@@ -13,11 +13,11 @@
 #                    The generated binaries are ready-to-flash into the Pequeno via peqFlash.
 #
 #                    COMMAND LINE USAGE: 
-#                    python bin2pqr5bin.py -binfile <binfile> -baseaddr <base address>
+#                    python bin2pqr5bin.py -binfile <binfile> -offsetaddr <offset address>
 #
-#                    Base address is where the binary is placed in the memory space of the Pequeno.
+#                    Offset address is where the binary is placed in the memory space of the Pequeno.
 #
-# Last modified on : Apr-2025
+# Last modified on : Aug-2026
 # Compatiblility   : Python 3.9 tested
 #
 # Copyright        : Open-source license, see LICENSE.
@@ -28,11 +28,11 @@ import sys
 import struct
 import os
 
-# Function to validate base address
-def validate_baseaddr(baseaddr):
-    """Validate that base address is 4-byte aligned."""
-    if baseaddr % 4 != 0:
-        print(f"Error: Base address {hex(baseaddr)} is not 4-byte aligned.")
+# Function to validate offset address
+def validate_offsetaddr(offsetaddr):
+    """Validate that offset address is 4-byte aligned."""
+    if offsetaddr % 4 != 0:
+        print(f"Error: Offset address {hex(offsetaddr)} is not 4-byte aligned.")
         sys.exit(1)
 
 # Function to validate input binary files
@@ -48,35 +48,35 @@ def parse_args():
     args = sys.argv[1:]
     binfile = None
     outfile = None
-    baseaddr = None
+    offsetaddr = None
 
-    # Iterate through arguments and find -binfile and -baseaddr
+    # Iterate through arguments and find -binfile and -offsetaddr
     for i in range(len(args)):
         if args[i] == "-binfile" and i + 1 < len(args):
             binfile = args[i + 1]
         elif args[i] == "-outfile" and i + 1 < len(args):
             outfile = args[i + 1]
-        elif args[i] == "-baseaddr" and i + 1 < len(args):
+        elif args[i] == "-offsetaddr" and i + 1 < len(args):
             try:
-                baseaddr = int(args[i + 1], 0)  # Convert from hex or decimal
+                offsetaddr = int(args[i + 1], 0)  # Convert from hex or decimal
             except ValueError:
-                print("Error: Invalid base address format. Use hex (0x..) or integer.")
+                print("Error: Invalid offset address format. Use hex (0x..) or integer.")
                 sys.exit(1)
 
     # Validate presence of required arguments
-    if binfile is None or baseaddr is None:
-        print("Usage: bin2pqr5bin -binfile <input.bin> -baseaddr <base address in hex or integer>")
+    if binfile is None or offsetaddr is None:
+        print("Usage: bin2pqr5bin -binfile <input.bin> -offsetaddr <offset address in hex or integer>")
         sys.exit(1)
     if outfile is None:
         outfile = "output_pqr5.bin"
 
     validate_binfile(binfile)
-    validate_baseaddr(baseaddr)
+    validate_offsetaddr(offsetaddr)
 
-    return binfile, outfile, baseaddr
+    return binfile, outfile, offsetaddr
 
 # Function to dump pqr5 binary files after processing...
-def process_bin_file(input_file, baseaddr, output_file):
+def process_bin_file(input_file, offsetaddr, output_file):
     """Read binary file, group into 4-byte chunks, swap endianness, and write to output."""
     
     with open(input_file, "rb") as f:
@@ -92,8 +92,8 @@ def process_bin_file(input_file, baseaddr, output_file):
         # Write number of converted bytes (big-endian)
         f.write(struct.pack(">I", len(padded_data)))
 
-        # Write base address (big-endian)
-        f.write(struct.pack(">I", baseaddr))
+        # Write offset address (big-endian)
+        f.write(struct.pack(">I", offsetaddr))
 
         # Process data in 4-byte chunks, reversing endianness
         for i in range(0, len(padded_data), 4):
@@ -106,7 +106,7 @@ def process_bin_file(input_file, baseaddr, output_file):
         return 1
 
 if __name__ == "__main__":
-    binfile, outfile, baseaddr = parse_args()
-    rflag = process_bin_file(binfile, baseaddr, outfile)
+    binfile, outfile, offsetaddr = parse_args()
+    rflag = process_bin_file(binfile, offsetaddr, outfile)
     if rflag == 1:
         print("| BIN2PQR5BIN: Successfully created the PQR5-compatible binary - ", outfile)

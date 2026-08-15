@@ -1,5 +1,5 @@
 +======================================
-| Pequeno RISC-V CPU v1.0 Simulation   
+| Pequeno RISC-V CPU Simulation        
 +======================================
 | Register File Dump
 +--------------------------------------

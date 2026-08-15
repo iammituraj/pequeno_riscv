@@ -31,7 +31,7 @@
 //----%%                    - All resets are active-low.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Jan-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : External reset is assumed to be glitch-free.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.

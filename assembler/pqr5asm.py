@@ -9,11 +9,11 @@
 # Developer        : Mitu Raj, chip@chipmunklogic.com
 # Vendor           : Chipmunk Logic, https://chipmunklogic.com
 #
-# Description      : This script interprets, parses, and translates RISC-V RV32I assembly instructions to 
+# Description      : This script interprets, parses, and translates RISC-V RV32IM assembly instructions to
 #                    32-bit binary instructions.
 #                    -- Compliant with RISC-V User Level ISA v2.2.
-#                    -- Supports RV32I:
-#                       -- 37 base instructions (ref. pqr5asm Instruction Manual for full list)
+#                    -- Supports RV32IM:
+#                       -- 45 base instructions (ref. pqr5asm Instruction Manual for full list)
 #                       -- Custom/Pseudo instructions  (ref. pqr5asm Instruction Manual for full list)
 #                    -- Doesn't support FENCE and CSR instructions.
 #                    -- Input = assembly code file, Output = binary/hex code files (.txt/.bin)
@@ -77,7 +77,7 @@
 #                       -pcrel = Applying this flag uses PC relative addressing for instructions like LA, JA
 #                                This flag hence directs assembler and linker to generate relocatable binary code.
 #                                If this flag is not used, absolute address is loaded by the instructions.
-#                                The generate binary code may not be relocatable.
+#                                The generate binary code (Instruction & Data) may not be relocatable.
 #                       Binary/Hex code files are generated in same path
 #                       If no arguments provided, source file = "./sample.s"
 #
@@ -86,7 +86,7 @@
 #
 # User Manual      : https://github.com/iammituraj/pqr5asm/blob/main/pqr5asm_imanual.pdf
 #
-# Copyright        : Open-source license, see LICENSE.
+# Copyright        : Open-source license.
 #################################################################################################################################
 
 # Import Libraries
@@ -136,7 +136,7 @@ def print_welcome():
     print("  / .___/\\__, /_/  /_____/\\__,_/____/_/ /_/ /_/ ")
     print(" /_/       /_/                                  ") 
     print("")
-    print("                  - RV32I Assembler for RISC-V CPUs")                    
+    print("                  - RV32IM Assembler for RISC-V CPUs")
     print("=====================================================") 
     print('')
     print(' OPEN-SOURCE licensed')
@@ -1255,14 +1255,14 @@ def imm2bin(immval, linenum, errsts, jbflag, laflag, jaflag, callflag):
                 return immval_bin
             # Label --> translation --> la instruction
             elif laflag == 1 and is_valid_label(immval.rstrip(':')):
-                if (pcrel_flag is True) and is_text_label[0]:  # PC relative address for la instruction
+                if pcrel_flag is True:  # PC relative address for la instruction
                     addr_of_label_int = addr_of_label(immval, labelid)
                     pc_reltv_addr_int = addr_of_label_int - pc[0]  # PC relative addr
                     if pc_reltv_addr_int < 0:
                         pc_reltv_addr_int = 0xffffffff + 1 + pc_reltv_addr_int  # PC relative addr 2's complement
                     immval_bin = '{:032b}'.format(pc_reltv_addr_int, base=16)  # PC relative addr signed 32-bit
                     return immval_bin
-                else:    # Absolute address for la instruction if referring to data symbol or pcrel_flag not set
+                else:    # Absolute address for la instruction if pcrel_flag not set
                     addr_of_label_int = addr_of_label(immval, labelid)
                     abs_addr_int = addr_of_label_int
                     immval_bin = '{:032b}'.format(abs_addr_int, base=16)  # Absolute addr signed 32-bit
@@ -1493,7 +1493,11 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
             opcode == 'SLL' or opcode == 'sll' or opcode == 'SLT' or opcode == 'slt' or \
             opcode == 'SLTU' or opcode == 'sltu' or opcode == 'XOR' or opcode == 'xor' or \
             opcode == 'SRL' or opcode == 'srl' or opcode == 'SRA' or opcode == 'sra' or \
-            opcode == 'OR' or opcode == 'or' or opcode == 'AND' or opcode == 'and':
+            opcode == 'OR' or opcode == 'or' or opcode == 'AND' or opcode == 'and' or \
+            opcode == 'MUL' or opcode == 'mul' or opcode == 'MULH' or opcode == 'mulh' or \
+            opcode == 'MULHSU' or opcode == 'mulhsu' or opcode == 'MULHU' or opcode == 'mulhu' or \
+            opcode == 'DIV' or opcode == 'div' or opcode == 'DIVU' or opcode == 'divu' or \
+            opcode == 'REM' or opcode == 'rem' or opcode == 'REMU' or opcode == 'remu':
         r_type_flag = 1
         opcode_bin = '0110011'
     elif opcode == 'MV' or opcode == 'mv':
@@ -2010,6 +2014,38 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         funct3 = '111'
         funct7 = '0000000'
         instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MUL' or opcode == 'mul'):
+        funct3 = '000'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MULH' or opcode == 'mulh'):
+        funct3 = '001'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MULHSU' or opcode == 'mulhsu'):
+        funct3 = '010'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'MULHU' or opcode == 'mulhu'):
+        funct3 = '011'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'DIV' or opcode == 'div'):
+        funct3 = '100'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'DIVU' or opcode == 'divu'):
+        funct3 = '101'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'REM' or opcode == 'rem'):
+        funct3 = '110'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
+    elif instr_error_flag == 0 and (opcode == 'REMU' or opcode == 'remu'):
+        funct3 = '111'
+        funct7 = '0000001'
+        instr_bin.append(funct7 + rs2_bin + rs1_bin + funct3 + rdt_bin + opcode_bin)
     elif instr_error_flag == 0 and (opcode == 'JALR' or opcode == 'jalr'):
         imm_bin_11_0 = imm_bin[20:32]  # imm[11:0]
         funct3 = '000'
@@ -2169,10 +2205,10 @@ def asm2bin(pc, line, linenum, error_flag, error_cnt, instr_bin):
         funct3 = '000'
         instr_bin.append(imm_bin_11_0 + rs1_bin + funct3 + rdt_bin + opcode_binarr[1])  # Write ADDI instruction
     elif instr_error_flag == 0 and ps_la_type_flag:  # = LUI/AUIPC + ADDI
-        if (pcrel_flag is True) and is_text_label[0]:
+        if pcrel_flag is True:
             opcode0 = opcode_binarr[0]  # No need to modify opcode, AUIPC
         else:
-            opcode0 = '0110111'  # Modify opcode to LUI if referring to data symbol or pcrel_flag not set or immediate address
+            opcode0 = '0110111'  # Modify opcode to LUI if pcrel_flag not set or immediate address
         # LUI or AUIPC
         if imm_bin[20] == '0':
             imm_bin_31_12 = imm_bin[0:20]  # imm[31:12]
@@ -2403,6 +2439,10 @@ baseaddr = 0  # Base address for .text section
 data_baseaddr = [0]  # Base address for .data section
 dptr = [0]
 pc = [0]
+
+# Offset address of binary loading is hardcoded as 0x0
+iram_offset = 0x00000000
+dram_offset = 0x00000000
 baseaddr = validate_assembly(f_src)
 dptr[0] = data_baseaddr[0]  # Data pointer points to base addr of .data
 pc[0] = baseaddr  # PC points to base addr of .text
@@ -2588,7 +2628,7 @@ if error_flag[0] == 0:
         # Write to .bin file
         f_desbin = open(f_des_path_imem_bin, "wb")
         imem_bytecnt = exp_instrcnt[0] * 4
-        write2bin(imem_bytecnt, baseaddr, imem_binary_data, f_desbin, 0)
+        write2bin(imem_bytecnt, iram_offset, imem_binary_data, f_desbin, 0)
         print('\n|| SUCCESS ||\nSuccessfully written to IMEM Binary code file...')        
         f_desbin.close()
 
@@ -2612,7 +2652,7 @@ if error_flag[0] == 0:
         # Write to .bin file
         f_desbin = open(f_des_path_dmem_bin, "wb")
         dmem_binary_data_temp = dmem_binary_data.copy()
-        write2bin(dmem_bytecnt[0], data_baseaddr[0], dmem_binary_data_temp, f_desbin, 1)
+        write2bin(dmem_bytecnt[0], dram_offset, dmem_binary_data_temp, f_desbin, 1)
         print('\n|| SUCCESS ||\nSuccessfully written to DMEM Binary code file...')
         f_desbin.close()
 
@@ -2625,8 +2665,8 @@ if error_flag[0] == 0:
         print('\n|| SUCCESS ||\nSuccessfully written to DMEM Hex code file...')
         f_des.close()
         print('\n|| BINARY GENERATOR SUMMARY ||')
-        print("IMEM binary size = {:>8} bytes @baseaddr = 0x{:08x}".format(imem_bytecnt+16, baseaddr))
-        print("DMEM binary size = {:>8} bytes @baseaddr = 0x{:08x}\n".format(dmem_bytecnt[0]+16, data_baseaddr[0]))
+        print("IMEM binary size = {:>8} bytes @offset address = 0x{:08x}".format(imem_bytecnt+16, iram_offset))
+        print("DMEM binary size = {:>8} bytes @offset address = 0x{:08x}\n".format(dmem_bytecnt[0]+16, dram_offset))
         print_pass()
     except:
         print('| FATAL: Unable to create Binary/Hex code file! Please check the path/permissions...')

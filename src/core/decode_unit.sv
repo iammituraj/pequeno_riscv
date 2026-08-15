@@ -30,7 +30,7 @@
 //----%%                    # Pipeline latency = 1 cycle
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Sept-2025
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -59,14 +59,20 @@ module decode_unit #(
    input  logic             aresetn            ,  // Asynchronous Reset; active-low
 
    `ifdef DBG
-   // Debug Interface  
+   // Debug Interface
+   `ifdef MULTDIV
+   output logic [11:0]      o_du_dbg           ,  // Debug signal
+   `else
    output logic [9:0]       o_du_dbg           ,  // Debug signal
+   `endif
    `endif
 
    // Interface with Fetch Unit (FU)
    input  logic [`XLEN-1:0] i_fu_pc            ,  // PC from FU
    input  logic [`ILEN-1:0] i_fu_instr         ,  // Instruction from FU
    input  logic             i_fu_br_taken      ,  // Branch taken status from FU
+   input  logic             i_fu_is_op_jal     ,  // JAL instruction flag from FU
+   input  logic             i_fu_is_op_branch  ,  // Branch instruction flag (legal) from FU
    `ifdef BPREDICT_DYN
    input  logic [GHRW-1:0]  i_fu_ghr_snapshot  ,  // GHR snapshot from FU
    `endif
@@ -99,8 +105,7 @@ module decode_unit #(
    output logic [`ILEN-1:0] o_exu_instr        ,  // Instruction decoded and sent to EXU
    `endif
    output logic             o_exu_bubble       ,  // Bubble to EXU
-   output logic             o_exu_pkt_valid    ,  // Packet valid to EXU
-   input  logic             i_exu_stall        ,  // Stall signal from EXU   
+   input  logic             i_exu_stall        ,  // Stall signal from EXU
 
    `ifdef RAS
    output logic             o_exu_is_call      ,  // CALL flag to EXU; Tapped by RAS predictor in FU
@@ -112,21 +117,27 @@ module decode_unit #(
 
    output logic             o_exu_is_alu_op    ,  // ALU operation flag to EXU
    output logic [3:0]       o_exu_alu_opcode   ,  // ALU opcode to EXU
+   `ifdef MULTDIV
+   output logic             o_exu_is_mult_op   ,  // MULT operation flag to EXU
+   output logic             o_exu_is_div_op    ,  // DIV operation flag to EXU
+   output logic             o_exu_is_upp_or_rem,  // Upper-word (MUL*) / Remainder (REM*) result select flag to EXU
+   output logic             o_exu_is_signed_rs0,  // rs0 operand signedness flag to EXU; for MULT/DIV
+   output logic             o_exu_is_signed_rs1,  // rs1 operand signedness flag to EXU; for MULT/DIV
+   `endif
    output logic [4:0]       o_exu_rs0          ,  // rs0 (source register-0) address to EXU
    output logic [4:0]       o_exu_rs0_cpy_ff   ,  // rs0 copy; Tapped by opfwd block...
+   output logic [4:0]       o_exu_rs0_cpy2_ff  ,  // rs0 copy-2; Tapped by opfwd block for WBU fwd path...
    output logic [4:0]       o_exu_rs1          ,  // rs1 (source register-1) address to EXU
    output logic [4:0]       o_exu_rs1_cpy_ff   ,  // rs1 copy; Tapped by opfwd block...
+   output logic [4:0]       o_exu_rs1_cpy2_ff  ,  // rs1 copy-2; Tapped by opfwd block for WBU fwd path...
    output logic [4:0]       o_exu_rdt          ,  // rdt (destination register) address to EXU
    output logic             o_exu_rdt_not_x0   ,  // rdt neq x0
    output logic [2:0]       o_exu_funct3       ,  // Funct3 to EXU
 
-   output logic             o_exu_is_r_type    ,  // R-type instruction flag to EXU
    output logic             o_exu_is_i_type    ,  // I-type instruction flag to EXU
    output logic             o_exu_is_s_type    ,  // S-type instruction flag to EXU
    output logic             o_exu_is_b_type    ,  // B-type instruction flag to EXU
    output logic             o_exu_is_u_type    ,  // U-type instruction flag to EXU; Tapped by opfwd block...
-   output logic             o_exu_is_rsb       ,  // RSB flag to EXU
-   output logic             o_exu_is_risb      ,  // RISB flag to EXU
    output logic             o_exu_is_riuj      ,  // RIUJ flag to EXU
    output logic             o_exu_is_jalr      ,  // JALR flag to EXU
    output logic             o_exu_is_j_or_jalr ,  // J/JALR flag to EXU
@@ -138,9 +149,9 @@ module decode_unit #(
    output logic [19:0]      o_exu_u_type_imm      // U-type immediate to EXU; Tapped by opfwd block...
 );
 
-//===================================================================================================================================================
+//==================================================================================================
 // Internal Registers/Signals
-//===================================================================================================================================================
+//==================================================================================================
 // Decoded from FU packet
 logic [4:0]       rf_reg_src0         ;  // Source register-0 address to RF
 logic [4:0]       rf_reg_src1         ;  // Source register-1 address to RF
@@ -148,13 +159,15 @@ logic [6:0]       fu_opcode           ;  // Opcode decoded from FU instr
 logic [2:0]       fu_funct3           ;  // Funct3 decoded from FU instr
 logic [6:0]       fu_funct7           ;  // Funct7 decoded from FU instr
 
+// Decoded rs0/rs1
+logic [4:0]       rs0_rg              ;  // rs0
+logic [4:0]       rs1_rg              ;  // rs1
+
 // Decoded flags --> Payload to EXU
 logic [5:0]       instr_type          ;  // {R, I, S, B, U, J} type instruction flag (one-hot encoded)
 logic [5:0]       instr_type_rg       ;  // Instruction type flag (registered)
 logic             is_rsb              ;  // RSB flag
-logic             is_rsb_rg           ;  // RSB flag (registered)
 logic             is_risb             ;  // RISB flag (registered)
-logic             is_risb_rg          ;  // RISB flag
 logic             is_jal              ;  // JAL flag
 logic             is_jalr             ;  // JALR flag
 logic             is_jalr_rg          ;  // JALR flag (registered)
@@ -175,6 +188,19 @@ logic             is_alu_op           ;  // ALU operation flag
 logic             is_alu_op_rg        ;  // ALU operation flag (registered)
 logic [3:0]       alu_opcode          ;  // ALU opcode
 logic [3:0]       alu_opcode_rg       ;  // ALU opcode (registered)
+`ifdef MULTDIV
+logic             is_muldiv_op        ;  // MULT/DIV (RV32M) operation flag
+logic             is_mult_op          ;  // MULT operation flag
+logic             is_mult_op_rg       ;  // MULT operation flag (registered)
+logic             is_div_op           ;  // DIV operation flag
+logic             is_div_op_rg        ;  // DIV operation flag (registered)
+logic             is_upp_or_rem       ;  // Upper-word (MUL*) / Remainder (REM*) result select flag
+logic             is_upp_or_rem_rg    ;  // Upper-word (MUL*) / Remainder (REM*) result select flag (registered)
+logic             is_signed_rs0       ;  // rs0 operand signedness flag; for MULT/DIV
+logic             is_signed_rs0_rg    ;  // rs0 operand signedness flag (registered)
+logic             is_signed_rs1       ;  // rs1 operand signedness flag; for MULT/DIV
+logic             is_signed_rs1_rg    ;  // rs1 operand signedness flag (registered)
+`endif
 
 // Decoded from buffered flags/instruction --> Payload to EXU
 logic             is_r_type           ;  // R-type instruction flag
@@ -183,7 +209,6 @@ logic             is_s_type           ;  // S-type instruction flag
 logic             is_b_type           ;  // B-type instruction flag
 logic             is_u_type           ;  // U-type instruction flag
 logic             is_j_type           ;  // J-type instruction flag
-logic [4:0]       reg_src0, reg_src1  ;  // Source register addresses
 logic [4:0]       reg_dest            ;  // Destination register address
 logic [6:0]       du_opcode           ;  // Opcode
 logic [2:0]       funct3              ;  // Funct3
@@ -193,7 +218,6 @@ logic [6:0]       funct7              ;  // Funct7
 logic [`XLEN-1:0] du_pc_rg            ;  // PC
 logic [`ILEN-1:0] du_instr_rg         ;  // Instruction
 logic             du_bubble_rg        ;  // Bubble
-logic             du_pkt_valid_rg     ;  // Packet valid
 logic             du_br_taken_rg      ;  // Branch taken status
 
 // Stall logic specific
@@ -203,16 +227,14 @@ logic             du_stall_ext        ;  // External stall generated by DU to up
 // Flush logic specific
 logic             flush               ;  // Flush from outside FU
 
-//===================================================================================================================================================
+//==================================================================================================
 // Logic to decode instruction flags
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to register the flags
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
-      instr_type_rg   <= 6'b000000 ;   
-      is_risb_rg      <= 1'b0 ; 
-      is_rsb_rg       <= 1'b0 ;
+      instr_type_rg   <= 6'b000000 ;
       is_jalr_rg      <= 1'b0 ;
       is_j_or_jalr_rg <= 1'b0 ;
       is_load_rg      <= 1'b0 ;
@@ -225,8 +247,6 @@ always_ff @(posedge clk or negedge aresetn) begin
       if (!stall) begin
          // Flags
          instr_type_rg   <= instr_type   ;
-         is_risb_rg      <= is_risb      ;
-         is_rsb_rg       <= is_rsb       ;
          is_jalr_rg      <= is_jalr      ;
          is_j_or_jalr_rg <= is_j_or_jalr ;
          is_load_rg      <= is_load      ; 
@@ -236,67 +256,76 @@ always_ff @(posedge clk or negedge aresetn) begin
    end
 end
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Combi logic to decode the flags
+// -------------------------------
+// 1. All R/I/S/B/U/J instructions are considered potentially legal and allowed to propagate forward
+// 2. Illegal ALU (R/I)/Load/Store instructions propagate forward; no exceptions supported currently
+// 3. Illegal Branch instructions DO NOT propagate forward
+////////////////////////////////////////////////////////////////////////////////////////////////////
+logic [3:0] instr_type_risu ;  // {R,I,S,U} bits of instr_type; J,B come from FU directly
+logic       is_ris, is_rs   ;  // R/I/S flags
 always_comb begin
-   case (fu_opcode)  
-      OP_ALU    : begin 
-                     instr_type = 6'b100000    ;  // R-type 
-                     is_risb    = ~i_fu_bubble ;
-                     is_rsb     = ~i_fu_bubble ; 
+   case (fu_opcode)
+      OP_ALU    : begin
+                     instr_type_risu = 4'b1000      ;  // R-type
+                     is_ris          = ~i_fu_bubble ;
+                     is_rs           = ~i_fu_bubble ;
                   end
-      //7'h73,  // ECALL/EBREAK/CSRR* 
+      //7'h73,  // ECALL/EBREAK/CSRR*
       //7'h0F,  // FENCE
       OP_JALR,
       OP_LOAD,
-      OP_ALUI   : begin 
-                     instr_type = 6'b010000    ;  // I-type 
-                     is_risb    = ~i_fu_bubble ; 
-                     is_rsb     = 1'b0         ; 
+      OP_ALUI   : begin
+                     instr_type_risu = 4'b0100      ;  // I-type
+                     is_ris          = ~i_fu_bubble ;
+                     is_rs           = 1'b0         ;
                   end
-      OP_STORE  : begin 
-                     instr_type = 6'b001000    ;  // S-type
-                     is_risb    = ~i_fu_bubble ; 
-                     is_rsb     = ~i_fu_bubble ;
-                  end
-      OP_BRANCH : begin 
-                     instr_type = 6'b000100    ;  // B-type 
-                     is_risb    = ~i_fu_bubble ; 
-                     is_rsb     = ~i_fu_bubble ; 
+      OP_STORE  : begin
+                     instr_type_risu = 4'b0010      ;  // S-type
+                     is_ris          = ~i_fu_bubble ;
+                     is_rs           = ~i_fu_bubble ;
                   end
       OP_LUI,
-      OP_AUIPC  : begin 
-                     instr_type = 6'b000010    ;  // U-type 
-                     is_risb    = 1'b0         ; 
-                     is_rsb     = 1'b0         ; 
+      OP_AUIPC  : begin
+                     instr_type_risu = 4'b0001      ;  // U-type
+                     is_ris          = 1'b0         ;
+                     is_rs           = 1'b0         ;
                   end
-      OP_JAL    : begin 
-                     instr_type = 6'b000001    ;  // J-type 
-                     is_risb    = 1'b0         ; 
-                     is_rsb     = 1'b0         ;
+      default   : begin
+                     instr_type_risu = 4'b0000      ;  // Not an R/I/S/U instruction
+                     is_ris          = 1'b0         ;
+                     is_rs           = 1'b0         ;
                   end
-      default   : begin 
-                     instr_type = 6'b000000    ;  // Illegal instruction!!
-                     is_risb    = 1'b0         ; 
-                     is_rsb     = 1'b0         ; 
-                  end  
    endcase
 end
+assign instr_type = {instr_type_risu[3:1], i_fu_is_op_branch, instr_type_risu[0], i_fu_is_op_jal} ;  // B, J flags directly encoded from FU
+assign is_risb    = is_ris | (i_fu_is_op_branch & ~i_fu_bubble) ;  // Branch is RISB-type
+assign is_rsb     = is_rs  | (i_fu_is_op_branch & ~i_fu_bubble) ;  // Branch is RSB-type
 
+// Decode instruction flags
 assign is_jal          = (fu_opcode == OP_JAL)  ;
 assign is_jalr         = (fu_opcode == OP_JALR) ;
 assign is_j_or_jalr    = (is_jal || is_jalr)    ;
 assign is_load         = (fu_opcode == OP_LOAD) ;
+`ifdef MULTDIV
+wire is_fu_opcode_eq_OP_ALU    = (fu_opcode == OP_ALU);
+wire is_fu_funct7_eq_F7_MULDIV = (fu_funct7 == F7_MULDIV);
+assign is_muldiv_op            = is_fu_opcode_eq_OP_ALU &&  is_fu_funct7_eq_F7_MULDIV;
+assign is_alur                 = is_fu_opcode_eq_OP_ALU && ~is_fu_funct7_eq_F7_MULDIV;  // Excludes RV32M MUL/DIV/REM encoding
+`else
 assign is_alur         = (fu_opcode == OP_ALU)  ;
+`endif
 assign is_alui         = (fu_opcode == OP_ALUI) ;
 assign is_lui          = (fu_opcode == OP_LUI)  ;
 assign is_auipc        = (fu_opcode == OP_AUIPC);
 assign is_lui_or_auipc = (is_lui || is_auipc)   ;
 assign is_sli_sri      = (fu_funct3 == F3_SLLX || fu_funct3 == F3_SRXX);
-assign is_illegal      = ~|(instr_type);
+assign is_illegal      = ~|(instr_type);  // Not R/I/S/B/U/J = Illegal; DBG only, not consumed by any functional logic
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to decode ALU operation
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to register the ALU operation parameters
 always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
@@ -320,67 +349,93 @@ assign is_alu_op  = (is_alur || is_alui || is_lui_or_auipc);
 always_comb begin
    case ({is_lui_or_auipc, (is_alui && !is_sli_sri)})
       2'b10   : alu_opcode = ALU_ADD ;                   // LUI/AUIPC requires ADD at ALU
-      2'b01   : alu_opcode = {fu_funct3, 1'b0} ;         // LSb = 0 if ALUI-I but not SLLI/SRLI/SRAI 
+      2'b01   : alu_opcode = {fu_funct3, 1'b0} ;         // LSb = 0 if ALUI-I but not SLLI/SRLI/SRAI
       default : alu_opcode = {fu_funct3, fu_funct7[5]};  // This will cover ALU-R, and ALU-I instructions: SLLI/SRLI/SRAI
    endcase
 end
 
-//===================================================================================================================================================
+`ifdef MULTDIV
+//==================================================================================================
+// Synchronous logic to decode MULT/DIV operations
+//==================================================================================================
+// Synchronous logic to register the MULT/DIV operation parameters
+always_ff @(posedge clk or negedge aresetn) begin
+   // Reset
+   if (!aresetn) begin
+      is_mult_op_rg    <= 1'b0 ;
+      is_div_op_rg     <= 1'b0 ;
+      is_upp_or_rem_rg <= 1'b0 ;
+      is_signed_rs0_rg <= 1'b0 ;
+      is_signed_rs1_rg <= 1'b0 ;
+   end
+   // Out of reset
+   else begin
+      // If not stalled
+      if (!stall) begin
+         is_mult_op_rg    <= is_mult_op    ;
+         is_div_op_rg     <= is_div_op     ;
+         is_upp_or_rem_rg <= is_upp_or_rem ;
+         is_signed_rs0_rg <= is_signed_rs0 ;
+         is_signed_rs1_rg <= is_signed_rs1 ;
+      end
+   end
+end
+
+// Decode MULT/DIV flags
+assign is_mult_op     = is_muldiv_op && ~fu_funct3[2] ;               // funct3 = 000..011 --> MUL/MULH/MULHSU/MULHU
+assign is_div_op      = is_muldiv_op &&  fu_funct3[2] ;               // funct3 = 100..111 --> DIV/DIVU/REM/REMU
+assign is_upp_or_rem  = fu_funct3[1] | (is_mult_op & fu_funct3[0]) ;  // funct3 = 001, 010, 011 --> MULH*, 110, 111 --> REM*
+assign is_signed_rs0  = is_mult_op ? ~(fu_funct3[1] & fu_funct3[0]) : ~fu_funct3[0] ;  // Unsigned only for MULHU / DIVU, REMU
+assign is_signed_rs1  = is_mult_op ? ~(fu_funct3[1])                : ~fu_funct3[0] ;  // Unsigned for MULHSU, MULHU / DIVU, REMU
+`endif
+
+//==================================================================================================
 // Synchronous logic to pipe PC
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin du_pc_rg <= PC_INIT ; end
-   else if (!stall)   begin du_pc_rg <= i_fu_pc ; end  // Pipe forward...
+//==================================================================================================
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin du_pc_rg <= i_fu_pc ; end  // Pipe forward...
 end
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe instruction
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin du_instr_rg <= `INSTR_NOP ; end
-   else if (!stall)   begin du_instr_rg <= i_fu_instr ; end  // Pipe forward...
+//==================================================================================================
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin du_instr_rg <= i_fu_instr ; end  // Pipe forward...
 end
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe bubble
-//===================================================================================================================================================
+//==================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_bubble_rg <= 1'b1        ; end
    else if (flush)    begin du_bubble_rg <= 1'b1        ; end  // Invalidate on flush
    else if (!stall)   begin du_bubble_rg <= i_fu_bubble ; end  // Pipe forward...
 end
 
-//===================================================================================================================================================
-// Synchronous logic to pipe packet valid
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin du_pkt_valid_rg <= 1'b0         ; end
-   else if (flush)    begin du_pkt_valid_rg <= 1'b0         ; end  // Invalidate on flush
-   else if (!stall)   begin du_pkt_valid_rg <= ~i_fu_bubble ; end  // Pipe forward valid...
-end
-
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe branch taken status
-//===================================================================================================================================================
+//==================================================================================================
 always_ff @(posedge clk or negedge aresetn) begin
    if      (!aresetn) begin du_br_taken_rg <= 1'b0          ; end
    else if (!stall)   begin du_br_taken_rg <= i_fu_br_taken ; end  // Pipe forward...
 end
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe GHR snapshot
-//===================================================================================================================================================
+//==================================================================================================
 `ifdef BPREDICT_DYN
 logic [GHRW-1:0] du_ghr_snapshot_rg ;  // GHR snapshot
-always_ff @(posedge clk or negedge aresetn) begin
-   if      (!aresetn) begin du_ghr_snapshot_rg <= '0 ; end
-   else if (!stall)   begin du_ghr_snapshot_rg <= i_fu_ghr_snapshot ; end  // Pipe forward...
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin du_ghr_snapshot_rg <= i_fu_ghr_snapshot ; end  // Pipe forward...
 end
 `endif
 
-//===================================================================================================================================================
+//==================================================================================================
 // Synchronous logic to pipe CALL, RAS prediction signals
-//===================================================================================================================================================
+//==================================================================================================
 `ifdef RAS
 logic             du_is_call_rg      ;  // CALL flag
 logic [`XLEN-1:0] du_ras_ret_addr_rg ;  // RAS predicted RET address
@@ -391,7 +446,6 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Reset   
    if (!aresetn) begin
       du_is_call_rg       <= 1'b0;
-      du_ras_ret_addr_rg  <= '0  ;
       du_ras_ret_taken_rg <= 1'b0;
       du_ras_snap_ptr_rg  <= '0  ;
       du_ras_snap_full_rg <= 1'b0;
@@ -399,57 +453,71 @@ always_ff @(posedge clk or negedge aresetn) begin
    // Out of reset
    else if (!stall) begin  // Pipe forward...
       du_is_call_rg       <= i_fu_is_call       ;
-      du_ras_ret_addr_rg  <= i_fu_ras_ret_addr  ;
       du_ras_ret_taken_rg <= i_fu_ras_ret_taken ;
       du_ras_snap_ptr_rg  <= i_fu_ras_snap_ptr  ;
       du_ras_snap_full_rg <= i_fu_ras_snap_full ;           
    end
 end
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall) begin  // Pipe forward...
+      du_ras_ret_addr_rg  <= i_fu_ras_ret_addr  ;         
+   end
+end
 `endif
 
-//===================================================================================================================================================
-// Synchronous logic to generate rs0/rs1 copies to relax fanout & timing at opfwd block
-//===================================================================================================================================================
-always_ff @(posedge clk or negedge aresetn) begin
-   if (!aresetn) begin 
-      o_exu_rs0_cpy_ff <= '0; 
-      o_exu_rs1_cpy_ff <= '0;
-   end 
-   else if (!stall)   begin
-      o_exu_rs0_cpy_ff <= i_fu_instr[19:15]; 
-      o_exu_rs1_cpy_ff <= i_fu_instr[24:20]; 
+//==================================================================================================
+// Synchronous logic to
+// --------------------
+// 1. Generate rs0/rs1 registered copies to relax fanout & timing at opfwd block
+// 2. Register rs0/rs1, masked to x0 when RISB/RSB=0
+//    --> Optimization for opfwd, pipeline interlock logic reduction
+//==================================================================================================
+// No reset for better PPA
+always_ff @(posedge clk) begin
+   if (!stall)   begin
+      o_exu_rs0_cpy_ff  <= is_risb ? i_fu_instr[19:15] : 5'd0;
+      o_exu_rs1_cpy_ff  <= is_rsb  ? i_fu_instr[24:20] : 5'd0;
+      o_exu_rs0_cpy2_ff <= is_risb ? i_fu_instr[19:15] : 5'd0;
+      o_exu_rs1_cpy2_ff <= is_rsb  ? i_fu_instr[24:20] : 5'd0;
+      rs0_rg            <= is_risb ? i_fu_instr[19:15] : 5'd0;
+      rs1_rg            <= is_rsb  ? i_fu_instr[24:20] : 5'd0;
    end
 end
 
-//===================================================================================================================================================
+//==================================================================================================
 //  Stall logic
-//===================================================================================================================================================
-assign stall        = i_exu_stall & du_pkt_valid_rg ;  // Only EXU can stall DU from outside. 
-                                                       // Conditioned with valid to burst unwanted pipeline bubbles.
+//==================================================================================================
+assign stall        = i_exu_stall & ~du_bubble_rg ;  // Only EXU can stall DU from outside. 
+                                                     // Conditioned with valid to burst unwanted pipeline bubbles.
 assign du_stall_ext = stall        ;
 assign o_fu_stall   = du_stall_ext ;  // Stall signal to FU
 
-//===================================================================================================================================================
+//==================================================================================================
 //  Flush logic
-//===================================================================================================================================================
+//==================================================================================================
 assign flush = i_exu_bu_flush ;  // Only EXU-BU can flush FU from outside
 
-//===================================================================================================================================================
-// ALl decoded signals
-//===================================================================================================================================================
+//==================================================================================================
+// All decoded signals
+//==================================================================================================
 `ifdef DBG
 // Debug Interface
+`ifdef MULTDIV
+assign o_du_dbg = {is_mult_op_rg, is_div_op_rg, is_lui_rg, is_jalr_rg, is_load_rg, is_alui_rg, instr_type_rg} ;
+`else
 assign o_du_dbg = {is_lui_rg, is_jalr_rg, is_load_rg, is_alui_rg, instr_type_rg} ;
 `endif
+`endif
 
-// Instruction decoded
+// Decoded from FU payload
 assign fu_opcode  = i_fu_instr[6:0]    ;
 assign fu_funct3  = i_fu_instr[14:12]  ;
 assign fu_funct7  = i_fu_instr[31:25]  ;
-assign reg_src0   = du_instr_rg[19:15] ;
-assign reg_src1   = du_instr_rg[24:20] ;
+
+// Decoded from DU registered instruction
 assign reg_dest   = du_instr_rg[11:7]  ;
-assign du_opcode  = du_instr_rg[6:0]   ;
+assign du_opcode  = du_instr_rg[6:0]   ;  // DBG only, not consumed by any functional logic
 assign is_r_type  = instr_type_rg[5]   ;
 assign is_i_type  = instr_type_rg[4]   ;
 assign is_s_type  = instr_type_rg[3]   ;
@@ -457,41 +525,48 @@ assign is_b_type  = instr_type_rg[2]   ;
 assign is_u_type  = instr_type_rg[1]   ;
 assign is_j_type  = instr_type_rg[0]   ;
 assign funct3     = du_instr_rg[14:12] ;
-assign funct7     = du_instr_rg[31:25] ;
+assign funct7     = du_instr_rg[31:25] ;  // DBG only, not consumed by any functional logic
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Read-side control signals to Register File (RF)
+////////////////////////////////////////////////////////////////////////////////////////////////////
 assign o_rf_rden   = ~i_fu_bubble      ;  // DU and RF (read-side) are at the same stage of pipeline
 assign rf_reg_src0 = i_fu_instr[19:15] ; 
 assign rf_reg_src1 = i_fu_instr[24:20] ;
 assign o_rf_rs0    = rf_reg_src0       ;  // Combi routing to sync the read-data from RF with DU payload to EXU 
 assign o_rf_rs1    = rf_reg_src1       ;  // Combi routing to sync the read-data from RF with DU payload to EXU
 
+////////////////////////////////////////////////////////////////////////////////////////////////////
 // Payload to Execution Unit (EXU)
-assign o_exu_pc           = du_pc_rg        ;
+////////////////////////////////////////////////////////////////////////////////////////////////////
+assign o_exu_pc           = du_pc_rg    ;
 `ifdef DBG
-assign o_exu_instr        = du_instr_rg     ;
+assign o_exu_instr        = du_instr_rg ;
 `endif
 assign o_exu_bubble       = du_bubble_rg    ;
-assign o_exu_pkt_valid    = du_pkt_valid_rg ;
 assign o_exu_bu_br_taken  = du_br_taken_rg  ;
 `ifdef BPREDICT_DYN
 assign o_exu_ghr_snapshot = du_ghr_snapshot_rg ;
 `endif                                                                                 
 assign o_exu_is_alu_op    = is_alu_op_rg  ;
 assign o_exu_alu_opcode   = alu_opcode_rg ;
-assign o_exu_rs0          = reg_src0      ;
-assign o_exu_rs1          = reg_src1      ;
-assign o_exu_rdt          = reg_dest      ;
-assign o_exu_rdt_not_x0   = |reg_dest     ;
-assign o_exu_funct3       = funct3        ;
+`ifdef MULTDIV
+assign o_exu_is_mult_op   = is_mult_op_rg    ;
+assign o_exu_is_div_op    = is_div_op_rg     ;
+assign o_exu_is_upp_or_rem= is_upp_or_rem_rg ;
+assign o_exu_is_signed_rs0= is_signed_rs0_rg ;
+assign o_exu_is_signed_rs1= is_signed_rs1_rg ;
+`endif
+assign o_exu_rs0          = rs0_rg    ;
+assign o_exu_rs1          = rs1_rg    ;
+assign o_exu_rdt          = reg_dest  ;
+assign o_exu_rdt_not_x0   = |reg_dest ;
+assign o_exu_funct3       = funct3    ;
   
-assign o_exu_is_r_type    = is_r_type  ;
 assign o_exu_is_i_type    = is_i_type  ;
 assign o_exu_is_s_type    = is_s_type  ;
 assign o_exu_is_b_type    = is_b_type  ;
 assign o_exu_is_u_type    = is_u_type  ;
-assign o_exu_is_rsb       = is_rsb_rg  ;
-assign o_exu_is_risb      = is_risb_rg ; 
 assign o_exu_is_riuj      = is_r_type | is_i_type | is_u_type | is_j_type ;  // R/I/U/J-type instruction?
 assign o_exu_is_jalr      = is_jalr_rg ;
 assign o_exu_is_j_or_jalr = is_j_or_jalr_rg ;
@@ -504,10 +579,10 @@ assign o_exu_ras_ret_taken= du_ras_ret_taken_rg ;
 assign o_exu_ras_snap_ptr = du_ras_snap_ptr_rg  ;
 assign o_exu_ras_snap_full= du_ras_snap_full_rg ;
 `endif
-assign o_exu_i_type_imm   = {du_instr_rg[31:20]}                                                       ;
-assign o_exu_s_type_imm   = {du_instr_rg[31:25], du_instr_rg[11:7]}                                    ;
-assign o_exu_b_type_imm   = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]}   ;
-assign o_exu_u_type_imm   = {du_instr_rg[31:12]}                                                       ;
+assign o_exu_i_type_imm   = {du_instr_rg[31:20]};
+assign o_exu_s_type_imm   = {du_instr_rg[31:25], du_instr_rg[11:7]};
+assign o_exu_b_type_imm   = {du_instr_rg[31], du_instr_rg[7], du_instr_rg[30:25], du_instr_rg[11:8]};
+assign o_exu_u_type_imm   = {du_instr_rg[31:12]};
 
 endmodule
 //###################################################################################################################################################

@@ -4,11 +4,13 @@ GCC_PREFIX = riscv64-unknown-elf
 GCC_VER    = 14.2.0
 
 # [CONFIGURE] Benchmark specific definitions
+# NOTE: ITERATIONS is not supported/used by this test program's C source
 ITERATIONS      = 400        # Iterations
 CLOCK_SPEED_MHZ = 12         # Core clock speed in MHz
 FLAGS_STR       = ""
 
 # Target architecture and tools
+# [CONFIGURE] ARCH=rv32im = M-extension enabled (HW mul/div). Override: `make ARCH=rv32im`
 ARCH    = rv32i
 ABI     = ilp32
 CC      = $(GCC_PREFIX)-gcc

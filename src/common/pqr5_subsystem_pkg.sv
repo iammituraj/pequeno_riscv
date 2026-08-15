@@ -26,7 +26,7 @@
 //----%% Description      : This Package contains all parameters/functions/tasks used by PQR5 Subsystem blocks.
 //----%%
 //----%% Tested on        : -
-//----%% Last modified on : Feb-2023
+//----%% Last modified on : Jul-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -45,21 +45,27 @@ import pqr5_core_pkg :: DSIZE    ;
 //===================================================================================================================================================
 // Functions/Tasks
 //===================================================================================================================================================
-// Function to dump Memory content
-function automatic void dump_mem (int fdump, int depth, int width, logic [DSIZE-1:0] ramarray [], string dumpname);      
+// Function to print Memory dump header
+function automatic void dump_mem_hdr (int fdump, string dumpname);
    $fdisplay(fdump, "+======================================");
-   $fdisplay(fdump, "| Pequeno RISC-V CPU v1.0 Simulation   ");
+   $fdisplay(fdump, "| Pequeno RISC-V CPU Simulation        ");
    $fdisplay(fdump, "+======================================");
-   $fdisplay(fdump, "| %0s", dumpname);   
+   $fdisplay(fdump, "| %0s", dumpname);
    $fdisplay(fdump, "+---------------+----------------------");
    $fdisplay(fdump, "| Address       | Data                 ");
    $fdisplay(fdump, "+---------------+----------------------");
-   for (int d=0; d<depth; d++) begin       
-       hex2txtf(fdump, width, d*4, "| 0x", "_", 4, "   : " );   // Print address
-       hex2txtf(fdump, width, ramarray[d], "0x ", " ", 2, "");  // Print data
-       $fwrite(fdump, "\n");
-   end
-   $fdisplay(fdump, "+======================================");   
+endfunction
+
+// Function to print one Memory dump row; caller indexes its own RAM array element-by-element
+function automatic void dump_mem_row (int fdump, int width, int d, logic [DSIZE-1:0] data);
+   hex2txtf(fdump, width, d*4, "| 0x", "_", 4, "   : " );   // Print address
+   hex2txtf(fdump, width, data, "0x ", " ", 2, "");         // Print data
+   $fwrite(fdump, "\n");
+endfunction
+
+// Function to print Memory dump footer
+function automatic void dump_mem_ftr (int fdump);
+   $fdisplay(fdump, "+======================================");
 endfunction
  
 endpackage

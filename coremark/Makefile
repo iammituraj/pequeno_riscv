@@ -35,6 +35,7 @@ CLOCKS_PER_SEC = 12000000   # Core clock speed
 FLAGS_STR      = ""
 
 # Target architecture and tools
+# [CONFIGURE] ARCH=rv32im = M-extension enabled (HW mul/div). Override: `make ARCH=rv32im`
 ARCH    = rv32i
 ABI     = ilp32
 CC      = $(GCC_PREFIX)-gcc

@@ -25,7 +25,7 @@
 //----%% Description      : Single-port RAM with synchronous reads and writes. Configurable data width and depth.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Nov-2022
+//----%% Last modified on : Jul-2026
 //----%% Notes            : Infers Block RAM on FPGAs in Read-First configuration. Use appropriate attribute to direct Synthesiser tool.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -109,8 +109,10 @@ end
 final begin
    fdump = $fopen(fdump_fname, "w");    
    if (!fdump) begin $display("| PQR5_SIM_IMEM: [ERROR] Can't dump to pqr5_imem_dump.txt!!");  end
-   else        begin dump_mem(fdump, DEPTH_2N, 32, ram, "IMEM Dump"); 
-                     $display("| PQR5_SIM_IMEM: [INFO ] Dumped IMEM content successfully..."); end 
+   else        begin dump_mem_hdr(fdump, "IMEM Dump");
+                     for (int d=0; d<DEPTH_2N; d++) dump_mem_row(fdump, 32, d, ram[d]);
+                     dump_mem_ftr(fdump);
+                     $display("| PQR5_SIM_IMEM: [INFO ] Dumped IMEM content successfully..."); end
    $fclose(fdump);       
 end
 end//GENERATE: DBG_IMEM_DUMP 

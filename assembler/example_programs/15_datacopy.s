@@ -2,7 +2,7 @@
 # To copy a data structure from one memory location to another
 
 .section .data
-.org 0x00000008           # Base address of the .data section
+.org 0x00000000           # Base address of the .data section
 
 stud_details_src:          # Source structure: roll_number, score, and name
     .byte 1                   # roll_number = 1 (1 byte)
@@ -14,7 +14,7 @@ stud_details_dst:          # Destination structure
     .zero 32                  # Reserve space for destination (aligned with source)
 
 .section .text
-.org 0x00000004               # Base address of the .text section
+.org 0x00000000               # Base address of the .text section
 
 # Main code to copy student_details from source to destination
 start:

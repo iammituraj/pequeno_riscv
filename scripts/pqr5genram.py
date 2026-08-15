@@ -26,7 +26,7 @@
 #                       <arg7> = Type (0=IRAM, 1=DRAM)
 #                       // If no arguments provided, source files = ./sample_hex.txt, ./ram.sv, assumes IRAM
 #
-# Last modified on : Aug-2024
+# Last modified on : Jul-2026
 # Compatiblility   : Python 3.9 tested
 #
 # Copyright        : Open-source license, see LICENSE.
@@ -176,7 +176,7 @@ for b in range(banks):
             des.append('// Supported for initialization by most FPGA Block RAMs')
             des.append('initial begin')
             if type == "0":
-                des.append("   ram = '{default: '0};")  # Only for IRAM, lets zero the locations...
+                des.append("   foreach (ram[i]) ram[i] = '0 ;")  # Only for IRAM, lets zero the locations...
             for addr in range(data_size):
                 maddr = addr + offset
                 try:

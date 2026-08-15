@@ -4,10 +4,11 @@ GCC_PREFIX = riscv64-unknown-elf
 GCC_VER    = 14.2.0
 
 # [CONFIGURE] Dhrystone specific definitions
-ITERATIONS     = 500        # Iterations of Dhrystone
+ITERATIONS     = 50000       # Iterations of Dhrystone
 CLOCKS_PER_SEC = 12000000   # Core clock speed
 
 # Target architecture and tools
+# [CONFIGURE] ARCH=rv32im = M-extension enabled (HW mul/div). Override: `make ARCH=rv32im`
 ARCH    = rv32i
 ABI     = ilp32
 CC      = $(GCC_PREFIX)-gcc

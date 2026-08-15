@@ -10,20 +10,24 @@
 # Vendor           : Chipmunk Logic™, https://chipmunklogic.com
 #
 # Description      : Open serial port and display the received serial data.
-#                    Running from command line: 
+#                    Running from command line:
 #                    python opserial.py <PORT> <BAUDRATE> <PARITY> <TIMEOUT in sec>
 #                    e.g: python opserial.py COM3 115200 N 1
 #                    All arguments have default values: COM3, 115200, N, 1
+#                    Run with -h/--help for full usage, or -l/--list to enumerate
+#                    available serial targets before picking PORT.
 #
-# Last modified on : Aug-2024
+# Last modified on : Jul-2026
 # Compatiblility   : Python 3.9 tested
 # Notes            : sudo dmesg | grep tty OR ls /dev/ttyUSB* - to list USB serial ports in Linux
+#                    OR just run: python opserial.py -l
 #
 # Copyright        : Open-source license, see LICENSE.
 #############################################################################################################
-# Import Libraries 
+# Import Libraries
 # If "serial" is not installed: <pip install pyserial>
 import serial
+import serial.tools.list_ports
 import sys
 
 # Global vars
@@ -34,8 +38,56 @@ def bytes_to_ascii(data):
     # Convert bytes to Extended ASCII characters
     return ''.join(chr(byte) for byte in data)
 
+# Function to print usage/help
+def print_help():
+    print("""
+[OPSERIAL]: Open serial port and display the received serial data.
+
+USAGE:
+    python opserial.py [PORT] [BAUDRATE] [PARITY] [TIMEOUT]
+    python opserial.py -l | --list
+    python opserial.py -h | --help
+
+ARGUMENTS (all positional, all optional -- defaults shown):
+    PORT       Serial device/port name.                 default = COM3   (Windows)
+                                                                    /dev/ttyUSBx (Linux)
+    BAUDRATE   Baud rate, e.g. 9600, 115200.              default = 115200
+    PARITY     One of N (none), E (even), O (odd),
+               M (mark), S (space).                       default = N
+    TIMEOUT    Read timeout in seconds.                   default = 0.1
+
+EXAMPLES:
+    python opserial.py                          # open default port/baud/parity/timeout
+    python opserial.py /dev/ttyUSB0 115200 N 1  # Linux, explicit args
+    python opserial.py COM5 921600 N 1          # Windows, explicit args
+    python opserial.py --list                   # list available serial targets first
+
+FINDING YOUR SERIAL TARGET (the PORT argument):
+    Run this script with -l/--list to enumerate currently connected serial devices
+    (uses pyserial's port scanner -- shows device path, description, and hardware ID).
+    Alternatively, on Linux: `ls /dev/ttyUSB*` or `sudo dmesg | grep tty`.
+""")
+
+# Function to list available serial ports/targets
+def list_ports():
+    ports = list(serial.tools.list_ports.comports())
+    if not ports:
+        print("[OPSERIAL]: No serial ports found. Is the device connected?")
+        return
+    print(f"[OPSERIAL]: Found {len(ports)} serial port(s):")
+    for p in ports:
+        print(f"    {p.device:<20} {p.description}  [{p.hwid}]")
+
 # MAIN()
 def main():
+    # Help/list flags checked first; take priority over positional args
+    if len(sys.argv) > 1 and sys.argv[1] in ('-h', '--help'):
+        print_help()
+        sys.exit(0)
+    if len(sys.argv) > 1 and sys.argv[1] in ('-l', '--list', '--list-ports'):
+        list_ports()
+        sys.exit(0)
+
     # Default values
     serial_port = 'COM3'  # /dev/ttyUSBx in Linux...
     baud_rate = 115200

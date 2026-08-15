@@ -26,7 +26,7 @@
 //----%% Description      : CDC Synchronizer synchronizes 1-bit signal from src. clock domain safely to dest. clock domain.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2018.3 Synthesiser
-//----%% Last modified on : Jan-2024
+//----%% Last modified on : Apr-2025
 //----%% Notes            : Attribute ASYNC_REG used to PAR the flops together in Xilinx FPGAs.
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE
