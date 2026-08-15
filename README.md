@@ -20,7 +20,7 @@ The project is fully driven by a comprehensive Makefile-based toolchain for end-
 
 This ecosystem lets you-
 * Configure the Pequeno R5 CPU and subsystem using **Configurator** tool.
-  Run the command "make configurator" to launch this menu-driven, interactive configurator
+  Run the command `make configurator` to launch this menu-driven, interactive configurator
 * Build example Assembly/C programs and compile it with the subsystem for simulation/synthesis.
 * Build Benchmark programs and compile it with subsystem for simulation/synthesis.
 * Run regressions to check sanity.
@@ -30,7 +30,7 @@ This streamlined setup allows users to quickly experiment with configurations, v
 
 Run `make help` to get the full set of Makefile recipes available.
 
-Please go through [readme_database](readme_database) and [build_notes](https://github.com/iammituraj/pequeno_riscv/blob/main/build_notes.txt) for complete info about the organisation of this repo database and how to setup the PQR5 build environment in your machine.
+Please go through [readme_database](readme_database) and [build_notes](https://github.com/iammituraj/pequeno_riscv/blob/main/build_notes.txt) for complete info about the organization of this repo database and how to setup the PQR5 build environment in your machine.
 
 ## Overview
 - RV32IM User-level ISA [v2.2](https://cs.brown.edu/courses/csci1952y/2024/assets/docs/riscv-spec-v2.2.pdf)
