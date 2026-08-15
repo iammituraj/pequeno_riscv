@@ -150,7 +150,7 @@ The Pequeno R5 CPU has been validated with CoreMark® and Dhrystone benchmarks w
 | **Dhrystone score** | 1.18 DMIPS/MHz, 50000 iterations
 | **Test platform** | FPGA
 | **CoreMark Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
-| **Dhrystone Report** | [dhrystone/dhrystone_run.png](https://raw.githack.com/iammituraj/pequeno_riscv/main/dhrystone/dhrystone_run.png)
+| **Dhrystone Report** | [dhrystone/dhrystone_run.png](https://raw.githack.com/iammituraj/pequeno_riscv/main/dhrystone/dhrystone_report.html)
 
 # Pequeno in Blog (Chipmunk Logic™)
 Follow the journey of the Pequeno in my blog, how this RISC-V CPU was designed in RTL from scratch: [pequeno blogs in chipmunklogic.com](https://chipmunklogic.com/category/pequeno-cpu/)
