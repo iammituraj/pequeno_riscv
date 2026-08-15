@@ -7,7 +7,7 @@
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Follow-blue?logo=linkedin)](https://www.linkedin.com/in/iammituraj/)
 [![Website](https://img.shields.io/badge/Visit-chipmunklogic.com-green?logo=Google-Chrome)](https://chipmunklogic.com)
 
-**Pequeno R5** (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-order RISC-V CPU Core compliant with RV32I ISA.
+**Pequeno R5** (meaning "_tiny_" in Spanish) aka _PQR5_ is a 5-staged pipelined in-order RISC-V CPU Core compliant with RV32IM ISA.
 The core is bare RTL designed in System Verilog, and is highly configurable. The implementation is balanced for area/performance, and portable across platforms like FPGA, ASIC.
 <p align="center">
   <img src="pequeno.jpg" alt="PQR5 Brand" width="400"/>
@@ -53,7 +53,7 @@ Please go through [readme_database](readme_database) and [build_notes](https://g
 ## Feature set
 | **CPU Feature Set**                        |                                           |
 |--------------------------------------------|-------------------------------------------|
-| **ISA**                                    | RV32I, user-level v2.2                    |
+| **ISA**                                    | RV32IM, user-level v2.2                    |
 | **Instructions**                           | All 45 base instructions                  |
 | **Cores**                                  | 1                                         |
 | **Issue**                                  | One instruction per cycle                 |
