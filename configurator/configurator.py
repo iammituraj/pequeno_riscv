@@ -700,9 +700,8 @@ def configure_benchmark():
     linker_length_set(linker_lines, "IRAM", iram_kb)
     linker_length_set(linker_lines, "DRAM", dram_kb)
 
-    if not svh_toggle_get(subsys_lines, "DBGUART"):
-        svh_toggle_set(subsys_lines, "DBGUART", True)
-        print(c("  -> DBGUART will be enabled (benchmark report is printed over the Debug UART).", C.CYAN))
+    # DBGUART is not set explicitly here: the BENCHMARK override in pqr5_subsystem_macros.svh
+    # already forces DBGUART on whenever BENCHMARK is defined.
     svh_value_set(subsys_lines, "DBGUART_BRATE", baud)
 
     svh_value_set(core_lines, "PC_INIT", "32'h0000_0000")
@@ -871,9 +870,8 @@ def configure_rvtest():
     linker_length_set(linker_lines, "IRAM", iram_kb)
     linker_length_set(linker_lines, "DRAM", dram_kb)
 
-    if not svh_toggle_get(subsys_lines, "DBGUART"):
-        svh_toggle_set(subsys_lines, "DBGUART", True)
-        print(c("  -> DBGUART will be enabled (test result is printed over the Debug UART).", C.CYAN))
+    # DBGUART is not set explicitly here: the BENCHMARK override in pqr5_subsystem_macros.svh
+    # already forces DBGUART on whenever BENCHMARK is defined.
     svh_value_set(subsys_lines, "DBGUART_BRATE", baud)
 
     svh_value_set(core_lines, "PC_INIT", "32'h0000_0000")
