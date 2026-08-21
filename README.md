@@ -2,7 +2,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/iammituraj/pequeno_riscv?style=social)](https://github.com/iammituraj/pequeno_riscv/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/iammituraj/pequeno_riscv?style=social)](https://github.com/iammituraj/pequeno_riscv/network)
-[![GitHub release](https://img.shields.io/github/v/release/iammituraj/pequeno_riscv?tag=v1.0.0)](https://github.com/iammituraj/pequeno_riscv/releases/tag/v1.1_release_150826)
+[![GitHub release](https://img.shields.io/github/v/release/iammituraj/pequeno_riscv?tag=v1.1)](https://github.com/iammituraj/pequeno_riscv/releases/tag/v1.1_final_release_21AUG2026)
 [![License](https://img.shields.io/github/license/iammituraj/pequeno_riscv)](https://github.com/iammituraj/pequeno_riscv/blob/main/LICENSE)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Follow-blue?logo=linkedin)](https://www.linkedin.com/in/iammituraj/)
 [![Website](https://img.shields.io/badge/Visit-chipmunklogic.com-green?logo=Google-Chrome)](https://chipmunklogic.com)
@@ -54,7 +54,8 @@ Please go through [readme_database](readme_database) and [build_notes](https://g
 | **CPU Feature Set**                        |                                           |
 |--------------------------------------------|-------------------------------------------|
 | **ISA**                                    | RV32IM, user-level v2.2                    |
-| **Instructions**                           | All 45 base instructions                  |
+| **Instructions**                           | All 45 instructions in RV32IM                |
+|                                            | 37 Base Integer + 8 MULT/DIV instructions |
 | **Cores**                                  | 1                                         |
 | **Issue**                                  | One instruction per cycle                 |
 | **Pipeline depth**                         | 5                                         |
@@ -101,6 +102,7 @@ These are base configurations. Combine them with Multiplier/Divider to get M/MDS
 ## Validation of the CPU core
 - The CPU core was verified using the standard [RISC-V tests and benchmarks](https://github.com/riscv-software-src/riscv-tests/tree/master/benchmarks).
 - The CPU core was also verified by the regression tests available in this package
+- The CPU core also passed CoreMark® and Dhrystone Benchmarks on board
 
 ## PQR5ASM, the tailor-made Assembler
    This RV32IM assembler supports all 45 base instructions + 16 pseudo instructions. All the example ASM programs in the repo uses this assembler
@@ -118,6 +120,7 @@ These are base configurations. Combine them with Multiplier/Divider to get M/MDS
 > The validation was done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
 
 ## FPGA Resource Utilization
+The core is highly configurable. The resource utilization, timing performance, and CPU performance depends on the configuration.
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
 | **Core version** | v1.1
@@ -146,8 +149,8 @@ The Pequeno R5 CPU has been validated with CoreMark® and Dhrystone benchmarks w
 |--------------------------------------------|-------------------------------------------|
 | **Core version** | v1.1
 | **Configuration**| MDSP Performance++
-| **CoreMark score** | 2.65 CoreMark/MHz, 400 iterations
-| **Dhrystone score** | 1.18 DMIPS/MHz, 50000 iterations
+| **CoreMark score** | **2.65 CoreMark/MHz**, 400 iterations
+| **Dhrystone score** | **1.18 DMIPS/MHz**, 50000 iterations
 | **Test platform** | FPGA
 | **CoreMark Report** | [coremark/coremark_report.html](https://raw.githack.com/iammituraj/pequeno_riscv/main/coremark/coremark_report.html)
 | **Dhrystone Report** | [dhrystone/dhrystone_run.png](https://raw.githack.com/iammituraj/pequeno_riscv/main/dhrystone/dhrystone_report.html)
