@@ -100,6 +100,11 @@
 `define MULT_PIPE_STAGES  2               // No. of DSP multiplier pipeline stages; valid value >=2. This macro is valid iff EN_FPGA_DSP_MULT is defined
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------
+// Other configurations
+//----------------------------------------------------------------------------------------------------------------------------------------------------
+`define EN_IMEM_FLUSH_BYP                 // Define this macro to enable flush bypass to IMEM IF; boosts CPU performance, but reduces timing slack on CPU->IMEM IF
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------
 // Test & Debug
 //----------------------------------------------------------------------------------------------------------------------------------------------------
 //`define TEST_PORTS                        // Define this macro to generate test ports from the core: x31 bits, boot flag

@@ -33,9 +33,13 @@
 //----%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 //###################################################################################################################################################
-//                                               I N S T R U C T I O N   M E M O R Y   -   W R A P P E R                                         
+//                                               I N S T R U C T I O N   M E M O R Y   -   W R A P P E R
 //###################################################################################################################################################
-module ram_top #(	
+// Header files
+`include "../include/pqr5_core_macros.svh"
+
+// Module definition
+module ram_top #(
    // Configurable Parameters
    parameter  DATA_W = 32   ,           // Data width of RAM
    parameter  DEPTH  = 1024 ,           // Depth of RAM
@@ -117,8 +121,12 @@ always @(posedge clk or negedge aresetn) begin
       reqid_rg      <= '0   ;
    end
    else if (i_flush) begin
-      data_valid_rg <= 1'b1    ; 
-      reqid_rg      <= i_reqid ;   
+`ifdef EN_IMEM_FLUSH_BYP
+      data_valid_rg <= 1'b1    ;  // Flush fetches new instruction
+`else
+      data_valid_rg <= 1'b0    ;  // Flush invalidates instruction
+`endif
+      reqid_rg      <= i_reqid ;
    end else if (ready) begin
       data_valid_rg <= i_valid ;
       reqid_rg      <= i_reqid ;
@@ -129,7 +137,11 @@ end
 // Continuous Assignments
 //===================================================================================================================================================
 // IRAM control signals from Master
-assign mstr_iram_en    = (i_valid && ready) | i_flush ;
+`ifdef EN_IMEM_FLUSH_BYP
+assign mstr_iram_en    = (i_valid && ready) | i_flush ;  // Flush fetches new instruction
+`else
+assign mstr_iram_en    = (i_valid && ready)           ;  // Flush invalidates instruction
+`endif
 assign mstr_iram_wen   = 1'b0         ;
 assign mstr_iram_addr  = i_addr       ;
 assign rd_en           = mstr_iram_en ;

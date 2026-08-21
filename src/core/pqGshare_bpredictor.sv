@@ -83,7 +83,7 @@ module pqGshare_bpredictor#(
    input  logic             i_instr_valid     ,  // Instruction valid
 
    // Branch Prediction Interface (to the Fetch)
-   output logic [`XLEN-1:0] o_branch_pc       ,  // Branch PC   
+   output logic [`XLEN-1:0] o_branch_pc_cmb   ,  // Branch PC; combinational, used by FU to mux and register   
    output logic             o_pred_btaken     ,  // Predicted branch taken status; '0'- not taken, '1'- taken   
    output logic [GHRW-1:0]  o_ghr_snapshot    ,  // GHR snapshot for which prediction was done
    output logic             o_flush           ,  // Flush generated on branch taken
@@ -215,22 +215,16 @@ assign o_flush        =  bp_flush ;
 // Branch PC computation after prediction
 logic [`XLEN-1:0] req_pc_offset ;  // Offset to be added to PC after prediction
 logic [`XLEN-1:0] branch_pc     ;  // Branch PC
-always_comb begin   
-   if      (i_is_op_jal)    begin req_pc_offset = i_immJ ; end  // JAL
-   else if (i_is_op_branch) begin req_pc_offset = i_immB ; end  // Branch
-   else                     begin req_pc_offset = '0     ; end  // PC
+always_comb begin
+   case ({i_is_op_jal, i_is_op_branch})
+      2'b10   : req_pc_offset = i_immJ ;  // JAL
+      2'b01   : req_pc_offset = i_immB ;  // Branch
+      default : req_pc_offset = '0     ;  // PC
+   endcase
 end
 assign branch_pc = i_req_pc + req_pc_offset ;
 
-// Register Branch PC and pipe it forward
-logic [`XLEN-1:0] branch_pc_rg ;  // Branch PC registered
-// No reset for better PPA
-always_ff @(posedge clk) begin
-   if (!i_stall) begin  
-      branch_pc_rg <= branch_pc ;
-   end
-end
-assign o_branch_pc = branch_pc_rg ;
+assign o_branch_pc_cmb = branch_pc ;  // Combinational, used by FU to mux and register
 
 // GHR snapshot
 assign o_ghr_snapshot = ghr_p1_ff ;

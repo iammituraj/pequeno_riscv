@@ -59,7 +59,7 @@ module static_bpredictor (
    input  logic             i_instr_valid     ,  // Instruction valid
 
    // Branch Prediction signals
-   output logic [`XLEN-1:0] o_branch_pc       ,  // Branch PC         
+   output logic [`XLEN-1:0] o_branch_pc_cmb   ,  // Branch PC; combinational, used by FU to mux and register       
    output logic             o_branch_taken    ,  // Branch taken status; '0'- not taken, '1'- taken
    output logic             o_flush              // Flush generated on branch taken
 );
@@ -69,10 +69,12 @@ module static_bpredictor (
 //---------------------------------------------------------------------------------------
 logic [`XLEN-1:0] pc_offset ;  // Offset to be added to PC after prediction
 logic [`XLEN-1:0] branch_pc ;  // Branch PC
-always_comb begin   
-   if      (i_is_op_jal)    begin pc_offset = i_immJ ; end  // JAL
-   else if (i_is_op_branch) begin pc_offset = i_immB ; end  // Branch
-   else                     begin pc_offset = '0     ; end  // PC
+always_comb begin
+   case ({i_is_op_jal, i_is_op_branch})
+      2'b10   : pc_offset = i_immJ ;  // JAL
+      2'b01   : pc_offset = i_immB ;  // Branch
+      default : pc_offset = '0     ;  // PC
+   endcase
 end
 assign branch_pc = i_pc + pc_offset ;
 
@@ -87,29 +89,22 @@ logic branch_taken ;
 assign branch_taken = (i_is_op_jal || (i_is_op_branch && i_immB[31])) & i_instr_valid ;  
 
 //---------------------------------------------------------------------------------------
-// Synchronous logic to register Branch taken status, Branch PC and pipe it forward
+// Synchronous logic to register Branch taken status and pipe it forward
 //---------------------------------------------------------------------------------------
-logic             branch_taken_rg ;  // Branch taken status registered
-logic [`XLEN-1:0] branch_pc_rg    ;  // Branch PC registered
+logic branch_taken_rg ;  // Branch taken status registered
 // Branch taken
 always_ff @(posedge clk or negedge aresetn) begin
-   // Reset   
+   // Reset
    if (!aresetn) begin
       branch_taken_rg <= 1'b0 ;
    end
    // Out of reset
-   else if (!i_stall) begin 
-      branch_taken_rg <= branch_taken ; 
+   else if (!i_stall) begin
+      branch_taken_rg <= branch_taken ;
    end
 end
-// Branch PC; No reset for better PPA
-always_ff @(posedge clk) begin
-   if (!i_stall) begin 
-      branch_pc_rg <= branch_pc ;
-   end
-end
-assign o_branch_taken = branch_taken_rg ;
-assign o_branch_pc    = branch_pc_rg    ;
+assign o_branch_taken  = branch_taken_rg ;
+assign o_branch_pc_cmb = branch_pc       ;  // Combinational, used by FU to mux and register
 
 //---------------------------------------------------------------------------------------
 // Synchronous logic to generate Branch Predict Flush

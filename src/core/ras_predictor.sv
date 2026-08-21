@@ -28,7 +28,7 @@
 //----%%                    - RAS prediction on every RET - If the stack is not empty, return address is popped out and flush is generated.
 //----%%
 //----%% Tested on        : Basys-3 Artix-7 FPGA board, Vivado 2019.2 Synthesiser
-//----%% Last modified on : Oct-2025
+//----%% Last modified on : Aug-2026
 //----%% Notes            : -
 //----%%                  
 //----%% Copyright        : Open-source license, see LICENSE.
@@ -74,9 +74,10 @@ module ras_predictor #(
    output logic               o_st_snap_full,  // Stack full flag
 
    // Prediction signals
-   output logic [`XLEN-1:0]   o_ret_addr    ,  // Return address predicted
-   output logic               o_ret_taken   ,  // Return taken status; '0'- not taken, '1'- taken
-   output logic               o_flush          // Flush generated on return taken
+   output logic [`XLEN-1:0]   o_ret_addr_cmb ,  // Return address predicted; combinational, used by FU to mux and register
+   output logic               o_ret_taken    ,  // Return taken status; '0'- not taken, '1'- taken
+   output logic               o_ret_taken_cmb,  // Return taken status; combinational, used by FU to mux and register
+   output logic               o_flush           // Flush generated on return taken
 );
 
 //==================================================================================================
@@ -89,7 +90,6 @@ logic               ret_taken_rg        ;  // RET taken status, registered
 logic               ras_flush_rg        ;  // RAS flush
 logic [`XLEN-1:0]   ret_addr_on_call    ;  // Return address to be stored in the stack on CALL
 logic [`XLEN-1:0]   ret_addr_on_ret     ;  // Return address popped from the stack on RET
-logic [`XLEN-1:0]   ret_addr_on_ret_rg  ;  // Return address popped from the stack on RET, registered
 
 logic               push_en, pop_en     ;  // Push and pop signals to stack
 logic               st_full,st_empty    ;  // Stack Full, Empty flags
@@ -184,15 +184,10 @@ always_ff @(posedge clk or negedge aresetn) begin
       ret_taken_rg <= ret_taken ;  // Pipe forward...         
    end
 end
-// RET addr; no reset for better PPA
-always_ff @(posedge clk) begin
-  if (!i_stall) begin 
-      ret_addr_on_ret_rg <= ret_addr_on_ret ;  // Pipe forward...
-   end
-end
-assign o_ret_addr  = ret_addr_on_ret_rg ;
-assign o_ret_taken = ret_taken_rg       ;
-assign ret_taken   = (is_ret_valid && !st_empty);  // If stack is not empty and is valid RET instr, then pop from RAS may have happened => RET is taken
+assign o_ret_addr_cmb  = ret_addr_on_ret ;
+assign o_ret_taken     = ret_taken_rg    ;
+assign o_ret_taken_cmb = ret_taken       ;
+assign ret_taken       = (is_ret_valid && !st_empty);  // If stack is not empty and is valid RET instr, then pop from RAS may have happened => RET is taken
 
 //==================================================================================================
 // RAS flush generation on RET address prediction
