@@ -120,7 +120,7 @@ These are base configurations. Combine them with Multiplier/Divider to get M/MDS
 > The validation was done on Xilinx Artix-7 based FPGA boards Basys-3, CMOD-A735T
 
 ## FPGA Resource Utilization
-The core is highly configurable. The resource utilization, timing performance, and CPU performance depends on the configuration.
+The CPU is highly configurable. The resource utilization, timing performance, and CPU performance depends on the configuration.
 | **Synthesis summary**                      |                                           |
 |--------------------------------------------|-------------------------------------------|
 | **Core version** | v1.1
@@ -129,15 +129,15 @@ The core is highly configurable. The resource utilization, timing performance, a
 
 | Configuration | LUTs | Flops | BRAMs | DSPs | CoreMark/MHz | Dhrystone (DMIPS/MHz) | Max clock freq (MHz)
 |---------------|------|-----------|-------|------|--------------|-------------------|--------------------|
-| Light         | **955** 🪶 | **565** 🪶 | 0 | 0 | 0.97 | 1.05 | 114
-| Performance   | 1168 | 724 | 0 | 0 | 1.01 | 1.11 | 114
-| Performance++ | 1308 | 802 | 0 | 0 | 1.03 | **1.19** 🚀 | 114
-| M Light         | 1389 | 888 | 0 | 0 | 1.85 | 1.04 | 114
+| Light         | **954** 🪶 | **565** 🪶 | 0 | 0 | 0.97 | 1.05 | 114
+| Performance   | 1094 | 642 | 0 | 0 | 1.01 | 1.11 | 114
+| Performance++ | 1266 | 770 | 0 | 0 | 1.03 | **1.19** 🚀 | 114
+| M Light         | 1388 | 888 | 0 | 0 | 1.85 | 1.04 | 114
 | M Performance   | 1528 | 965 | 0 | 0 | 1.92 | 1.08 | 114
-| M Performance++ | 1742 | 1125 | 0 | 0 | 1.93 | 1.15 | 114
-| MDSP Light         | 1375 | 820 | 0 | 4 | 2.50 | 1.07 | 114
+| M Performance++ | 1700 | 1093 | 0 | 0 | 1.93 | 1.15 | 114
+| MDSP Light         | 1374 | 820 | 0 | 4 | 2.50 | 1.07 | 114
 | MDSP Performance   | 1514 | 897 | 0 | 4 | 2.63 | 1.11 | 114
-| MDSP Performance++ | 1728 | 1057 | 0 | 4 | **2.65** 🚀 | **1.18** 🚀 | **114**
+| MDSP Performance++ | 1686 | 1025 | 0 | 4 | **2.65** 🚀 | **1.18** 🚀 | **114**
 
 
 > Max clock freq achieved in the fastest Artix-7 speed grade =  160 MHz (Performance++)
